@@ -135,7 +135,7 @@ private:
 
 // Owns every process-wide native resource exactly once. Destruction order is
 // Cache -> logical KV pool -> state -> Q8 backing -> governor ->
-// model package -> Metal backend.
+// optional model-weight residency lease -> model package -> Metal backend.
 class RuntimeResources final {
 public:
   [[nodiscard]] static std::unique_ptr<RuntimeResources>
@@ -180,7 +180,9 @@ public:
 private:
 
   RuntimeResources(std::unique_ptr<metal::MetalBackend> backend,
-                   model::ModelPackage model, ops::ExecutionPlans operators,
+                   model::ModelPackage model,
+                   metal::ResidencyLease weightResidency,
+                   ops::ExecutionPlans operators,
                    EngineMemoryPlan memoryPlan,
                    model::ModelMemoryPlan modelMemoryPlan,
                    RuntimeCacheIdentity cacheIdentity,
@@ -193,6 +195,7 @@ private:
 
   std::unique_ptr<metal::MetalBackend> backend_;
   model::ModelPackage model_;
+  metal::ResidencyLease weightResidency_;
   ops::ExecutionPlans operators_;
   EngineMemoryPlan memoryPlan_;
   model::ModelMemoryPlan modelMemoryPlan_;

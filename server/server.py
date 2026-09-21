@@ -321,6 +321,10 @@ class FrontendHandler(BaseHTTPRequestHandler):
                 "object": "model",
                 "created": 0,
                 "owned_by": "splash",
+                "capabilities": {
+                    "input_modalities": list(self.app.input_modalities),
+                    "output_modalities": ["text"],
+                },
             }
             if path == "/v1/models":
                 self._json(200, {"object": "list", "data": [model]})
@@ -391,6 +395,7 @@ class FrontendHandler(BaseHTTPRequestHandler):
             body = self._read_json_body()
             if not isinstance(body, dict):
                 raise APIError(400, "request body must be an object")
+            self.app.validate_input(body)
             deadline = self.app.request_deadline(body, started_at)
             if path == "/tokenize":
                 self._json(200, {"tokens": self.app.tokenize(body, deadline=deadline)})
@@ -1539,9 +1544,10 @@ def _parse_model_id(value):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("target")
-    parser.add_argument("draft")
-    parser.add_argument("--tokenizer", required=True)
+    parser.add_argument("target", nargs="?")
+    parser.add_argument("draft", nargs="?")
+    parser.add_argument("--tokenizer")
+    parser.add_argument("--local-package", type=Path)
     parser.add_argument(
         "--model", type=_parse_model_id, required=True, metavar="OWNER/REPO"
     )
@@ -1556,8 +1562,35 @@ def parse_args(argv=None):
     parser.add_argument("--api-key", default=os.environ.get("SPLASH_API_KEY"))
     parser.add_argument("--no-webui", action="store_true")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--binary", default=str(ROOT / "build" / "splash"))
+    parser.add_argument("--binary")
     args = parser.parse_args(argv)
+    if args.local_package is not None:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from install import launcher as local_models
+
+        if args.target is not None or args.draft is not None:
+            parser.error(
+                "--local-package cannot be combined with target/draft directories"
+            )
+        args.local_package = args.local_package.resolve()
+        try:
+            local_models.local_bundle_manifest(args.local_package)
+        except local_models.LauncherError as error:
+            parser.error(str(error))
+        if (
+            args.tokenizer is not None
+            and Path(args.tokenizer).resolve() != args.local_package
+        ):
+            parser.error("local packages must use their bundled tokenizer")
+        args.tokenizer = str(args.local_package)
+        args.binary = args.binary or str(ROOT / "build/flash-next/splash-flash")
+    else:
+        if args.target is None or args.draft is None or args.tokenizer is None:
+            parser.error(
+                "target, draft and --tokenizer are required without --local-package"
+            )
+        args.binary = args.binary or str(ROOT / "build/splash")
     if args.api_key is not None:
         try:
             validate_api_key(args.api_key)
@@ -1580,6 +1613,14 @@ def parse_args(argv=None):
 
 
 def _native_command(args):
+    if getattr(args, "local_package", None) is not None:
+        return [
+            args.binary,
+            "serve-flash-native",
+            str(args.local_package),
+            "auto" if args.max_context is None else str(args.max_context),
+            "auto" if args.max_memory is None else str(args.max_memory),
+        ]
     command = [
         args.binary,
         "serve-native",
@@ -1650,6 +1691,17 @@ def main():
                 "native runtime reported an invalid context window"
             )
         effective_context = readiness.max_context_tokens
+        local_package = getattr(args, "local_package", None)
+        input_modalities = (
+            ("text",) if local_package is not None else ("text", "image", "pdf")
+        )
+        if local_package is not None:
+            native_status = json.loads(runtime.status().json)
+            capabilities = native_status.get("capabilities", {})
+            if capabilities.get("input_modalities", ["text"]) != ["text"]:
+                raise engine_runtime.EngineUnhealthy(
+                    "local Flash-Next runtime must report text-only input"
+                )
         constraint_factory = ConstraintFactory(tokenizer)
         app = Frontend(
             tokenizer,
@@ -1662,6 +1714,7 @@ def main():
             constraint_factory,
             max_image_pixels=args.max_image_pixels,
             thinking_codec=thinking_codec,
+            input_modalities=input_modalities,
         )
         server.app = app
         server.server_activate()

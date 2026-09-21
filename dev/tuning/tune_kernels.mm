@@ -29,6 +29,7 @@
 #include <limits>
 #include <algorithm>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -46,12 +47,15 @@ using namespace splash::ops::tuning;
 constexpr std::string_view kUsage =
     "usage: tune-kernels METALLIB MODEL_ROOT [--seconds PER_KEY] [--pairs N]\n"
     "                    [--confirm [PAIRS]] [--candidates]\n"
+    "                    [--decode-only] [--linear-only]\n"
     "  --seconds  wall budget per operator key (default 10; attention gets 4x)\n"
     "  --pairs    paired samples per candidate, 12..64 (default 12)\n"
     "  --confirm  also time the complete prefill/decode graphs, defaults vs\n"
     "             winners, with PAIRS pairs each (default 12, the minimum)\n"
     "  --candidates  after each Linear key, list every timed candidate with its\n"
-    "             median GPU/wall gain over the default, best first\n";
+    "             median GPU/wall gain over the default, best first\n"
+    "  --decode-only  skip prefill measurements and prefill graph confirmation\n"
+    "  --linear-only  measure only Q4 Linear keys; confirmation uses full graphs\n";
 
 volatile std::sig_atomic_t interrupted = 0;
 void stopSignal(int) { interrupted = 1; }
@@ -60,6 +64,8 @@ struct Options final {
   MeasurementOptions measurement;
   std::optional<size_t> confirmPairs;
   bool candidates = false;
+  bool decodeOnly = false;
+  bool linearOnly = false;
 };
 
 double positiveNumber(std::string_view value, std::string_view option) {
@@ -93,6 +99,10 @@ Options parse(int argc, char **argv) {
       options.measurement.samplePairs = pairCount(argv[++i], option);
     } else if (option == "--candidates") {
       options.candidates = true;
+    } else if (option == "--decode-only") {
+      options.decodeOnly = true;
+    } else if (option == "--linear-only") {
+      options.linearOnly = true;
     } else if (option == "--confirm") {
       options.confirmPairs =
           hasValue ? pairCount(argv[++i], option) : kMinPairedSamples;
@@ -122,6 +132,8 @@ std::string_view name(LinearTile tile) {
   case LinearTile::N128: return "LinearTile::N128";
   case LinearTile::N256: return "LinearTile::N256";
   case LinearTile::Paired128: return "LinearTile::Paired128";
+  case LinearTile::N64: return "LinearTile::N64";
+  case LinearTile::Paired256: return "LinearTile::Paired256";
   }
   return "LinearTile::N128";
 }
@@ -271,7 +283,8 @@ struct Confirmation final {
 // the creation-time choices; only those two tables are ever installed.
 std::vector<Confirmation> confirm(const std::filesystem::path &metallib,
                                   const std::filesystem::path &modelRoot,
-                                  const OperatorChoices &winners, size_t pairs) {
+                                  const OperatorChoices &winners, size_t pairs,
+                                  bool decodeOnly) {
   engine::RuntimeBootstrapConfig config;
   config.resources.metallibPath = metallib;
   config.resources.modelRoot = modelRoot;
@@ -320,10 +333,12 @@ std::vector<Confirmation> confirm(const std::filesystem::path &metallib,
     resources.installOperatorChoices(choices);
     results.push_back({graph, evaluate(gpu), evaluate(wall)});
   };
-  measure("prefill 2048 rows", [&] {
-    auto step = runtime.warmupPrefill(model::ExecutionLimits::prefillTokenBudget);
-    return std::pair{runtime.telemetry().lastPrefillGpuSeconds, std::move(step)};
-  });
+  if (!decodeOnly) {
+    measure("prefill 2048 rows", [&] {
+      auto step = runtime.warmupPrefill(model::ExecutionLimits::prefillTokenBudget);
+      return std::pair{runtime.telemetry().lastPrefillGpuSeconds, std::move(step)};
+    });
+  }
   for (uint32_t width = 1; width <= model::ExecutionLimits::maximumBatchWidth; ++width) {
     measure("decode B" + std::to_string(width), [&] {
       auto step = runtime.warmupDecodeBatch(width);
@@ -398,8 +413,11 @@ int main(int argc, char **argv) {
       if (!admit(packageBytes(modelRoot),
                  [&] { package.emplace(model::loadModelPackage(backend, modelRoot)); }))
         throw std::runtime_error("model package memory admission denied or interrupted");
+      const std::span<const uint32_t> prefillRows =
+          options.decodeOnly ? std::span<const uint32_t>{}
+                             : std::span<const uint32_t>{kPrefillProbeRows};
       const auto workloads =
-          model::collectTuningWorkloads(*package, kPrefillProbeRows, kDecodeProbeWidths);
+          model::collectTuningWorkloads(*package, prefillRows, kDecodeProbeWidths);
       modelName = package->name();
 
       std::cout << "tune-kernels: " << device.deviceName << " (Apple GPU family "
@@ -408,6 +426,10 @@ int main(int argc, char **argv) {
                 << " pairs per candidate, " << options.measurement.maximumWallSeconds
                 << " s per key (attention " << options.measurement.maximumWallSeconds * 4
                 << " s per policy)\n\n";
+      if (options.decodeOnly || options.linearOnly)
+        std::cout << "scope: " << (options.decodeOnly ? "decode" : "prefill/decode")
+                  << ", " << (options.linearOnly ? "Q4 Linear only" : "all operators")
+                  << "\n\n";
 
       MeasurementOptions attention = options.measurement;
       attention.maximumWallSeconds = options.measurement.maximumWallSeconds * 4;
@@ -455,7 +477,7 @@ int main(int argc, char **argv) {
         }
         account(result.complete, didChange, result.failure);
       }
-      if (!interrupted) {
+      if (!interrupted && !options.decodeOnly && !options.linearOnly) {
         const PrefillAttentionPolicy policy{workloads.targetAttention};
         const auto result = tunePrefillAttentionPolicy(backend, admit, policy, attention, underPressure, stop);
         const bool didChange = result.complete && result.choice.configuration != PrefillAttentionConfig{};
@@ -470,7 +492,7 @@ int main(int argc, char **argv) {
         account(result.complete, didChange, result.failure);
       }
       for (uint32_t width : kDecodeProbeWidths) {
-        if (interrupted) break;
+        if (interrupted || options.linearOnly) break;
         const VerifyAttentionPolicy policy{workloads.targetAttention, width};
         const auto result = tuneVerifyAttentionPolicy(backend, admit, policy, attention, underPressure, stop);
         const bool didChange = result.complete && result.choice.configuration != verifyBaseline;
@@ -485,7 +507,7 @@ int main(int argc, char **argv) {
         account(result.complete, didChange, result.failure);
       }
       for (uint32_t width : kDecodeProbeWidths) {
-        if (interrupted) break;
+        if (interrupted || options.linearOnly) break;
         const DraftAttentionWorkload workload{workloads.draftAttention, width};
         const auto result = tuneDraftAttention(backend, admit, workload, options.measurement, underPressure, stop);
         const bool didChange = result.complete && result.choice.configuration != DraftAttentionConfiguration{};
@@ -498,7 +520,7 @@ int main(int argc, char **argv) {
         account(result.complete, didChange, result.failure);
       }
       for (const auto &input : workloads.moe) {
-        if (interrupted) break;
+        if (interrupted || options.linearOnly) break;
         const auto result = tuneMoe(backend, admit, input, options.measurement, underPressure, stop);
         const auto candidates = ExecutionPlans(backend.capabilities()).moeCandidates(input.workload);
         const MoeConfig baseline = candidates.front().config();
@@ -542,7 +564,8 @@ int main(int argc, char **argv) {
       if (options.confirmPairs && !interrupted && !choices.empty()) {
         std::cout << "confirming complete graphs (" << *options.confirmPairs
                   << " pairs each; defaults -> winners)...\n";
-        for (const auto &row : confirm(metallib, modelRoot, choices, *options.confirmPairs)) {
+        for (const auto &row : confirm(metallib, modelRoot, choices, *options.confirmPairs,
+                                       options.decodeOnly)) {
           std::cout << row.graph << '\n';
           printAssessment("GPU ", row.gpu);
           printAssessment("wall", row.wall);

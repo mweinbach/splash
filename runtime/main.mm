@@ -3,6 +3,7 @@
 #include "engine/FdTransport.hpp"
 #include "engine/Bootstrap.hpp"
 #include "engine/Status.hpp"
+#include "engine/PrefillTrace.hpp"
 #include "model/Model.hpp"
 #include "model/ModelDescriptor.hpp"
 
@@ -304,7 +305,14 @@ int runNative(const NativeArguments &arguments) {
   const auto recoveryDeadline =
       std::chrono::steady_clock::now() + kStartupMemoryRecoveryTimeout;
   bool reportedRecoveryWait = false;
+  const auto traceOptions = engine::NativePrefillTraceOptions::fromEnvironment();
+  const auto traceSlot = traceOptions.file.empty()
+      ? std::shared_ptr<std::weak_ptr<engine::NativePrefillTrace>>{}
+      : std::make_shared<std::weak_ptr<engine::NativePrefillTrace>>();
   std::unique_ptr<engine::RuntimeBootstrap> bootstrap;
+  // Destroy the optional sink before its model/backend references. The loop
+  // owns only a weak slot, so teardown cannot call a destroyed observer.
+  std::shared_ptr<engine::NativePrefillTrace> trace;
   while (!bootstrap) {
     if (transport.shutdownRequested())
       return static_cast<int>(engine::NativeProcessExit::CleanEof);
@@ -312,6 +320,12 @@ int runNative(const NativeArguments &arguments) {
     config.resources.memoryPressure = [&] { return pressureMonitor.pressure(); };
     config.resources.cancelled = [&] { return transport.shutdownRequested(); };
     config.nativeLoop.metrics = &metrics;
+    if (traceSlot) {
+      config.nativeLoop.batchCompletedObserver =
+          [traceSlot](const engine::NativePrefillCompletedMetadata &event) {
+            if (const auto observer = traceSlot->lock()) observer->completed(event);
+          };
+    }
     try {
       bootstrap = engine::RuntimeBootstrap::start(
           std::move(config), transport.outputSink(), statusProvider);
@@ -346,6 +360,15 @@ int runNative(const NativeArguments &arguments) {
   // The allocation/submission probe is only for interrupting bootstrap.
   bootstrap->resources().backend().setCancellationProbe({});
   published = bootstrap.get();
+  if (traceSlot) {
+    try {
+      trace = std::make_shared<engine::NativePrefillTrace>(
+          traceOptions, bootstrap->modelRuntime(), bootstrap->resources().backend());
+      *traceSlot = trace;
+    } catch (...) {
+      std::cerr << "prefill_trace_status: initialization_failed\n";
+    }
+  }
 
   transport.setControlHandler([&pressureMonitor, published,
                                memoryReporter = engine::MemoryStatusReporter{},

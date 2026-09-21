@@ -5,6 +5,7 @@
 #include <CommonCrypto/CommonDigest.h>
 
 #include <array>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <limits>
@@ -266,6 +267,7 @@ RuntimeResourcesError::RuntimeResourcesError(RuntimeResourceStage stage,
 
 RuntimeResources::RuntimeResources(
     std::unique_ptr<metal::MetalBackend> backend, model::ModelPackage model,
+    metal::ResidencyLease weightResidency,
     ops::ExecutionPlans operators,
     EngineMemoryPlan memoryPlan, model::ModelMemoryPlan modelMemoryPlan,
     RuntimeCacheIdentity cacheIdentity,
@@ -275,6 +277,7 @@ RuntimeResources::RuntimeResources(
     std::unique_ptr<KvPool> kvPool, std::unique_ptr<engine::Cache> cache,
     uint32_t maximumImagePatches)
     : backend_(std::move(backend)), model_(std::move(model)),
+      weightResidency_(std::move(weightResidency)),
       operators_(std::move(operators)),
       memoryPlan_(std::move(memoryPlan)),
       modelMemoryPlan_(std::move(modelMemoryPlan)),
@@ -317,7 +320,17 @@ RuntimeResources::create(const RuntimeResourcesConfig &config) {
   const uint64_t hostReserveBytes =
       EngineMemoryPolicy::hostAvailableReserveBytes(device.physicalMemoryBytes);
   try {
-    const uint64_t modelBytes = packedModelFileBytes(config.modelRoot);
+    uint64_t modelBytes = packedModelFileBytes(config.modelRoot);
+#if defined(SPLASH_METAL41_EXPERIMENT)
+    const uint64_t convertedBytes = model::predictConvertedModelExtraBytes(config.model);
+#elif defined(SPLASH_INT8_EXPERIMENT)
+    const uint64_t convertedBytes = model::predictINT8ModelExtraBytes(config.model);
+#endif
+#if defined(SPLASH_METAL41_EXPERIMENT) || defined(SPLASH_INT8_EXPERIMENT)
+    if (convertedBytes > std::numeric_limits<uint64_t>::max() - modelBytes)
+      throw std::overflow_error("converted model preflight byte count overflows");
+    modelBytes += convertedBytes;
+#endif
     const uint64_t hardBudgetBytes = EngineMemoryPolicy::hardBudgetBytes(
         device.recommendedMaxWorkingSetBytes, config.maximumMemoryBytes);
     // Reject an impossible weight budget before registering model buffers.
@@ -344,6 +357,14 @@ RuntimeResources::create(const RuntimeResourcesConfig &config) {
   try {
     package = model::loadModelPackage(*backend, config.modelRoot, config.model);
     requireLoadedModel(package);
+#if defined(SPLASH_INT8_EXPERIMENT)
+    const auto preconversion = model::int8PreconversionTelemetry();
+    if (preconversion.preconvertedProjections) {
+      logKernelStartup("Preconverted INT8 weights loaded: ",
+                       preconversion.preconvertedProjections,
+                       "; weight conversions: ", preconversion.convertedProjections, '.');
+    }
+#endif
   } catch (const metal::MetalAllocationError &error) {
     throw RuntimeResourcesError(RuntimeResourceStage::ModelLoading,
                                 error.what(), deviceStatusJson(device), {},
@@ -441,6 +462,21 @@ RuntimeResources::create(const RuntimeResourcesConfig &config) {
         *backend, elasticGrowthCeiling, hostReserveBytes);
     if (config.memoryPressure)
       memoryGovernor->setPressure(config.memoryPressure());
+    metal::ResidencyLease weightResidency;
+    const char *residencyEnvironment =
+        std::getenv("SPLASH_MODEL_WEIGHT_RESIDENCY");
+    if (residencyEnvironment && std::string_view(residencyEnvironment) == "1") {
+      // Optional startup-only diagnostic. Existing buffers/data and their
+      // allocation accounting stay unchanged; the backend resolves complete
+      // allocations and retains the mmap owners through safe shutdown.
+      const auto weights = model::immutableWeightBuffers(package);
+      weightResidency = backend->requestWeightResidency(weights, "Model weights");
+      if (!weightResidency)
+        throw std::runtime_error("model weight residency lease was not created");
+      logKernelStartup("Model weight residency requested for ",
+                       weightResidency.bufferCount(), " allocations (",
+                       weightResidency.byteCount(), " bytes).");
+    }
     std::string rejected;
     auto adoptChoices = [&](const ops::OperatorChoices &choices) {
       try {
@@ -506,7 +542,8 @@ RuntimeResources::create(const RuntimeResourcesConfig &config) {
     }
 
     auto result = std::unique_ptr<RuntimeResources>(new RuntimeResources(
-        std::move(backend), std::move(package), std::move(operators),
+        std::move(backend), std::move(package), std::move(weightResidency),
+        std::move(operators),
         std::move(memoryPlan),
         std::move(modelMemoryPlan), std::move(cacheIdentity),
         std::move(memoryGovernor), std::move(kvPages), std::move(stateStorage),

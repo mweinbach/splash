@@ -67,6 +67,24 @@
     }                                                                          \
   }
 
+// N64 compute tiles keep the package's StorageN=256 packing and the same
+// quant-group accumulation order. They are explicit offline tuning plans.
+Q4_DECODE_AFFINE(decode_linear_q4_n64, (q4_mpp_tile<64, false, false, 256>), 64,
+                 64)
+Q4_DECODE_AFFINE(decode_linear_q4_n64_m16,
+                 (q4_mpp_tile_batched<16, 64, false, false, 256>), 128, 64)
+Q4_DECODE_AFFINE(decode_linear_q4_n64_m24,
+                 (q4_mpp_tile_batched<24, 64, false, false, 256>), 192, 64)
+Q4_DECODE_AFFINE(decode_linear_q4_n64_m32,
+                 (q4_mpp_tile_batched<32, 64, false, false, 256>), 256, 64)
+Q4_DECODE_AUXILIARY(decode_linear_q4_n64_residual, residual,
+                    (q4_mpp_tile<64, false, true, 256>), 64, 64)
+Q4_DECODE_AUXILIARY(decode_linear_q4_n64_residual_m16, residual,
+                    (q4_mpp_tile_batched<16, 64, false, true, 256>), 128, 64)
+Q4_DECODE_AUXILIARY(decode_linear_q4_n64_residual_m24, residual,
+                    (q4_mpp_tile_batched<24, 64, false, true, 256>), 192, 64)
+Q4_DECODE_AUXILIARY(decode_linear_q4_n64_residual_m32, residual,
+                    (q4_mpp_tile_batched<32, 64, false, true, 256>), 256, 64)
 Q4_DECODE_AFFINE(decode_linear_q4_n128, (q4_mpp_tile<128, false, false, 256>), 64,
                  128)
 Q4_DECODE_AFFINE(decode_linear_q4_n128_m16,
@@ -87,6 +105,8 @@ Q4_DECODE_AUXILIARY(decode_linear_q4_n128_residual_paired, residual,
 Q4_DECODE_AUXILIARY(decode_linear_q4_n128_residual, residual,
                     (q4_mpp_tile<128, false, true, 256>), 64, 128)
 Q4_DECODE_GATE_UP(decode_linear_q4_n256_gate_up, (q4_mpp_tile<256, true, false>), 64, 256)
+Q4_DECODE_GATE_UP(decode_linear_q4_n256_gate_up_paired,
+                  (q4_mpp_tile<256, true, false, 256, true>), 64, 256)
 Q4_DECODE_AUXILIARY(decode_linear_q4_n128_residual_m16, residual,
                     (q4_mpp_tile_batched<16, 128, false, true, 256>), 128, 128)
 Q4_DECODE_AUXILIARY(decode_linear_q4_n128_residual_m24, residual,

@@ -22,6 +22,14 @@ namespace {
 using namespace splash;
 using namespace splash::ops;
 
+// Existing profile encodings keep their values when the new paired variant
+// is appended. N256 remains the sequential gate/up choice.
+static_assert(uint8_t(LinearTile::N128) == 0);
+static_assert(uint8_t(LinearTile::N256) == 1);
+static_assert(uint8_t(LinearTile::Paired128) == 2);
+static_assert(uint8_t(LinearTile::N64) == 3);
+static_assert(uint8_t(LinearTile::Paired256) == 4);
+
 void require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
@@ -54,6 +62,40 @@ struct ExpectedConfig final {
   uint32_t groups;
   LinearSimdgroups simdgroups = LinearSimdgroups::Eight;
 };
+
+// All non-baseline choices emitted by the 12-pair projection sweep and then
+// confirmed in complete decode graphs on the 80-core Apple10 GPU. This table
+// is measured evidence, independent of the production policy's inequalities.
+constexpr std::array kMeasuredN64Workloads{
+    LinearWorkload{{256, 5120}, 24},
+    LinearWorkload{{256, 5120}, 32},
+    LinearWorkload{{1280, 5120}, 24},
+    LinearWorkload{{1280, 5120}, 32},
+    LinearWorkload{{5120, 4096}, 24},
+    LinearWorkload{{5120, 4096}, 32},
+    LinearWorkload{{5120, 6144}, 24, LinearPhase::Decode, LinearEpilogue::Residual},
+    LinearWorkload{{5120, 6144}, 32, LinearPhase::Decode, LinearEpilogue::Residual},
+    LinearWorkload{{5120, 17408}, 24},
+    LinearWorkload{{5120, 17408}, 24, LinearPhase::Decode, LinearEpilogue::Residual},
+    LinearWorkload{{5120, 17408}, 32},
+    LinearWorkload{{5120, 17408}, 32, LinearPhase::Decode, LinearEpilogue::Residual},
+    LinearWorkload{{5120, 25600}, 24},
+    LinearWorkload{{5120, 25600}, 32},
+    LinearWorkload{{6144, 5120}, 24},
+    LinearWorkload{{6144, 5120}, 32},
+    LinearWorkload{{14336, 5120}, 24},
+    LinearWorkload{{14336, 5120}, 32},
+    LinearWorkload{{16640, 5120}, 24}};
+
+bool measuredN64Winner(LinearWorkload workload) {
+  return std::find(kMeasuredN64Workloads.begin(), kMeasuredN64Workloads.end(), workload) !=
+      kMeasuredN64Workloads.end();
+}
+
+// The separate lossless M8 gate/up measurement selects exactly one operator
+// key. Keep this literal evidence separate from the N64 width-three/four set.
+constexpr LinearWorkload kMeasuredPairedGateUpWorkload{
+    {17408, 5120}, 8, LinearPhase::Decode, LinearEpilogue::GateUp};
 
 // Tiles on the busiest core when `groups` threadgroups are placed round-robin
 // on `cores` and group g streams tiles g, g + groups, ...; the operator's
@@ -94,9 +136,16 @@ ExpectedConfig expectedDecode(uint32_t family, uint32_t cores, LinearMatrix matr
     return family >= 10 ? expectedGroups(tiles, cores, rule) : tiles;
   };
   if (epilogue == LinearEpilogue::GateUp) {
+    if (family == 10 && cores == 80 &&
+        LinearWorkload{matrix, lanes * 8, LinearPhase::Decode, epilogue} ==
+            kMeasuredPairedGateUpWorkload)
+      return {LinearTile::Paired256, 68};
     if (family >= 10) return {LinearTile::N256, expectedGroups(tiles256, cores, gateUp)};
     return {LinearTile::N256, std::min(tiles256, uint32_t(std::lround(2.25 * cores)))};
   }
+  if (family == 10 && cores == 80 &&
+      measuredN64Winner({matrix, lanes * 8, LinearPhase::Decode, epilogue}))
+    return {LinearTile::N64, matrix.outputSize / 64};
   if (lanes == 1) return {LinearTile::Paired128, groups(tiles128, n128)};
   if (lanes == 3 && (family >= 10 ||
       (family == 9 && epilogue == LinearEpilogue::None)))
@@ -108,10 +157,13 @@ ExpectedConfig expectedDecode(uint32_t family, uint32_t cores, LinearMatrix matr
 
 std::string expectedPipeline(const ExpectedConfig &expected, uint32_t lanes,
                              LinearEpilogue epilogue) {
+  if (epilogue == LinearEpilogue::GateUp && expected.tile == LinearTile::Paired256)
+    return "decode_linear_q4_n256_gate_up_paired";
   if (epilogue == LinearEpilogue::GateUp)
     return lanes == 1 ? "decode_linear_q4_n256_gate_up" : lanes == 2 ? "decode_linear_q4_n256_gate_up_m16"
         : lanes == 3 ? "decode_linear_q4_n256_m24" : "decode_linear_q4_n256_m32";
-  std::string name = expected.tile == LinearTile::N256 ? "decode_linear_q4_n256" : "decode_linear_q4_n128";
+  std::string name = expected.tile == LinearTile::N64 ? "decode_linear_q4_n64" :
+      expected.tile == LinearTile::N256 ? "decode_linear_q4_n256" : "decode_linear_q4_n128";
   if (epilogue == LinearEpilogue::Residual) name += "_residual";
   if (expected.tile == LinearTile::Paired128) return name + "_paired";
   if (lanes > 1) name += "_m" + std::to_string(lanes * 8);
@@ -253,6 +305,398 @@ void baselinePlans() {
           "one-lane pipelining or prefill tile rule changed for the measured shapes");
 }
 
+void measuredDecodePolicy() {
+  DeviceCapabilities device;
+  device.appleGpuFamily = 10;
+  device.gpuCoreCount = 80;
+  Q4Linear linear(device);
+  struct Call final { LinearMatrix matrix; LinearEpilogue epilogue; };
+  // The complete 48-key sweep includes every selected and kept projection,
+  // not just an example of the faster geometry.
+  const std::array measuredCalls{
+      Call{{256, 5120}, LinearEpilogue::None},
+      Call{{1280, 5120}, LinearEpilogue::None},
+      Call{{5120, 4096}, LinearEpilogue::None},
+      Call{{5120, 6144}, LinearEpilogue::Residual},
+      Call{{5120, 17408}, LinearEpilogue::None},
+      Call{{5120, 17408}, LinearEpilogue::Residual},
+      Call{{5120, 25600}, LinearEpilogue::None},
+      Call{{6144, 5120}, LinearEpilogue::None},
+      Call{{14336, 5120}, LinearEpilogue::None},
+      Call{{16640, 5120}, LinearEpilogue::None},
+      Call{{17408, 5120}, LinearEpilogue::GateUp},
+      Call{{248320, 5120}, LinearEpilogue::None}};
+  uint32_t selectedKeys = 0;
+  uint32_t pairedGateUpKeys = 0;
+  for (const auto &call : measuredCalls) {
+    for (uint32_t lanes = 1; lanes <= 4; ++lanes) {
+      const LinearWorkload workload{call.matrix, lanes * 8, LinearPhase::Decode, call.epilogue};
+      const auto plan = linear.plan(workload);
+      const auto expected = expectedDecode(10, 80, call.matrix, lanes, call.epilogue);
+      require(plan.configuration() == LinearConfig{expected.tile, expected.groups, expected.simdgroups},
+              "80-core decode policy differs from the complete measured choice set");
+      const bool selected = plan.configuration().tile == LinearTile::N64;
+      require(selected == measuredN64Winner(workload),
+              "80-core decode changed a measured nonwinner or omitted a winner");
+      selectedKeys += selected;
+      const bool paired = plan.configuration().tile == LinearTile::Paired256;
+      require(paired == (workload == kMeasuredPairedGateUpWorkload),
+              "paired gate/up default changed an unmeasured operator key");
+      pairedGateUpKeys += paired;
+      const auto candidates = linear.candidates(workload);
+      require(!candidates.empty() && candidates.size() <= 40 &&
+                  candidates.front().configuration() == plan.configuration(),
+              "measured decode baseline is not first in the bounded candidate set");
+    }
+  }
+  require(selectedKeys == kMeasuredN64Workloads.size(),
+          "80-core decode did not select all 19 emitted winners");
+  require(pairedGateUpKeys == 1,
+          "80-core decode did not select exactly the measured M8 gate/up key");
+
+  for (const auto workload : kMeasuredN64Workloads) {
+    const auto config = linear.plan(workload).configuration();
+    require(config == LinearConfig{LinearTile::N64, workload.matrix.outputSize / 64},
+            "measured winner did not retain its exact full N64 grid and scope");
+    for (const uint32_t family : {9U, 10U, 11U}) {
+      for (const uint32_t cores : {0U, 16U, 20U, 40U, 64U, 79U, 81U}) {
+        auto otherDevice = device;
+        otherDevice.appleGpuFamily = family;
+        otherDevice.gpuCoreCount = cores;
+        const auto unchanged = Q4Linear(otherDevice).plan(workload).configuration();
+        const auto prior = expectedDecode(family, cores ? cores : 64, workload.matrix,
+                                          workload.rows / 8, workload.epilogue);
+        require(unchanged == LinearConfig{prior.tile, prior.groups, prior.simdgroups} &&
+                    unchanged.tile != LinearTile::N64,
+                "measured 80-core policy escaped onto an uncalibrated device");
+      }
+    }
+    for (const uint32_t family : {9U, 11U}) {
+      auto otherFamily = device;
+      otherFamily.appleGpuFamily = family;
+      const auto unchanged = Q4Linear(otherFamily).plan(workload).configuration();
+      const auto prior = expectedDecode(family, 80, workload.matrix,
+                                        workload.rows / 8, workload.epilogue);
+      require(unchanged == LinearConfig{prior.tile, prior.groups, prior.simdgroups},
+              "measured 80-core policy changed another GPU family");
+    }
+  }
+  for (const LinearMatrix matrix : {LinearMatrix{2048, 4096}, LinearMatrix{2048, 16384},
+                                    LinearMatrix{256, 4864}, LinearMatrix{5120, 3840}}) {
+    for (const uint32_t rows : {24U, 32U}) {
+      for (const auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual}) {
+        const auto config = linear.plan({matrix, rows, LinearPhase::Decode, epilogue}).configuration();
+        const auto prior = expectedDecode(10, 80, matrix, rows / 8, epilogue);
+        require(config == LinearConfig{prior.tile, prior.groups, prior.simdgroups} &&
+                    config.tile != LinearTile::N64,
+                "80-core N64 default broadened beyond the measured input geometry");
+      }
+    }
+  }
+}
+
+void pairedGateUpContracts() {
+  DeviceCapabilities measuredDevice;
+  measuredDevice.appleGpuFamily = 10;
+  measuredDevice.gpuCoreCount = 80;
+  Q4Linear measured(measuredDevice);
+  const LinearConfig promoted{LinearTile::Paired256, 68, LinearSimdgroups::Eight};
+  const auto selected = measured.plan(kMeasuredPairedGateUpWorkload);
+  require(selected.configuration() == promoted && selected.tileColumns() == 256 &&
+              selected.storageRows() == 8 && selected.threadsPerThreadgroup() == 256 &&
+              selected.pipeline() == "decode_linear_q4_n256_gate_up_paired" &&
+              selected.secondPipeline().empty() && !selected.sumsBytes() &&
+              !selected.downSumsBytes() && !selected.gateScratchBytes(),
+          "paired M8 gate/up changed its fused dispatch or zero-workspace contract");
+
+  for (uint32_t family : {9U, 10U, 11U}) {
+    for (uint32_t reportedCores : {0U, 16U, 20U, 40U, 64U, 79U, 80U, 81U, 96U}) {
+      auto device = measuredDevice;
+      device.appleGpuFamily = family;
+      device.gpuCoreCount = reportedCores;
+      const auto plan = Q4Linear(device).plan(kMeasuredPairedGateUpWorkload);
+      const bool calibrated = family == 10 && reportedCores == 80;
+      const auto expected = expectedDecode(family, reportedCores ? reportedCores : 64,
+          kMeasuredPairedGateUpWorkload.matrix, 1, LinearEpilogue::GateUp);
+      require(plan.configuration() == LinearConfig{expected.tile, expected.groups, expected.simdgroups} &&
+                  (plan.configuration().tile == LinearTile::Paired256) == calibrated &&
+                  plan.pipeline() == expectedPipeline(expected, 1, LinearEpilogue::GateUp),
+              "paired gate/up default escaped the measured device profile");
+    }
+  }
+
+  for (const LinearMatrix matrix : {LinearMatrix{512, 256}, LinearMatrix{768, 768},
+                                   LinearMatrix{17152, 5120}, LinearMatrix{17664, 5120},
+                                   LinearMatrix{17408, 4864}, LinearMatrix{17408, 5376},
+                                   LinearMatrix{6144, 2048}}) {
+    const LinearWorkload workload{matrix, 8, LinearPhase::Decode, LinearEpilogue::GateUp};
+    const auto oldDefault = measured.plan(workload);
+    const auto expected = expectedDecode(10, 80, matrix, 1, LinearEpilogue::GateUp);
+    require(oldDefault.configuration() == LinearConfig{expected.tile, expected.groups, expected.simdgroups} &&
+                oldDefault.configuration().tile == LinearTile::N256 &&
+                oldDefault.pipeline() == "decode_linear_q4_n256_gate_up",
+            "paired gate/up default broadened beyond the measured matrix");
+    // Explicit offline plans remain usable for every aligned M8 gate/up
+    // matrix. Only the measured default is shape- and device-bound.
+    for (uint32_t groups : {1U, matrix.outputSize / 256}) {
+      const auto plan = Q4Linear::plan(workload, {LinearTile::Paired256, groups});
+      require(plan.configuration().tile == LinearTile::Paired256 &&
+                  plan.configuration().groups == groups && plan.tileColumns() == 256 &&
+                  plan.threadsPerThreadgroup() == 256 && plan.secondPipeline().empty() &&
+                  plan.pipeline() == "decode_linear_q4_n256_gate_up_paired" &&
+                  !plan.sumsBytes() && !plan.downSumsBytes() && !plan.gateScratchBytes(),
+              "explicit paired M8 gate/up plan was incorrectly measurement-bound");
+    }
+    const auto candidates = measured.candidates(workload);
+    require(!candidates.empty() && candidates.size() <= 40 &&
+                std::any_of(candidates.begin(), candidates.end(), [](const LinearPlan &plan) {
+                  return plan.configuration().tile == LinearTile::Paired256;
+                }) &&
+                std::any_of(candidates.begin(), candidates.end(), [](const LinearPlan &plan) {
+                  return plan.configuration().tile == LinearTile::N256;
+                }),
+            "offline M8 gate/up candidates omitted paired or legacy sequential plans");
+  }
+
+  // Prior defaults for this matrix's generic affine/residual workloads. M24
+  // already falls within the shipped N64 geometry rule even though it is not
+  // one of the 19 literal winners in the separate measured projection table.
+  constexpr std::array legacyNonGateDefaults{
+      ExpectedConfig{LinearTile::Paired128, 136},
+      ExpectedConfig{LinearTile::N128, 136},
+      ExpectedConfig{LinearTile::N64, 272},
+      ExpectedConfig{LinearTile::N128, 136}};
+  for (uint32_t rows : {8U, 16U, 24U, 32U}) {
+    for (auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual,
+                         LinearEpilogue::GateUp}) {
+      const LinearWorkload workload{kMeasuredPairedGateUpWorkload.matrix, rows,
+                                    LinearPhase::Decode, epilogue};
+      const bool supported = rows == 8 && epilogue == LinearEpilogue::GateUp;
+      const auto candidates = measured.candidates(workload);
+      require(!candidates.empty() && candidates.size() <= 40 &&
+                  std::any_of(candidates.begin(), candidates.end(), [](const LinearPlan &plan) {
+                    return plan.configuration().tile == LinearTile::Paired256;
+                  }) == supported,
+              "paired gate/up candidate escaped its M8 epilogue set");
+      if (!supported) {
+        rejects([&] { (void)Q4Linear::plan(workload, {LinearTile::Paired256, 1}); });
+        const auto expected = epilogue == LinearEpilogue::GateUp
+            ? expectedDecode(10, 80, workload.matrix, rows / 8, epilogue)
+            : legacyNonGateDefaults[rows / 8 - 1];
+        require(measured.plan(workload).configuration() ==
+                    LinearConfig{expected.tile, expected.groups, expected.simdgroups} &&
+                    measured.plan(workload).configuration().tile != LinearTile::Paired256,
+                "paired gate/up changed another decode width or epilogue");
+      }
+    }
+  }
+  for (uint32_t rows : {1U, 8U, 32U, 2048U}) {
+    for (auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual,
+                         LinearEpilogue::UpWithGate}) {
+      const LinearWorkload workload{kMeasuredPairedGateUpWorkload.matrix, rows,
+                                    LinearPhase::Prefill, epilogue};
+      const auto candidates = measured.candidates(workload);
+      require(!candidates.empty() && candidates.size() <= 40 &&
+                  std::none_of(candidates.begin(), candidates.end(), [](const LinearPlan &plan) {
+                    return plan.configuration().tile == LinearTile::Paired256;
+                  }) &&
+                  measured.plan(workload).configuration().tile != LinearTile::Paired256,
+              "paired M8 gate/up escaped into prefill");
+      rejects([&] { (void)Q4Linear::plan(workload, {LinearTile::Paired256, 0}); });
+      rejects([&] { (void)Q4Linear::plan(workload, {LinearTile::Paired256, 1}); });
+    }
+  }
+
+  const LinearWorkload generic{{512, 256}, 8, LinearPhase::Decode, LinearEpilogue::GateUp};
+  for (uint32_t groups : {0U, 3U})
+    rejects([&] { (void)Q4Linear::plan(generic, {LinearTile::Paired256, groups}); });
+  for (auto scope : {LinearSimdgroups::Four, static_cast<LinearSimdgroups>(0),
+                     static_cast<LinearSimdgroups>(2), static_cast<LinearSimdgroups>(16)})
+    rejects([&] { (void)Q4Linear::plan(generic, {LinearTile::Paired256, 1, scope}); });
+  for (const LinearMatrix matrix : {LinearMatrix{128, 256}, LinearMatrix{384, 256},
+                                   LinearMatrix{512, 64}, LinearMatrix{512, 128},
+                                   LinearMatrix{512, 320}})
+    rejects([&] { (void)Q4Linear::plan(
+        {matrix, 8, LinearPhase::Decode, LinearEpilogue::GateUp}, {LinearTile::Paired256, 1}); });
+
+  // Legacy N256 overrides preserve the original sequential kernel even on
+  // the promoted device/key. Rejecting a new invalid profile is transactional.
+  const LinearConfig legacy{LinearTile::N256, 68};
+  const std::array legacyChoices{LinearChoice{kMeasuredPairedGateUpWorkload, legacy}};
+  measured.setChoices(legacyChoices);
+  require(measured.plan(kMeasuredPairedGateUpWorkload).configuration() == legacy &&
+              measured.plan(kMeasuredPairedGateUpWorkload).pipeline() ==
+                  "decode_linear_q4_n256_gate_up",
+          "legacy N256 profile was silently reinterpreted as paired gate/up");
+  const std::array invalidChoices{LinearChoice{kMeasuredPairedGateUpWorkload,
+      {LinearTile::Paired256, 68, LinearSimdgroups::Four}}};
+  rejects([&] { measured.setChoices(invalidChoices); });
+  require(measured.plan(kMeasuredPairedGateUpWorkload).configuration() == legacy,
+          "invalid paired profile update replaced a legacy installed choice");
+  measured.setChoices({});
+  require(measured.plan(kMeasuredPairedGateUpWorkload).configuration() == promoted,
+          "clearing legacy choices failed to restore measured paired gate/up");
+}
+
+void candidateCoverage() {
+  // The vocabulary projection is much wider than either GPU. Its offline
+  // sweep must explore core-relative resident grids, not only the fixed grids
+  // measured on smaller devices and the many-wave full output grid.
+  for (const uint32_t cores : {16U, 20U, 80U}) {
+    DeviceCapabilities device;
+    device.appleGpuFamily = 10;
+    device.gpuCoreCount = cores;
+    Q4Linear linear(device);
+    for (const uint32_t rows : {8U, 16U, 24U, 32U}) {
+      const LinearWorkload head{{248320, 5120}, rows};
+      const auto candidates = linear.candidates(head);
+      require(!candidates.empty() && candidates.size() <= 40 &&
+                  candidates.front().configuration() == linear.plan(head).configuration(),
+              "wide candidate set lost its bound or baseline");
+      for (size_t index = 0; index < candidates.size(); ++index) {
+        const auto &plan = candidates[index];
+        require(plan.configuration().groups && plan.configuration().groups <=
+                    head.matrix.outputSize / plan.tileColumns(),
+                "wide candidate escaped its output grid");
+        for (size_t prior = 0; prior < index; ++prior)
+          require(candidates[prior].configuration() != plan.configuration(),
+                  "duplicate wide candidates inflated resident coverage");
+      }
+      for (const auto variant : {
+               LinearConfig{LinearTile::N128, 0},
+               LinearConfig{LinearTile::N256, 0},
+               LinearConfig{LinearTile::Paired128, 0},
+               LinearConfig{LinearTile::N128, 0, LinearSimdgroups::Four},
+               LinearConfig{LinearTile::N64, 0}}) {
+        if ((variant.tile == LinearTile::Paired128 && rows != 8) ||
+            (variant.simdgroups == LinearSimdgroups::Four && rows != 24))
+          continue;
+        const uint32_t tiles = head.matrix.outputSize /
+            (variant.tile == LinearTile::N64 ? 64 :
+             variant.tile == LinearTile::N256 ? 256 : 128);
+        bool oneGroupPerCore = false;
+        bool fullGrid = false;
+        uint32_t interiorGrids = 0;
+        bool residentRange = false;
+        for (const auto &plan : candidates) {
+          const auto config = plan.configuration();
+          if (config.tile != variant.tile || config.simdgroups != variant.simdgroups)
+            continue;
+          oneGroupPerCore |= config.groups == cores;
+          fullGrid |= config.groups == tiles;
+          interiorGrids += config.groups > cores && config.groups < tiles &&
+              config.groups <= uint64_t{cores} * 8;
+          residentRange |= config.groups >= uint64_t{cores} * 2 &&
+              config.groups <= uint64_t{cores} * 4;
+        }
+        require(oneGroupPerCore && fullGrid && interiorGrids >= 3 && residentRange,
+                "vocabulary candidate set omits device-relative resident grids");
+      }
+    }
+    // Smaller mixer, MLP and selector grids clamp to actual output tiles. They
+    // still retain every legal scope and never generate a zero/oversized grid.
+    for (const LinearMatrix matrix : {LinearMatrix{16640, 5120},
+                                      LinearMatrix{17408, 5120},
+                                      LinearMatrix{5120, 17408},
+                                      LinearMatrix{256, 5120}}) {
+      for (const uint32_t rows : {8U, 16U, 24U, 32U}) {
+        for (const auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual,
+                                   LinearEpilogue::GateUp}) {
+          const LinearWorkload workload{matrix, rows, LinearPhase::Decode, epilogue};
+          const auto candidates = linear.candidates(workload);
+          require(!candidates.empty() && candidates.size() <= 40 &&
+                      candidates.front().configuration() == linear.plan(workload).configuration(),
+                  "expanded candidate set lost its bound or baseline");
+          for (size_t index = 0; index < candidates.size(); ++index) {
+            const auto &plan = candidates[index];
+            const auto config = plan.configuration();
+            const uint32_t tiles = matrix.outputSize / plan.tileColumns();
+            require(config.groups && config.groups <= tiles,
+                    "device-relative candidate escaped its output grid");
+            for (size_t prior = 0; prior < index; ++prior)
+              require(candidates[prior].configuration() != config,
+                      "clamped device-relative candidates were not deduplicated");
+            const auto sameVariant = [&](const LinearPlan &candidate) {
+              return candidate.configuration().tile == config.tile &&
+                  candidate.configuration().simdgroups == config.simdgroups;
+            };
+            require(std::any_of(candidates.begin(), candidates.end(), [&](const LinearPlan &candidate) {
+                      return sameVariant(candidate) &&
+                          candidate.configuration().groups == std::min(cores, tiles);
+                    }) &&
+                    std::any_of(candidates.begin(), candidates.end(), [&](const LinearPlan &candidate) {
+                      return sameVariant(candidate) && candidate.configuration().groups == tiles;
+                    }),
+                    "small-grid candidate coverage omitted a core wave or full grid");
+          }
+        }
+      }
+    }
+  }
+  DeviceCapabilities unknown;
+  unknown.appleGpuFamily = 10;
+  auto assumed = unknown;
+  assumed.gpuCoreCount = 64;
+  const LinearWorkload head{{248320, 5120}, 24};
+  const auto fallback = Q4Linear(unknown).candidates(head);
+  const auto explicitCount = Q4Linear(assumed).candidates(head);
+  require(fallback.size() == explicitCount.size(),
+          "unknown-core candidate set differs from the conservative fallback");
+  for (size_t index = 0; index < fallback.size(); ++index)
+    require(fallback[index].configuration() == explicitCount[index].configuration(),
+            "unknown-core candidate order or grids changed");
+}
+
+void narrowDecodeCandidates() {
+  DeviceCapabilities device;
+  device.appleGpuFamily = 10;
+  device.gpuCoreCount = 80;
+  Q4Linear linear(device);
+  for (const uint32_t rows : {8U, 16U, 24U, 32U}) {
+    for (const auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual}) {
+      const LinearWorkload workload{{5120, 17408}, rows, LinearPhase::Decode, epilogue};
+      const auto candidates = linear.candidates(workload);
+      // The language hidden-width projection has only 40 N128 output tiles.
+      // N64 makes one group per core possible without changing weight packing.
+      require(std::any_of(candidates.begin(), candidates.end(), [](const LinearPlan &candidate) {
+                const auto config = candidate.configuration();
+                return config.tile == LinearTile::N64 && config.groups == 80 &&
+                    config.simdgroups == LinearSimdgroups::Eight &&
+                    candidate.tileColumns() == 64 && candidate.threadsPerThreadgroup() == 256;
+              }),
+              "hidden-width decode omitted the N64 grid covering all 80 cores");
+      for (const auto &plan : candidates) {
+        const auto config = plan.configuration();
+        if (config.tile == LinearTile::N128 || config.tile == LinearTile::Paired128)
+          require(config.groups <= 40, "N128 candidate exceeded its hidden-width output grid");
+        if (config.tile == LinearTile::N64)
+          require(plan.storageRows() == rows && plan.secondPipeline().empty() &&
+                      !plan.sumsBytes() && !plan.downSumsBytes() && !plan.gateScratchBytes(),
+                  "N64 changed the complete decode operator's storage contract");
+      }
+      rejects([&] { (void)Q4Linear::plan(workload, {LinearTile::N64, 0}); });
+      rejects([&] { (void)Q4Linear::plan(workload, {LinearTile::N64, 81}); });
+      rejects([&] { (void)Q4Linear::plan(workload,
+          {LinearTile::N64, 80, LinearSimdgroups::Four}); });
+    }
+    const LinearWorkload gateUp{{17408, 5120}, rows, LinearPhase::Decode, LinearEpilogue::GateUp};
+    const auto gateUpCandidates = linear.candidates(gateUp);
+    require(std::none_of(gateUpCandidates.begin(), gateUpCandidates.end(), [](const LinearPlan &candidate) {
+              return candidate.configuration().tile == LinearTile::N64;
+            }), "N64 escaped into the unsupported gate/up candidate set");
+    rejects([&] { (void)Q4Linear::plan(gateUp, {LinearTile::N64, 80}); });
+  }
+  for (const auto epilogue : {LinearEpilogue::None, LinearEpilogue::Residual,
+                             LinearEpilogue::UpWithGate}) {
+    const LinearWorkload prefill{{5120, 17408}, 2048, LinearPhase::Prefill, epilogue};
+    const auto candidates = linear.candidates(prefill);
+    require(std::none_of(candidates.begin(), candidates.end(), [](const LinearPlan &candidate) {
+              return candidate.configuration().tile == LinearTile::N64;
+            }), "N64 escaped into the unsupported prefill candidate set");
+    rejects([&] { (void)Q4Linear::plan(prefill, {LinearTile::N64, 0}); });
+  }
+}
+
 void planContracts() {
   DeviceCapabilities device;
   device.appleGpuFamily = 9;
@@ -264,13 +708,19 @@ void planContracts() {
                                  LinearEpilogue::GateUp}) {
         const LinearWorkload workload{matrix, lanes * 8, LinearPhase::Decode, epilogue};
         const auto candidates = linear.candidates(workload);
-        require(!candidates.empty() && candidates.size() <= 16,
+        require(!candidates.empty() && candidates.size() <= 40,
                 "Linear candidates exceed the bounded set");
         require(candidates.front().configuration() == linear.plan(workload).configuration(),
                 "Linear baseline is not first candidate");
         uint32_t fourScopeCandidates = 0;
         for (size_t index = 0; index < candidates.size(); ++index) {
           const auto &plan = candidates[index];
+          if (plan.configuration().tile == LinearTile::Paired256)
+            require(lanes == 1 && epilogue == LinearEpilogue::GateUp &&
+                        plan.configuration().simdgroups == LinearSimdgroups::Eight &&
+                        plan.tileColumns() == 256 &&
+                        plan.pipeline() == "decode_linear_q4_n256_gate_up_paired",
+                    "paired256 candidate escaped the precompiled M8 gate/up contract");
           const bool four = plan.configuration().simdgroups == LinearSimdgroups::Four;
           if (four) {
             ++fourScopeCandidates;
@@ -357,7 +807,8 @@ void planContracts() {
         {LinearTile::N128, 1, static_cast<LinearSimdgroups>(scope)}); });
   for (uint32_t rows : {8U, 16U, 32U})
     rejects([&] { (void)Q4Linear::plan({{512, 256}, rows}, fourConfig); });
-  for (const auto tile : {LinearTile::N256, LinearTile::Paired128})
+  for (const auto tile : {LinearTile::N256, LinearTile::Paired128, LinearTile::N64,
+                         LinearTile::Paired256})
     rejects([&] { (void)Q4Linear::plan(fourWorkload,
         {tile, 1, LinearSimdgroups::Four}); });
   for (const auto epilogue : {LinearEpilogue::GateUp, LinearEpilogue::UpWithGate})
@@ -761,6 +1212,10 @@ int main(int argc, char **argv) {
   try {
     require(argc == 2, "usage: linear-plan <production.metallib|--cpu>");
     baselinePlans();
+    measuredDecodePolicy();
+    pairedGateUpContracts();
+    candidateCoverage();
+    narrowDecodeCandidates();
     planContracts();
     if (std::string_view(argv[1]) == "--cpu") {
       std::cout << "Linear CPU plans: PASS\n";

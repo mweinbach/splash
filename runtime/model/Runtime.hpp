@@ -54,6 +54,10 @@ public:
 
   [[nodiscard]] ModelTelemetry
   telemetry() const noexcept override;
+  void setModelPhaseProfiling(bool enabled) override;
+  [[nodiscard]] std::vector<ModelPhaseProfile>
+  takeModelPhaseProfiles() override;
+  [[nodiscard]] uint64_t modelPhaseProfilesDropped() const noexcept override;
 
 private:
   void prepareWarmupDecode(uint64_t requestId, uint32_t anchor);

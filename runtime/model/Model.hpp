@@ -344,6 +344,42 @@ struct ModelTelemetry final {
   double totalDecodeWallSeconds = 0.0;
 };
 
+enum class ModelPhaseStage : uint8_t {
+  GraphBuild,
+  TicketWait,
+  CompletionHost,
+};
+
+[[nodiscard]] constexpr const char *
+modelPhaseStageName(ModelPhaseStage stage) noexcept {
+  switch (stage) {
+  case ModelPhaseStage::GraphBuild: return "graph_build";
+  case ModelPhaseStage::TicketWait: return "ticket_wait";
+  case ModelPhaseStage::CompletionHost: return "completion_host";
+  }
+  return "unknown";
+}
+
+// Optional host spans for actual prefill commands. Positions are exclusive-end
+// logical row ranges in lane order; unused lanes remain zero. The timestamps
+// use absolute steady_clock seconds, matching backend host command profiles.
+// TicketWait is host-observed waiting and overlaps command/GPU time; these
+// spans must not be added to the existing command wall/GPU counters.
+struct ModelPhaseProfile final {
+  uint64_t commandSequence = 0;
+  WorkKind kind = WorkKind::Prefill;
+  ModelPhaseStage stage = ModelPhaseStage::GraphBuild;
+  uint32_t lanes = 0;
+  uint32_t rows = 0;
+  uint32_t dispatches = 0;
+  uint32_t draftContextRows = 0;
+  std::array<uint64_t, ExecutionLimits::maximumBatchWidth> logicalBegin{};
+  std::array<uint64_t, ExecutionLimits::maximumBatchWidth> logicalEnd{};
+  double beganSteadySeconds = 0.0;
+  double endedSteadySeconds = 0.0;
+  double wallSeconds = 0.0;
+};
+
 // Observable outcome used to check repeated runs of the same configuration.
 // Different configurations may round differently and choose different tokens;
 // paired timings only require comparable work, not identical token IDs.
@@ -428,6 +464,17 @@ public:
   virtual WarmupStepResult warmupCompositeStateRestore() = 0;
   [[nodiscard]] virtual ModelMemoryActual actualRuntimeMemory() const = 0;
   [[nodiscard]] virtual ModelTelemetry telemetry() const noexcept = 0;
+  // Disabled by default. Use the model's host thread, preferably between
+  // commands, to enable/drain profiling. Runtime retains at most 512 spans
+  // until drained and counts discarded spans cumulatively. CompletionHost
+  // covers Runtime state finalization; Engine cache/checkpoint work is outside
+  // it. No payloads or request/token IDs are retained.
+  virtual void setModelPhaseProfiling(bool) {}
+  [[nodiscard]] virtual std::vector<ModelPhaseProfile>
+  takeModelPhaseProfiles() { return {}; }
+  [[nodiscard]] virtual uint64_t modelPhaseProfilesDropped() const noexcept {
+    return 0;
+  }
 };
 
 } // namespace model

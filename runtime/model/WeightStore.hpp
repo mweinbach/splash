@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace splash::model {
 
@@ -30,6 +31,9 @@ struct WeightFileRecord final {
   uint32_t layer = 0;
   uint32_t type = 0;
   uint64_t declaredBytes = 0;
+#if defined(SPLASH_METAL41_EXPERIMENT) || defined(SPLASH_INT8_EXPERIMENT)
+  std::vector<std::string> convertedFingerprints{};
+#endif
 };
 
 // A read-only mmap with one no-copy Metal base buffer.  Sections are checked,
@@ -48,6 +52,10 @@ public:
                                             std::string_view label = {});
   void finish();
   [[nodiscard]] const WeightFileRecord &record() const noexcept;
+#if defined(SPLASH_METAL41_EXPERIMENT) || defined(SPLASH_INT8_EXPERIMENT)
+  void recordConvertedFingerprint(std::string_view label,
+                                  std::string_view fingerprint);
+#endif
 
 private:
   struct Impl;
@@ -83,5 +91,36 @@ readExpertQ4Projection(WeightFile &file, uint32_t experts,
 
 [[nodiscard]] std::string
 weightManifestFingerprint(std::span<const WeightFileRecord> records);
+
+struct ModelPackage;
+// Existing views representing every mapped file allocation, plus immutable
+// converted coefficient data/scales. The backend must resolve whole allocation
+// identity/size: a representative may cover only one tensor in its mapped file.
+// Mutable conversion workspaces, diagnostics, KV and state are excluded.
+[[nodiscard]] std::vector<metal::MetalBuffer>
+immutableWeightBuffers(const ModelPackage &package);
+
+#if defined(SPLASH_METAL41_EXPERIMENT) || defined(SPLASH_INT8_EXPERIMENT)
+struct ModelDescriptor;
+#endif
+#if defined(SPLASH_METAL41_EXPERIMENT)
+// Additional persistent conversion planes plus the one shared HALF workspace.
+// Original mapped Q4 files remain resident and are accounted separately.
+[[nodiscard]] uint64_t
+predictConvertedModelExtraBytes(const ModelDescriptor &descriptor);
+#endif
+#if defined(SPLASH_INT8_EXPERIMENT)
+struct INT8PreconversionTelemetry final {
+  uint64_t convertedProjections = 0;
+  uint64_t preconvertedProjections = 0;
+  uint64_t convertedPayloadBytes = 0;
+  uint64_t preconvertedPayloadBytes = 0;
+  double conversionSeconds = 0.0;
+  double artifactLoadSeconds = 0.0;
+};
+[[nodiscard]] INT8PreconversionTelemetry int8PreconversionTelemetry();
+[[nodiscard]] uint64_t
+predictINT8ModelExtraBytes(const ModelDescriptor &descriptor);
+#endif
 
 } // namespace splash::model

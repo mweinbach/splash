@@ -757,6 +757,61 @@ void testStepTokensFitTheWire() {
   }
 }
 
+void testOptionalMetadataObserver() {
+  for (const bool throws : {false, true}) {
+    Backing backing(64);
+    KvPool pool(backing);
+    engine::Cache resources(pool, CacheNamespace{});
+    Executor executor;
+    executor.ticketReady = std::make_shared<bool>(false);
+    std::vector<uint8_t> output;
+    std::vector<NativePrefillCompletedMetadata> observed;
+    engine::NativeLoopConfig config;
+    config.engine.maxContext = 1024;
+    uint32_t callbacks = 0;
+    config.batchCompletedObserver = [&](const NativePrefillCompletedMetadata &event) {
+      ++callbacks;
+      if (throws) throw std::runtime_error("optional observer failure");
+      observed.push_back(event);
+    };
+    engine::NativeRuntime loop(
+        config, resources, executor,
+        [&](std::span<const uint8_t> bytes) {
+          output.insert(output.end(), bytes.begin(), bytes.end());
+        }, [] { return std::string("{\"schema_version\":5,\"ready\":true}"); },
+        {[] { return uint64_t{1'000'000}; }, [] { return 100.0; }});
+    loop.announceReady();
+    const auto encoded = protocol::serializeMessage(protocol::Message{request(99, 3)});
+    require(encoded && loop.receive(*encoded.value), "observer request failed");
+    require(loop.tick() && loop.commandInFlight(), "observer pending prefill missing");
+    static_cast<void>(loop.tick());
+    require(callbacks == 0, "observer ran before batch completion");
+    *executor.ticketReady = true;
+    runUntilIdle(loop);
+    require(loop.engineHealthy() && !loop.connectionMustClose(),
+            "optional observer affected inference health");
+    uint32_t completions = 0;
+    for (const auto &message : decodeMessages(output))
+      completions += std::holds_alternative<protocol::DoneEvent>(message);
+    require(completions == 1, "observer prevented terminal response");
+    if (throws) {
+      require(callbacks == 1, "failing observer was not disabled");
+      continue;
+    }
+    bool prefill = false, decode = false;
+    uint32_t inputRows = 0;
+    for (const auto &event : observed) {
+      require(event.width == 1 && event.observedSteadySeconds > 0,
+              "observer metadata width or clock invalid");
+      prefill |= event.kind == WorkKind::Prefill;
+      decode |= event.kind == WorkKind::Decode;
+      if (event.kind == WorkKind::Prefill) inputRows += event.inputRows;
+    }
+    require(prefill && decode && inputRows == 65,
+            "observer did not cover prefill/decode completion metadata");
+  }
+}
+
 } // namespace
 
 int main() {
@@ -771,6 +826,7 @@ int main() {
     testControlFailureUsesExecutionBoundary();
     testInvalidPromptTokensStayRequestScoped();
     testStepTokensFitTheWire();
+    testOptionalMetadataObserver();
     std::cout << "native KV-first loop tests passed\n";
     return EXIT_SUCCESS;
   } catch (const std::exception &error) {

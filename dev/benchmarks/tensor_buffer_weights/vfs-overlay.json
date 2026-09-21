@@ -1,0 +1,10 @@
+{
+  "version": 0,
+  "roots": [
+    {
+      "type": "file",
+      "name": "/Users/mweinbach/Projects/splash/runtime/flash/FlashWeights.hpp",
+      "external-contents": "/Users/mweinbach/Projects/splash/dev/benchmarks/tensor_buffer_weights/include/flash/FlashWeights.hpp"
+    }
+  ]
+}

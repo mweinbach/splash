@@ -2,6 +2,12 @@
 
 #include "metal/abi/ExecutionGeometry.h"
 #include "metal/abi/Linear.h"
+#if defined(SPLASH_METAL41_EXPERIMENT)
+#include "metal/abi/ExperimentalFP8.h"
+#endif
+#if defined(SPLASH_INT8_EXPERIMENT)
+#include "metal/abi/ExperimentalINT8.h"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -82,7 +88,9 @@ uint32_t LinearPlan::storageRows() const noexcept {
       ? ((workload_.rows + kPrefillRows - 1) / kPrefillRows) * kPrefillRows : workload_.rows;
 }
 uint32_t LinearPlan::tileColumns() const noexcept {
-  return config_.tile == LinearTile::N256 ? 256 : 128;
+  if (config_.tile == LinearTile::N64) return 64;
+  return config_.tile == LinearTile::N256 || config_.tile == LinearTile::Paired256
+      ? 256 : 128;
 }
 uint32_t LinearPlan::threadsPerThreadgroup() const noexcept {
   return static_cast<uint32_t>(config_.simdgroups) * 32;
@@ -105,8 +113,14 @@ LinearPlan::LinearPlan(LinearWorkload w, LinearConfig config)
     : workload_(w), config_(config) {
   validate(w);
   if (config.tile != LinearTile::N128 && config.tile != LinearTile::N256 &&
-      config.tile != LinearTile::Paired128)
+      config.tile != LinearTile::Paired128 && config.tile != LinearTile::N64 &&
+      config.tile != LinearTile::Paired256)
     throw std::invalid_argument("invalid Q4 linear tile");
+  if (config.tile == LinearTile::Paired256 &&
+      (w.phase != LinearPhase::Decode || w.rows != SPLASH_TARGET_VERIFY_ROWS ||
+       w.epilogue != LinearEpilogue::GateUp ||
+       config.simdgroups != LinearSimdgroups::Eight))
+    throw std::invalid_argument("paired N256 Q4 tile requires M8 decode gate/up and eight simdgroups");
   if ((config.simdgroups != LinearSimdgroups::Four &&
        config.simdgroups != LinearSimdgroups::Eight) ||
       (config.simdgroups == LinearSimdgroups::Four &&
@@ -117,7 +131,8 @@ LinearPlan::LinearPlan(LinearWorkload w, LinearConfig config)
   const bool residual = w.epilogue == LinearEpilogue::Residual;
   const bool four = config.simdgroups == LinearSimdgroups::Four;
   if (w.phase == LinearPhase::Prefill) {
-    if (config.groups || config.tile == LinearTile::Paired128)
+    if (config.groups || config.tile == LinearTile::Paired128 ||
+        config.tile == LinearTile::N64)
       throw std::invalid_argument("invalid Q4 prefill configuration");
     if (four) {
       pipeline_ = w.epilogue == LinearEpilogue::UpWithGate
@@ -148,6 +163,10 @@ LinearPlan::LinearPlan(LinearWorkload w, LinearConfig config)
     return;
   }
   if (w.epilogue == LinearEpilogue::GateUp) {
+    if (config.tile == LinearTile::Paired256) {
+      pipeline_ = "decode_linear_q4_n256_gate_up_paired";
+      return;
+    }
     if (config.tile != LinearTile::N256)
       throw std::invalid_argument("Q4 gate/up requires N256");
     constexpr std::array names{"decode_linear_q4_n256_gate_up", "decode_linear_q4_n256_gate_up_m16",
@@ -156,6 +175,14 @@ LinearPlan::LinearPlan(LinearWorkload w, LinearConfig config)
     if (lane >= 2)
       secondPipeline_ = lane == 2 ? "decode_linear_q4_n256_up_silu_m24"
                                   : "decode_linear_q4_n256_up_silu_m32";
+  } else if (config.tile == LinearTile::N64) {
+    constexpr std::array affineNames{
+        "decode_linear_q4_n64", "decode_linear_q4_n64_m16",
+        "decode_linear_q4_n64_m24", "decode_linear_q4_n64_m32"};
+    constexpr std::array residualNames{
+        "decode_linear_q4_n64_residual", "decode_linear_q4_n64_residual_m16",
+        "decode_linear_q4_n64_residual_m24", "decode_linear_q4_n64_residual_m32"};
+    pipeline_ = residual ? residualNames[lane] : affineNames[lane];
   } else if (residual) {
     if (config.tile == LinearTile::N256)
       throw std::invalid_argument("Q4 decode residual requires N128");
@@ -270,6 +297,12 @@ LinearConfig Q4Linear::baseline(LinearWorkload w) const {
                                  : tiles;
   };
   if (w.epilogue == LinearEpilogue::GateUp) {
+    // Paired M8 gate/up preserved BF16 output bits and reduced projection
+    // latency on the measured 80-core Apple10 target and draft geometry.
+    // Other shapes, widths and devices retain the unpaired N256 control.
+    if (appleGpuFamily_ == 10 && gpuCores_ == 80 && lanes == 1 &&
+        w.matrix.outputSize == 17408 && w.matrix.inputSize == 5120)
+      return {LinearTile::Paired256, tiles256};
     if (appleGpuFamily_ < 10) {
       const auto resident = static_cast<uint32_t>(
           std::max(1L, std::lround(kApple9GateUpGroupsPerCore * gpuCores_)));
@@ -277,6 +310,16 @@ LinearConfig Q4Linear::baseline(LinearWorkload w) const {
     }
     return {LinearTile::N256, groups(tiles256, kGateUpGroups)};
   }
+  // Full-grid N64 improved measured M24/M32 decode graphs on the 80-core
+  // Apple10 GPU. Wider M32 grids regressed; keep the change within the measured
+  // input geometry and each phase's output-tile range. Other devices retain
+  // their existing variants until independently calibrated.
+  const bool measuredInput = w.matrix.inputSize == 5120 ||
+      (w.matrix.outputSize == 5120 && w.matrix.inputSize >= 4096);
+  if (appleGpuFamily_ == 10 && gpuCores_ == 80 && measuredInput &&
+      ((lanes == 3 && tiles128 <= uint64_t{gpuCores_} * 2) ||
+       (lanes == 4 && tiles128 <= uint64_t{gpuCores_} * 3 / 2)))
+    return {LinearTile::N64, w.matrix.outputSize / 64};
   // Pipelined N128 hides the latency of a single lane's weight stream.
   if (lanes == 1) return {LinearTile::Paired128, groups(tiles128, kN128Groups)};
   // M24 plain projections benefit from four SIMD groups on Apple9 too.
@@ -316,19 +359,25 @@ void Q4Linear::setChoices(std::span<const LinearChoice> choices) {
 
 std::vector<LinearPlan> Q4Linear::candidates(LinearWorkload w) const {
   std::vector<LinearPlan> result;
-  result.reserve(16);
+  result.reserve(40);
   result.push_back(LinearPlan(w, baseline(w)));
   const auto append = [&](LinearConfig config) {
     for (const auto &existing : result)
       if (existing.configuration() == config) return;
     result.push_back(LinearPlan(w, config));
   };
-  for (const auto tile : {LinearTile::N128, LinearTile::N256, LinearTile::Paired128}) {
-    const uint32_t columns = tile == LinearTile::N256 ? 256 : 128;
+  for (const auto tile : {LinearTile::N128, LinearTile::N256, LinearTile::Paired128,
+                         LinearTile::N64, LinearTile::Paired256}) {
+    const uint32_t columns = tile == LinearTile::N64 ? 64 :
+        tile == LinearTile::N256 || tile == LinearTile::Paired256 ? 256 : 128;
     if (w.matrix.outputSize % columns ||
+        (tile == LinearTile::N64 && w.phase != LinearPhase::Decode) ||
         (tile == LinearTile::Paired128 && (w.phase != LinearPhase::Decode ||
          w.rows != SPLASH_TARGET_VERIFY_ROWS || w.matrix.outputSize % 256)) ||
-        (w.epilogue == LinearEpilogue::GateUp && tile != LinearTile::N256) ||
+        (tile == LinearTile::Paired256 && (w.phase != LinearPhase::Decode ||
+         w.rows != SPLASH_TARGET_VERIFY_ROWS || w.epilogue != LinearEpilogue::GateUp)) ||
+        (w.epilogue == LinearEpilogue::GateUp && tile != LinearTile::N256 &&
+         tile != LinearTile::Paired256) ||
         (w.phase == LinearPhase::Decode && w.epilogue == LinearEpilogue::Residual && tile == LinearTile::N256))
       continue;
     if (w.phase == LinearPhase::Prefill) {
@@ -339,11 +388,21 @@ std::vector<LinearPlan> Q4Linear::candidates(LinearWorkload w) const {
         append({tile, 0, LinearSimdgroups::Four});
     } else {
       const uint32_t tiles = w.matrix.outputSize / columns;
-      for (const uint32_t groups : {36U, 60U, 80U, tiles}) {
-        append({tile, std::min(groups, tiles)});
+      const auto appendGrid = [&](uint64_t requestedGroups) {
+        const auto groups = static_cast<uint32_t>(
+            std::min<uint64_t>(requestedGroups, tiles));
+        append({tile, groups});
         if (supportsFourSimdgroups(w, tile))
-          append({tile, std::min(groups, tiles), LinearSimdgroups::Four});
-      }
+          append({tile, groups, LinearSimdgroups::Four});
+      };
+      for (const uint32_t groups : {36U, 60U, 80U, tiles})
+        appendGrid(groups);
+      // Retain the measured absolute grids and also sweep whole-core waves.
+      // Larger GPUs need intermediate resident grids between 80 and the full
+      // output grid; the 3/4/8 waves cover N256, N128 and four-SIMDgroup scope.
+      // These remain offline candidates, not changes to the serving baseline.
+      for (const uint32_t groupsPerCore : {1U, 2U, 3U, 4U, 8U})
+        appendGrid(uint64_t{gpuCores_} * groupsPerCore);
     }
   }
   return result;
@@ -357,15 +416,156 @@ void Q4Linear::add(metal::CommandGraph &graph, LinearBuffers b,
   requireProjection(p, w.matrix);
   requireBytes(b.input, uint64_t{selected.storageRows()} * k * 2);
   requireBytes(b.output, uint64_t{selected.storageRows()} * n * 2);
-  requireBytes(b.sums, selected.sumsBytes());
+  if (requiresPrefillSums(p))
+    requireBytes(b.sums, selected.sumsBytes());
   requireBytes(b.gateScratch, selected.gateScratchBytes());
-  requireBytes(b.downSums, selected.downSumsBytes());
+  if (b.writeDownSums)
+    requireBytes(b.downSums, selected.downSumsBytes());
   if (w.epilogue == LinearEpilogue::Residual)
     requireBytes(b.residual, uint64_t{selected.storageRows()} * n * 2);
   if (w.epilogue == LinearEpilogue::GateUp) {
     if (!gate) throw std::invalid_argument("Q4 gate projection is missing");
     requireProjection(*gate, w.matrix);
   } else if (gate) throw std::invalid_argument("unexpected Q4 gate projection");
+#if defined(SPLASH_METAL41_EXPERIMENT)
+  if (p.experimentalFP8) {
+    const auto &converted = *p.experimentalFP8;
+    const uint32_t rows = selected.storageRows();
+    requireBytes(converted.data, uint64_t{n} * k);
+    requireBytes(converted.scales, uint64_t{n} * converted.scaleRowStride);
+    requireBytes(converted.halfInput, uint64_t{rows} * k * 2);
+    requireBytes(converted.diagnostics, 4 * sizeof(uint32_t));
+    const auto *convertedGate = &converted;
+    if (gate) {
+      if (!gate->experimentalFP8)
+        throw std::invalid_argument("experimental gate projection was not converted");
+      convertedGate = gate->experimentalFP8.get();
+      if (convertedGate->scaleRowStride != converted.scaleRowStride)
+        throw std::invalid_argument("experimental gate and up scale layouts differ");
+    }
+    const uint32_t elements = rows * k;
+    graph.add("experimental_fp8_bf16_to_half", {b.input, converted.halfInput},
+              elements, {(elements + 255) / 256, 1, 1});
+    uint32_t epilogue = 0;
+    metal::MetalBuffer auxiliary = b.output;
+    if (w.epilogue == LinearEpilogue::Residual) {
+      epilogue = 1;
+      auxiliary = b.residual;
+    } else if (w.epilogue == LinearEpilogue::GateUp) {
+      epilogue = 2;
+    } else if (w.epilogue == LinearEpilogue::UpWithGate) {
+      epilogue = 3;
+      auxiliary = b.gateScratch;
+    }
+    const std::string pipeline = w.phase == LinearPhase::Prefill
+        ? "experimental_fp8_prefill_m32_n64"
+        : "experimental_fp8_decode_m" + std::to_string(rows) + "_n64";
+    graph.add(pipeline,
+              {converted.halfInput, converted.data, converted.scales,
+               convertedGate->data, convertedGate->scales, auxiliary, b.output,
+               converted.diagnostics},
+              ExperimentalFP8Params{n, k, rows, converted.scaleRowStride, epilogue},
+              {n / 64, w.phase == LinearPhase::Prefill ? rows / 32 : 1, 1});
+    if (stats && w.phase == LinearPhase::Decode)
+      account(*stats, w.rows / SPLASH_TARGET_VERIFY_ROWS, 1);
+    return;
+  }
+#endif
+#if defined(SPLASH_INT8_EXPERIMENT)
+  if (gate && bool(p.experimentalINT8) != bool(gate->experimentalINT8))
+    throw std::invalid_argument("experimental gate and up precision differ");
+  if (p.experimentalINT8) {
+    if (!experimentalINT8Eligible(p.int8Policy, p.int8Role, p.int8Kind))
+      throw std::invalid_argument("experimental INT8 projection violates its precision policy");
+    const auto &converted = *p.experimentalINT8;
+    const uint32_t rows = selected.storageRows();
+    requireBytes(converted.data, uint64_t{n} * k);
+    requireBytes(converted.scales, uint64_t{n} * sizeof(float));
+    requireBytes(converted.activationCodes, uint64_t{rows} * k);
+    requireBytes(converted.activationScales, uint64_t{rows} * sizeof(float));
+    requireBytes(converted.diagnostics, 4 * sizeof(uint32_t));
+    const auto *convertedGate = &converted;
+    if (gate) {
+      if (!gate->experimentalINT8)
+        throw std::invalid_argument("experimental gate projection was not converted to INT8");
+      convertedGate = gate->experimentalINT8.get();
+      requireBytes(convertedGate->data, uint64_t{n} * k);
+      requireBytes(convertedGate->scales, uint64_t{n} * sizeof(float));
+    }
+    const bool parallelPeak = appleGpuFamily_ == 10 && gpuCores_ == 80 &&
+        rows <= 128 && (k == 5120 || k == 17408);
+    if (parallelPeak) {
+      const uint32_t chunks = (k + 511) / 512;
+      const uint64_t scratchBytes = uint64_t{rows} * chunks * sizeof(uint32_t);
+      requireBytes(converted.partialPeaks, scratchBytes);
+      requireBytes(converted.partialInvalid, scratchBytes);
+      const std::vector<metal::MetalBuffer> quantBuffers{
+          b.input, converted.activationCodes, converted.activationScales,
+          converted.diagnostics, converted.partialPeaks, converted.partialInvalid};
+      graph.add("experimental_int8_partial_peak512", quantBuffers,
+                ExperimentalINT8QuantParams{k, rows}, {chunks, rows, 1});
+      graph.add("experimental_int8_reduce_quantize512", quantBuffers,
+                ExperimentalINT8QuantParams{k, rows}, {chunks, rows, 1});
+    } else {
+      const std::vector<metal::MetalBuffer> quantBuffers{
+          b.input, converted.activationCodes, converted.activationScales,
+          converted.diagnostics};
+      graph.add("experimental_int8_row_scale", quantBuffers,
+                ExperimentalINT8QuantParams{k, rows}, {rows, 1, 1});
+      const uint32_t elements = rows * k;
+      graph.add("experimental_int8_quantize", quantBuffers,
+                ExperimentalINT8QuantParams{k, rows},
+                {(elements + 255) / 256, 1, 1});
+    }
+    uint32_t epilogue = 0;
+    metal::MetalBuffer auxiliary = b.output;
+    if (w.epilogue == LinearEpilogue::Residual) {
+      epilogue = 1;
+      auxiliary = b.residual;
+    } else if (w.epilogue == LinearEpilogue::GateUp) {
+      epilogue = 2;
+    } else if (w.epilogue == LinearEpilogue::UpWithGate) {
+      epilogue = 3;
+      auxiliary = b.gateScratch;
+    }
+    const bool prefill = w.phase == LinearPhase::Prefill;
+    uint32_t tileRows = prefill && rows >= 128 && rows % 128 == 0 ? 128
+                       : prefill ? 32 : rows;
+    uint32_t tileColumns = prefill ? 128 : 64;
+    // The narrow, long-K down projection needs enough groups for all 80
+    // cores at short rows, and more weight reuse at the large prefill bucket.
+    // Both choices passed exact INT32 projection checks in the row-tile sweep.
+    const bool measuredDown = appleGpuFamily_ == 10 && gpuCores_ == 80 &&
+        n == 5120 && k == 17408;
+    if (prefill && measuredDown && rows <= 128) {
+      tileRows = 32;
+      tileColumns = 64;
+    } else if (prefill && measuredDown &&
+               ((rows == 224 && w.rows == 224) ||
+                (rows == 2016 && w.rows == 2016))) {
+      // The actual 224/2016-row cache-boundary chunks improved with N256. Keep
+      // partially padded logical counts and the 32-row tail on their controls.
+      tileRows = 32;
+      tileColumns = 256;
+    } else if (prefill && measuredDown && rows >= 1024 && rows % 256 == 0) {
+      tileRows = 256;
+      tileColumns = 64;
+    }
+    const std::string pipeline = "experimental_int8_" +
+        std::string(prefill ? "prefill" : "decode") + "_m" +
+        std::to_string(tileRows) + "_n" + std::to_string(tileColumns);
+    graph.add(pipeline,
+              {converted.activationCodes, converted.data, converted.scales,
+               convertedGate->data, convertedGate->scales,
+               converted.activationScales, auxiliary, b.output,
+               converted.diagnostics},
+              ExperimentalINT8Params{n, k, rows, epilogue},
+              {n / tileColumns, prefill ? rows / tileRows : 1, 1});
+    if (stats && !prefill)
+      account(*stats, w.rows / SPLASH_TARGET_VERIFY_ROWS, 1);
+    return;
+  }
+#endif
   const auto dispatch = [&](std::string_view name,
       std::initializer_list<metal::MetalBuffer> bindings) {
     if (w.phase == LinearPhase::Prefill)
@@ -387,9 +587,15 @@ void Q4Linear::add(metal::CommandGraph &graph, LinearBuffers b,
       dispatch(selected.pipeline(), {b.input, gate->weights, gate->scales, gate->biases, b.gateScratch});
       dispatch(selected.secondPipeline(), {b.input, p.weights, p.scales, p.biases, b.gateScratch, b.output});
     }
-  } else if (w.epilogue == LinearEpilogue::UpWithGate)
-    dispatch(selected.pipeline(), {b.input, p.weights, p.scales, p.biases,
-        b.gateScratch, b.output, b.sums, b.downSums});
+  } else if (w.epilogue == LinearEpilogue::UpWithGate) {
+    const std::string_view pipeline = b.writeDownSums ? selected.pipeline()
+        : selected.tileColumns() == 128
+            ? "prefill_linear_q4_n128_up_silu_no_down_sums_sg4"
+            : "prefill_linear_q4_n256_up_silu_no_down_sums";
+    dispatch(pipeline, {b.input, p.weights, p.scales, p.biases,
+        b.gateScratch, b.output, b.sums,
+        b.downSums ? b.downSums : b.output});
+  }
   else if (w.epilogue == LinearEpilogue::Residual) {
     if (w.phase == LinearPhase::Prefill)
       dispatch(selected.pipeline(), {b.input, p.weights, p.scales, p.biases, b.residual, b.output, b.sums});
@@ -411,6 +617,16 @@ void Q4Linear::addPrefillSums(metal::CommandGraph &graph, metal::MetalBuffer inp
   graph.add("prefill_linear_q4_sums32", {input, sums},
       Q4PrefillParams{matrix.outputSize, matrix.inputSize}, {tiles, 1, 1});
 }
+bool Q4Linear::requiresPrefillSums(const Q4Projection &p) noexcept {
+#if defined(SPLASH_METAL41_EXPERIMENT)
+  if (p.experimentalFP8) return false;
+#endif
+#if defined(SPLASH_INT8_EXPERIMENT)
+  if (p.experimentalINT8) return false;
+#endif
+  (void)p;
+  return true;
+}
 void Q4Linear::addPrefill(metal::CommandGraph &graph, metal::MetalBuffer input,
     const Q4Projection &p, metal::MetalBuffer output, metal::MetalBuffer sums,
     LinearMatrix matrix, uint32_t rows) const {
@@ -425,8 +641,9 @@ void Q4Linear::addPrefillResidual(metal::CommandGraph &graph, metal::MetalBuffer
 }
 void Q4Linear::addPrefillUpWithGate(metal::CommandGraph &graph, metal::MetalBuffer input,
     const Q4Projection &up, metal::MetalBuffer gateScratch, metal::MetalBuffer output,
-    metal::MetalBuffer sums, metal::MetalBuffer downSums, LinearMatrix matrix, uint32_t rows) const {
-  add(graph, {input, output, sums, {}, gateScratch, downSums}, up,
+    metal::MetalBuffer sums, metal::MetalBuffer downSums, LinearMatrix matrix, uint32_t rows,
+    bool writeDownSums) const {
+  add(graph, {input, output, sums, {}, gateScratch, downSums, writeDownSums}, up,
       plan({matrix, rows, LinearPhase::Prefill, LinearEpilogue::UpWithGate}));
 }
 void Q4Linear::addDecode(metal::CommandGraph &graph, metal::MetalBuffer input,

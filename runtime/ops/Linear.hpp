@@ -8,8 +8,73 @@
 #include <span>
 #include <string_view>
 #include <vector>
+#if defined(SPLASH_METAL41_EXPERIMENT) || defined(SPLASH_INT8_EXPERIMENT)
+#include <memory>
+#include <string>
+#endif
+
+#if defined(SPLASH_METAL41_EXPERIMENT) && defined(SPLASH_INT8_EXPERIMENT)
+#error "FP8 and INT8 experiments require separate builds"
+#endif
 
 namespace splash::ops {
+
+#if defined(SPLASH_METAL41_EXPERIMENT)
+// Experimental materialized weights. The original packed view stays available
+// for embeddings and for the unconverted reference build.
+struct ExperimentalFP8Projection final {
+  metal::MetalBuffer data;
+  metal::MetalBuffer scales;
+  metal::MetalBuffer halfInput;
+  metal::MetalBuffer diagnostics;
+  std::shared_ptr<metal::MetalBuffer> sharedHalfInput;
+  uint32_t scaleRowStride = 0;
+  std::string fingerprint;
+};
+#endif
+
+#if defined(SPLASH_INT8_EXPERIMENT)
+enum class ExperimentalINT8Policy : uint8_t { All, Target, Hybrid, Q4 };
+enum class ExperimentalINT8Role : uint8_t { Unknown, TargetBody, DraftBody, SharedVocabulary };
+enum class ExperimentalINT8Kind : uint8_t { Generic, MLPDown };
+
+[[nodiscard]] constexpr bool experimentalINT8Eligible(
+    ExperimentalINT8Policy policy, ExperimentalINT8Role role, ExperimentalINT8Kind kind) noexcept {
+  switch (policy) {
+  case ExperimentalINT8Policy::All:
+    return true;
+  case ExperimentalINT8Policy::Target:
+    return role == ExperimentalINT8Role::TargetBody || role == ExperimentalINT8Role::SharedVocabulary;
+  case ExperimentalINT8Policy::Hybrid:
+    return role == ExperimentalINT8Role::TargetBody && kind == ExperimentalINT8Kind::MLPDown;
+  case ExperimentalINT8Policy::Q4:
+    return false;
+  }
+  return false;
+}
+
+struct ExperimentalINT8Workspace final {
+  metal::MetalBuffer activationCodes;
+  metal::MetalBuffer activationScales;
+  metal::MetalBuffer partialPeaks;
+  metal::MetalBuffer partialInvalid;
+};
+
+struct ExperimentalINT8Projection final {
+  metal::MetalBuffer data;
+  metal::MetalBuffer scales;
+  metal::MetalBuffer activationCodes;
+  metal::MetalBuffer activationScales;
+  metal::MetalBuffer partialPeaks;
+  metal::MetalBuffer partialInvalid;
+  metal::MetalBuffer diagnostics;
+  std::shared_ptr<ExperimentalINT8Workspace> sharedWorkspace;
+  ExperimentalINT8Policy policy = ExperimentalINT8Policy::All;
+  ExperimentalINT8Role role = ExperimentalINT8Role::Unknown;
+  ExperimentalINT8Kind kind = ExperimentalINT8Kind::Generic;
+  std::string fingerprint;
+};
+#endif
 
 // Immutable views of one packed Q4 projection.  StorageN is part of the
 // package ABI; the operator may choose a different compute tile at runtime.
@@ -19,6 +84,17 @@ struct Q4Projection final {
   metal::MetalBuffer biases;
   uint32_t outputSize = 0;
   uint32_t inputSize = 0;
+#if defined(SPLASH_METAL41_EXPERIMENT)
+  std::shared_ptr<ExperimentalFP8Projection> experimentalFP8{};
+#endif
+#if defined(SPLASH_INT8_EXPERIMENT)
+  std::shared_ptr<ExperimentalINT8Projection> experimentalINT8{};
+  // Resolved once while loading, immutable throughout serving. Classification
+  // follows file ownership and projection semantics rather than matrix shape.
+  ExperimentalINT8Policy int8Policy = ExperimentalINT8Policy::All;
+  ExperimentalINT8Role int8Role = ExperimentalINT8Role::Unknown;
+  ExperimentalINT8Kind int8Kind = ExperimentalINT8Kind::Generic;
+#endif
 };
 
 // Q8 affine projections use per-64-input quantization and StorageN=256 order.
@@ -50,7 +126,7 @@ struct LinearMatrix final {
 
 enum class LinearPhase : uint8_t { Prefill, Decode };
 enum class LinearEpilogue : uint8_t { None, Residual, GateUp, UpWithGate };
-enum class LinearTile : uint8_t { N128, N256, Paired128 };
+enum class LinearTile : uint8_t { N128, N256, Paired128, N64, Paired256 };
 enum class LinearSimdgroups : uint8_t { Four = 4, Eight = 8 };
 
 struct LinearWorkload final {
@@ -107,6 +183,7 @@ struct LinearBuffers final {
   metal::MetalBuffer residual;
   metal::MetalBuffer gateScratch;
   metal::MetalBuffer downSums;
+  bool writeDownSums = true;
 };
 
 struct Q4DispatchStats final {
@@ -135,6 +212,7 @@ public:
   void addPrefillSums(metal::CommandGraph &graph, metal::MetalBuffer input,
                       metal::MetalBuffer sums, LinearMatrix matrix,
                       uint32_t rows) const;
+  [[nodiscard]] static bool requiresPrefillSums(const Q4Projection &projection) noexcept;
   void addPrefill(metal::CommandGraph &graph, metal::MetalBuffer input,
                   const Q4Projection &projection, metal::MetalBuffer output,
                   metal::MetalBuffer sums, LinearMatrix matrix,
@@ -144,7 +222,7 @@ public:
       const Q4Projection &up, metal::MetalBuffer gateScratch,
       metal::MetalBuffer output, metal::MetalBuffer sums,
       metal::MetalBuffer downSums, LinearMatrix matrix,
-      uint32_t rows) const;
+      uint32_t rows, bool writeDownSums = true) const;
   void addPrefillResidual(metal::CommandGraph &graph,
                           metal::MetalBuffer input,
                           const Q4Projection &projection,

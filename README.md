@@ -1,8 +1,21 @@
 # Splash
 
-[![CI](https://github.com/incoai/splash/actions/workflows/ci.yml/badge.svg)](https://github.com/incoai/splash/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Apple%20silicon-black.svg)](#quick-start)
+
+This is the independent private `mweinbach/splash` workspace. It includes the
+M5 Ultra Flash-Next kernels, exact BF16 vocabulary projection, idle residency
+maintenance, and SSD n-gram streaming enabled by the local v10 profile.
+Upstream Git remotes and scheduled catalog automation are disconnected.
+The existing Apache-2.0 license and source attributions are preserved.
+
+For the current local setup, use [LOCAL_WORKSPACE.md](LOCAL_WORKSPACE.md) and
+the [v10 profile guide](dev/benchmarks/flash-local-profile-v10.md). Model files,
+saved operands, build products, and benchmark output remain local and are
+excluded from Git. The model source is already installed under `~/.omlx` on
+the qualification machine; another checkout needs its own model installation.
+
+The original project documentation follows for the retained general runtime.
 
 **A local inference engine for Apple silicon, built around the model.**
 

@@ -15,11 +15,25 @@
 
 namespace splash::engine {
 
+struct NativePrefillCompletedMetadata {
+  WorkKind kind = WorkKind::Prefill;
+  uint32_t width = 0;
+  uint32_t inputRows = 0;
+  double modelWallMilliseconds = 0.0;
+  double observedSteadySeconds = 0.0;
+};
+
 struct NativeLoopConfig {
   engine::EngineConfig engine;
   uint64_t engineInstanceId = 1;
   uint32_t maskWordsPerToken = 1;
   RuntimeMetrics *metrics = nullptr;
+  // Optional host-thread observer after batch completion and Engine cache
+  // publication. It can drain decode profiles while retaining only prefill
+  // records. Only aggregate metadata crosses this interface. Observer
+  // errors cannot change inference or transport health.
+  std::function<void(const NativePrefillCompletedMetadata &)>
+      batchCompletedObserver;
 };
 
 struct NativeLoopClocks {

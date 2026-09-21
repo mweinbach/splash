@@ -45,16 +45,25 @@ using metal::CommandTiming;
 using metal::MetalBackend;
 using metal::MetalBuffer;
 
+double modelPhaseSteadySeconds() noexcept {
+  return std::chrono::duration<double>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
 class DeferredMetalTicket final : public ModelBatchTicket {
 public:
   using Completion = std::function<std::vector<ModelStepResult>(CommandTiming)>;
+  using WaitObserver = std::function<void(double, double)>;
 
   DeferredMetalTicket(CommandTicket ticket, Completion completion,
                       double priorWallMilliseconds = 0.0,
-                      bool representativePrefillTiming = true)
+                      bool representativePrefillTiming = true,
+                      WaitObserver waitObserver = {})
       : ticket_(std::move(ticket)), completion_(std::move(completion)),
         wallMilliseconds_(priorWallMilliseconds),
-        representativePrefillTiming_(representativePrefillTiming) {}
+        representativePrefillTiming_(representativePrefillTiming),
+        waitObserver_(std::move(waitObserver)) {}
 
   bool ready() const noexcept override { return ticket_.ready(); }
 
@@ -62,7 +71,17 @@ public:
     if (!completion_) {
       throw std::logic_error("Metal ticket was already consumed");
     }
-    CommandTiming timing = ticket_.wait();
+    const double waitBegin = waitObserver_ ? modelPhaseSteadySeconds() : 0.0;
+    CommandTiming timing;
+    try {
+      timing = ticket_.wait();
+    } catch (...) {
+      if (waitObserver_)
+        waitObserver_(waitBegin, modelPhaseSteadySeconds());
+      throw;
+    }
+    if (waitObserver_)
+      waitObserver_(waitBegin, modelPhaseSteadySeconds());
     wallMilliseconds_ += timing.wallSeconds * 1000.0;
     Completion completion = std::move(completion_);
     return completion(timing);
@@ -80,6 +99,7 @@ private:
   Completion completion_;
   double wallMilliseconds_ = 0.0;
   bool representativePrefillTiming_;
+  WaitObserver waitObserver_;
 };
 
 class ReadyModelTicket final : public ModelBatchTicket {
@@ -273,6 +293,10 @@ struct Runtime::Impl {
   uint64_t runtimeOverheadReserveBytes = 0;
   std::array<PageTableBinding, kLaneCount> pageTableBindings{};
   ModelTelemetry counters;
+  static constexpr size_t kMaximumModelPhaseProfiles = 512;
+  bool modelPhaseProfiling = false;
+  std::vector<ModelPhaseProfile> modelPhaseProfiles;
+  uint64_t droppedModelPhaseProfiles = 0;
   ops::Sampling sampling;
   QwenTarget targetModel;
   DFlashDraft draftModel;
@@ -304,6 +328,42 @@ struct Runtime::Impl {
     prefillArena = std::make_unique<PrefillArena>(backend, geometry, operators);
     decodeArena = std::make_unique<DecodeArena>(backend, geometry, operators);
   }
+
+  void recordModelPhase(const ModelPhaseProfile &command,
+                        ModelPhaseStage stage, double begin,
+                        double end) noexcept {
+    if (!modelPhaseProfiling)
+      return;
+    if (modelPhaseProfiles.size() == kMaximumModelPhaseProfiles) {
+      ++droppedModelPhaseProfiles;
+      return;
+    }
+    ModelPhaseProfile profile = command;
+    profile.stage = stage;
+    profile.beganSteadySeconds = begin;
+    profile.endedSteadySeconds = end;
+    profile.wallSeconds = end - begin;
+    // Enabling reserves the full bounded capacity. Draining keeps it, so
+    // recording itself cannot allocate or throw during ticket finalization.
+    modelPhaseProfiles.push_back(profile);
+  }
+
+  struct ModelPhaseSpan final {
+    Impl &impl;
+    const ModelPhaseProfile *command;
+    ModelPhaseStage stage;
+    double begin;
+
+    ModelPhaseSpan(Impl &owner, const ModelPhaseProfile *profile,
+                   ModelPhaseStage value) noexcept
+        : impl(owner), command(profile), stage(value),
+          begin(profile ? modelPhaseSteadySeconds() : 0.0) {}
+    ~ModelPhaseSpan() {
+      if (command)
+        impl.recordModelPhase(*command, stage, begin,
+                             modelPhaseSteadySeconds());
+    }
+  };
 
   Request &request(uint64_t id) {
     auto found = requests.find(id);
@@ -916,7 +976,8 @@ struct Runtime::Impl {
 
   void encodePackedPrefillGraph(CommandGraph &graph,
                                 std::span<const ModelBatchItem> items,
-                                std::array<Request *, kLaneCount> &entries) {
+                                std::array<Request *, kLaneCount> &entries,
+                                ModelPhaseProfile *profile = nullptr) {
     PackedPrefillBatch batch = preparePackedPrefill(items, entries);
     auto p = [&](PrefillTensor tensor) { return prefillArena->get(tensor); };
 
@@ -1055,6 +1116,10 @@ struct Runtime::Impl {
         }
         addPrefillPolicy(graph, entry, sequence.lane, lastRows - 1);
       }
+    }
+    if (profile) {
+      profile->rows = batch.rows;
+      profile->draftContextRows = batch.capturedRows;
     }
   }
 
@@ -1945,7 +2010,21 @@ Runtime::prefillAsync(const BatchPlan &plan,
 
   std::array<Impl::Request *, kLaneCount> entries{};
   CommandGraph graph;
-  impl_->encodePackedPrefillGraph(graph, items, entries);
+  std::shared_ptr<ModelPhaseProfile> phaseProfile;
+  if (impl_->modelPhaseProfiling) {
+    phaseProfile = std::make_shared<ModelPhaseProfile>();
+    phaseProfile->lanes = static_cast<uint32_t>(items.size());
+    for (uint32_t lane = 0; lane < items.size(); ++lane) {
+      phaseProfile->logicalBegin[lane] = items[lane].logicalPosition;
+      phaseProfile->logicalEnd[lane] =
+          items[lane].logicalPosition + items[lane].tokenCount;
+    }
+  }
+  const double graphBegin = phaseProfile ? modelPhaseSteadySeconds() : 0.0;
+  impl_->encodePackedPrefillGraph(graph, items, entries, phaseProfile.get());
+  const double graphEnd = phaseProfile ? modelPhaseSteadySeconds() : 0.0;
+  if (phaseProfile)
+    phaseProfile->dispatches = static_cast<uint32_t>(graph.dispatches().size());
   const bool encodesImages = std::any_of(
       entries.begin(), entries.begin() + items.size(), [](const auto *entry) {
         return std::any_of(entry->images.begin(), entry->images.end(),
@@ -1961,8 +2040,20 @@ Runtime::prefillAsync(const BatchPlan &plan,
   CommandTicket command =
       impl_->backend.submitCommandAsync(graph.dispatches(), std::move(notify));
   Impl *impl = impl_.get();
-  auto finish = [impl, entries,
+  DeferredMetalTicket::WaitObserver waitObserver;
+  if (phaseProfile) {
+    phaseProfile->commandSequence = command.sequence();
+    impl->recordModelPhase(*phaseProfile, ModelPhaseStage::GraphBuild,
+                          graphBegin, graphEnd);
+    waitObserver = [impl, phaseProfile](double begin, double end) {
+      impl->recordModelPhase(*phaseProfile, ModelPhaseStage::TicketWait,
+                            begin, end);
+    };
+  }
+  auto finish = [impl, entries, phaseProfile,
                  items = std::move(copiedItems)](CommandTiming timing) mutable {
+    Impl::ModelPhaseSpan phase(*impl, phaseProfile.get(),
+                               ModelPhaseStage::CompletionHost);
     for (uint32_t lane = 0; lane < items.size(); ++lane) {
       for (Impl::ImageState &image : entries[lane]->images) {
         if (!image.data || !image.data->encoding)
@@ -2046,7 +2137,8 @@ Runtime::prefillAsync(const BatchPlan &plan,
   };
   return std::make_unique<DeferredMetalTicket>(std::move(command),
                                                std::move(finish), 0.0,
-                                               !encodesImages);
+                                               !encodesImages,
+                                               std::move(waitObserver));
 }
 
 std::vector<ModelStepResult>
@@ -2649,6 +2741,22 @@ ModelTelemetry Runtime::telemetry() const noexcept {
   result.stateResidentBytes = impl_->states.actualAllocatedBytes();
   result.warmIdleStateCells = impl_->states.idleCells();
   return result;
+}
+
+void Runtime::setModelPhaseProfiling(bool enabled) {
+  if (enabled)
+    impl_->modelPhaseProfiles.reserve(Impl::kMaximumModelPhaseProfiles);
+  impl_->modelPhaseProfiling = enabled;
+}
+
+std::vector<ModelPhaseProfile> Runtime::takeModelPhaseProfiles() {
+  std::vector<ModelPhaseProfile> result = impl_->modelPhaseProfiles;
+  impl_->modelPhaseProfiles.clear();
+  return result;
+}
+
+uint64_t Runtime::modelPhaseProfilesDropped() const noexcept {
+  return impl_->droppedModelPhaseProfiles;
 }
 
 ModelMemoryPlan plannedRuntimeMemory(const DeviceCapabilities &device,

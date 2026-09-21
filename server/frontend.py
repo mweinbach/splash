@@ -197,6 +197,7 @@ class Frontend:
         constraint_factory=None,
         max_image_pixels=image_input.MAX_PIXELS,
         thinking_codec=None,
+        input_modalities=("text", "image", "pdf"),
     ):
         if not isinstance(preparation_capacity, int) or preparation_capacity <= 0:
             raise ValueError("frontend preparation capacity must be positive")
@@ -208,6 +209,11 @@ class Frontend:
         self.request_timeout = request_timeout
         self.constraint_factory = constraint_factory
         self.max_image_pixels = max_image_pixels
+        self.input_modalities = tuple(input_modalities)
+        if "text" not in self.input_modalities or any(
+            value not in ("text", "image", "pdf") for value in self.input_modalities
+        ):
+            raise ValueError("input modalities must include text and be supported")
         self.images = image_input.ImageCache()
         self.ids = count(1)
         self.preparation_capacity = preparation_capacity
@@ -232,7 +238,54 @@ class Frontend:
             status["grammar_cache"] = self.constraint_factory.stats()
         status["response_store"] = self.response_store.stats()
         status["image_cache"] = self.images.stats()
+        status["capabilities"] = {
+            **status.get("capabilities", {}),
+            "input_modalities": list(self.input_modalities),
+            "output_modalities": ["text"],
+        }
         return status
+
+    def validate_input(self, body):
+        """Reject unsupported content before image decoding or PDF rendering."""
+
+        def content(value):
+            if not isinstance(value, list):
+                return
+            for part in value:
+                if not isinstance(part, dict):
+                    continue
+                kind = part.get("type")
+                modality = {
+                    "image": "image",
+                    "image_url": "image",
+                    "input_image": "image",
+                    "document": "pdf",
+                    "file": "pdf",
+                    "input_file": "pdf",
+                }.get(kind)
+                if modality is not None and modality not in self.input_modalities:
+                    raise APIError(
+                        400,
+                        f"the served model does not support {modality} input",
+                        "unsupported_modality",
+                    )
+                if kind == "tool_result":
+                    content(part.get("content"))
+
+        for message in (
+            body.get("messages", []) if isinstance(body.get("messages"), list) else []
+        ):
+            if isinstance(message, dict):
+                content(message.get("content"))
+        content(body.get("system"))
+        items = body.get("input")
+        if isinstance(items, list):
+            content(items)
+            for item in items:
+                if isinstance(item, dict):
+                    content(item.get("content"))
+                    if item.get("type") == "function_call_output":
+                        content(item.get("output"))
 
     def _prepare_images(self, messages, *, check_context=True):
         """Prepared images in template render order: content parts in message
@@ -475,6 +528,7 @@ class Frontend:
         preserve_thinking = body.get("preserve_thinking")
         if preserve_thinking is not None and not isinstance(preserve_thinking, bool):
             raise APIError(400, "preserve_thinking must be a boolean")
+        self.validate_input(body)
         messages = template_messages(
             normalize_messages(body.get("messages"), deadline=deadline)
         )
@@ -520,6 +574,21 @@ class Frontend:
         )
 
     def _apply_chat_template(self, messages, template):
+        # Qwen templates allow one initial system message. Coalesce only for
+        # rendering so request and Responses history retain their original roles.
+        leading = 0
+        while leading < len(messages) and messages[leading]["role"] == "system":
+            leading += 1
+        if leading > 1:
+            messages = [
+                {
+                    "role": "system",
+                    "content": "\n\n".join(
+                        message["content"] for message in messages[:leading]
+                    ),
+                },
+                *messages[leading:],
+            ]
         try:
             return self.tokenizer.apply_chat_template(messages, **template)
         except TemplateError:
@@ -752,6 +821,7 @@ class Frontend:
         return job, thinking, bool(tools)
 
     def prepare_responses(self, body, *, deadline=None):
+        self.validate_input(body)
         if deadline is None:
             deadline = self.request_deadline(body)
         store = body.get("store")

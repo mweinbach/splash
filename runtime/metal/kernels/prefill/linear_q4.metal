@@ -335,3 +335,53 @@ kernel void prefill_linear_q4_n128_up_silu_sums_sg4(
       output + output_offset, output_sums, params.output_size,
       output_tile * TileN, simd_lane, simd_group);
 }
+
+// Same projection and buffer ABI as the sums-producing wrapper. The caller
+// selects this variant only when the following down projection needs no Q4
+// input sums; buffer 7 remains bound but is not accessed.
+kernel void prefill_linear_q4_n256_up_silu_no_down_sums(
+    device bfloat *input [[buffer(0)]], device uchar *weights [[buffer(1)]],
+    device bfloat *scales [[buffer(2)]], device bfloat *biases [[buffer(3)]],
+    device bfloat *gate [[buffer(4)]], device bfloat *output [[buffer(5)]],
+    device const float *sums [[buffer(6)]],
+    device float *output_sums [[buffer(7)]],
+    constant Q4PrefillParams &params [[buffer(8)]],
+    uint2 group [[threadgroup_position_in_grid]],
+    uint simd_lane [[thread_index_in_simdgroup]],
+    uint simd_group [[simdgroup_index_in_threadgroup]]) {
+  (void)output_sums;
+  constexpr ushort TileM = 32, TileN = 256;
+  threadgroup float input_sums[TileM * PrefillSumBatch];
+  uint row_tile = group.x;
+  uint output_tile = group.y;
+  ulong input_offset = ulong(row_tile) * TileM * params.input_size;
+  ulong output_offset = ulong(row_tile) * TileM * params.output_size;
+  sums += ulong(row_tile) * TileM * (params.input_size / 64);
+  q4_mpp_prefill_tile<TileM, TileN, 8, false, true>(
+      input + input_offset, weights, scales, biases, output + output_offset,
+      gate + output_offset, params.output_size, params.input_size, sums,
+      output_tile * TileN, simd_lane, simd_group, input_sums);
+}
+
+kernel void prefill_linear_q4_n128_up_silu_no_down_sums_sg4(
+    device bfloat *input [[buffer(0)]], device uchar *weights [[buffer(1)]],
+    device bfloat *scales [[buffer(2)]], device bfloat *biases [[buffer(3)]],
+    device bfloat *gate [[buffer(4)]], device bfloat *output [[buffer(5)]],
+    device const float *sums [[buffer(6)]],
+    device float *output_sums [[buffer(7)]],
+    constant Q4PrefillParams &params [[buffer(8)]],
+    uint2 group [[threadgroup_position_in_grid]],
+    uint simd_lane [[thread_index_in_simdgroup]],
+    uint simd_group [[simdgroup_index_in_threadgroup]]) {
+  (void)output_sums;
+  constexpr ushort TileM = 32, TileN = 128;
+  uint row_tile = group.x;
+  uint output_tile = group.y;
+  ulong input_offset = ulong(row_tile) * TileM * params.input_size;
+  ulong output_offset = ulong(row_tile) * TileM * params.output_size;
+  sums += ulong(row_tile) * TileM * (params.input_size / 64);
+  q4_mpp_prefill_tile<TileM, TileN, 4, false, true>(
+      input + input_offset, weights, scales, biases, output + output_offset,
+      gate + output_offset, params.output_size, params.input_size, sums,
+      output_tile * TileN, simd_lane, simd_group);
+}

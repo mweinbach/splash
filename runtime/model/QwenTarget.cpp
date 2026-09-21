@@ -349,7 +349,8 @@ void QwenTarget::addPrefillImpl(
       operators_.linear().addPrefillUpWithGate(
           graph, buffers.normalized, layer.upProjection,
           buffers.denseGateScratch, buffers.denseIntermediate,
-          buffers.projectionSums, buffers.downProjectionSums, up, rows);
+          buffers.projectionSums, buffers.downProjectionSums, up, rows,
+          operators_.linear().requiresPrefillSums(layer.downProjection));
       operators_.linear().addPrefillResidual(
           graph, buffers.denseIntermediate, layer.downProjection, residual,
           output, buffers.downProjectionSums, down, rows);

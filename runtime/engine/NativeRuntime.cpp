@@ -482,6 +482,18 @@ void NativeRuntime::batchCompleted(WorkKind kind, uint32_t width,
                                     draftedTokens, acceptedDraftTokens,
                                     wallMilliseconds);
   }
+  if (config_.batchCompletedObserver) {
+    const double now = std::chrono::duration<double>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    try {
+      config_.batchCompletedObserver(
+          {kind, width, inputTokens, wallMilliseconds, now});
+    } catch (...) {
+      // Development observers are optional. Disable a failing observer without
+      // sending an engine failure or exposing request data in diagnostics.
+      config_.batchCompletedObserver = {};
+    }
+  }
 }
 
 void NativeRuntime::started(uint64_t requestId, EngineCacheStatus cacheStatus,
