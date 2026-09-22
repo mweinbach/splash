@@ -1,0 +1,102 @@
+[
+  {
+    "old": "#include \"safety.hpp\"",
+    "new": "#include \"safety.hpp\"\n#include \"bank.hpp\"",
+    "count": 1
+  },
+  {
+    "old": "std::vector<int64_t> fixtureIDs(std::string_view name) {\n  require(name==\"u10\"||name==\"u20\"||name==\"u40\"||name==\"u80\"||name==\"u160\"||name==\"oldmixed\"||name==\"permuted\",\"unsupported native batch case\");\n  uint32_t uniqueRows=name==\"u10\"?1:name==\"u20\"?2:name==\"u40\"?4:name==\"u80\"?8:name==\"u160\"?16:0;\n  require(uniqueRows<=rows,\"fixture width exceeds fixed component\");\n  std::vector<int64_t> ids(routes);\n  for(uint32_t row=0;row<rows;++row) {\n    const uint32_t baseRow=row%4;\n    const uint32_t shift=uniqueRows?(row%(uniqueRows))*1u:(baseRow%2?baseRow*73:0);\n    for(uint32_t slot=0;slot<10;++slot) {\n      const uint32_t selection=name==\"permuted\"?(slot*3+baseRow)%10:slot;\n      // Disjoint cyclic expert sets for bounded U10/20/40/80/160 cases;\n      // oldmixed/permuted embed qualified R4 rows0..3 without alteration.\n      ids[row*10+slot]=uniqueRows?int64_t((selection*32+shift)%512):int64_t((selection*53+shift)%512);\n    }\n  }\n  return ids;\n}\n",
+    "new": "std::vector<int64_t> fixtureIDs(std::string_view name) {\n  require(name==\"u10\"||name==\"u25\"||name==\"u50\",\"only preregistered U10/U25/U50 R5 patterns\");\n  std::vector<int64_t> ids(routes);\n  for(uint32_t row=0;row<rows;++row)for(uint32_t slot=0;slot<10;++slot)\n    ids[row*10+slot]=name==\"u50\"?row*10+slot:name==\"u25\"?(row*5+slot)%25:slot;\n  return ids;\n}\n",
+    "count": 1
+  },
+  {
+    "old": "void setup(CommandGraph &g,MetalBuffer h,MetalBuffer ids,const FlashMoEBlockedScratch &s,MetalBuffer diag,bool compact) {\n  if(!compact){addMoEBlockedPack(g,h,ids,s,diag,rows,FlashMoEBlockedTile::M16N64,10);return;}\n  g.add(\"expert_r5_compact_native_sep22_plan\",{ids,s.buckets.counts,s.buckets.offsets,s.buckets.routeMap,\n      s.buckets.canonicalToPacked,s.buckets.jobOffsets,s.buckets.tileJobs,s.buckets.jobCount,diag},compactParams,{1,1,1},{256,1,1});\n  g.add(\"flash_moe_direct_a_pack\",{h,s.buckets.offsets,s.buckets.routeMap,s.buckets.packedInputs,diag},\n      packParams,{operandRows,1,1},{256,1,1});\n}\n",
+    "new": "void setup(CommandGraph &g,MetalBuffer h,MetalBuffer ids,const FlashMoEBlockedScratch &s,MetalBuffer diag,bool compact) {\n  if(!compact){addMoEBlockedPack(g,h,ids,s,diag,rows,FlashMoEBlockedTile::M16N64,10);return;}\n  CommandGraph original;addMoEBlockedPack(original,h,ids,s,diag,rows,FlashMoEBlockedTile::M16N64,10);\n  require(original.dispatches().size()==6,\"original pack setup topology changed\");\n  const std::array<const char*,6> expectedNames{\"flash_moe_bucket_histogram\",\"flash_moe_bucket_prefix\",\"flash_moe_bucket_stable_map\",\"flash_moe_direct_a_pack\",\"flash_moe_bucket_job_prefix\",\"flash_moe_bucket_jobs\"};\n  const std::array<uint64_t,6> groups{512,1,512,operandRows,1,3};\n  const std::array<std::vector<MetalBuffer>,6> bindings{{{ids,s.buckets.counts,s.buckets.canonicalToPacked,diag},{s.buckets.counts,s.buckets.offsets,diag},\n    {ids,s.buckets.counts,s.buckets.offsets,s.buckets.routeMap,s.buckets.canonicalToPacked,diag},{h,s.buckets.offsets,s.buckets.routeMap,s.buckets.packedInputs,diag},\n    {s.buckets.counts,s.buckets.offsets,s.buckets.jobOffsets,s.buckets.jobCount,diag},{s.buckets.offsets,s.buckets.jobOffsets,s.buckets.jobCount,s.buckets.tileJobs,diag}}};\n  for(uint32_t index=0;index<6;++index) {\n    const auto&d=original.dispatches()[index];const auto expected=index<4?packParams:compactParams;\n    require(d.pipelineName==expectedNames[index]&&d.threadgroups.x==groups[index]&&d.threadgroups.y==1&&d.threadgroups.z==1&&\n      d.threadsPerThreadgroup.x==256&&d.threadsPerThreadgroup.y==1&&d.threadsPerThreadgroup.z==1&&d.buffers.size()==bindings[index].size(),\"original setup descriptor geometry changed\");\n    require(d.bytes.size()==1&&d.bytes[0].index==bindings[index].size()&&d.bytes[0].sizeBytes==32&&d.bytes[0].data&&!std::memcmp(d.bytes[0].data,&expected,32),\"original setup packet changed\");\n    for(uint32_t slot=0;slot<bindings[index].size();++slot)require(d.buffers[slot].index==slot&&d.buffers[slot].buffer.sameView(bindings[index][slot]),\"original setup bindings changed\");\n  }\n  g.add(\"expert_r5_compact_native_sep22_plan\",{ids,s.buckets.counts,s.buckets.offsets,s.buckets.routeMap,\n      s.buckets.canonicalToPacked,s.buckets.jobOffsets,s.buckets.tileJobs,s.buckets.jobCount,diag},compactParams,{1,1,1},{256,1,1});\n  const auto&pack=original.dispatches()[3];std::vector<MetalBuffer> packBindings;\n  for(const auto&binding:pack.buffers)packBindings.push_back(binding.buffer);\n  g.add(pack.pipelineName,std::move(packBindings),packParams,pack.threadgroups,pack.threadsPerThreadgroup);\n}\n",
+    "count": 1
+  },
+  {
+    "old": "  setup(g,h,ids,s,diag,compact);gate(g,layer,s,diag);",
+    "new": "  boundedRanks(layer);splash::flash::compact_native_r5_safety::validate(layer,s,h,ids,diag);\n  setup(g,h,ids,s,diag,compact);gate(g,layer,s,diag);",
+    "count": 1
+  },
+  {
+    "old": "  for(std::string_view name:{\"u10\",\"u20\",\"u40\",\"u80\",\"u160\",\"oldmixed\",\"permuted\"}) {\n    if(name==\"u160\"&&rows==8)continue;\n    const auto ids=fixtureIDs(name);require(gathered_i8_qmv::fixtureIDDiagnostics(ids,rows)==0,\"fixture invalid or duplicate\");\n    const auto m=compact_native_r5_metadata::expected(ids);require(m.offsets[512]==routes&&!m.sticky,\"valid metadata differs\");\n    const uint32_t expectedJobs=name==\"u10\"?10u:name==\"u20\"?20u:name==\"u40\"?40u:name==\"u80\"?80u:name==\"u160\"?160u:30u;\n    require(m.jobCount==expectedJobs,\"fixture job count differs\");++cases;\n  }\n  const auto ids=fixtureIDs(\"oldmixed\");require(ids[34]==431&&ids[19]==38&&ids[20]==0,\"failed route34 fidelity fixture changed\");\n",
+    "new": "  for(std::string_view name:{\"u10\",\"u25\",\"u50\"}) {\n    const auto ids=fixtureIDs(name);require(gathered_i8_qmv::fixtureIDDiagnostics(ids,rows)==0,\"fixture invalid or duplicate\");\n    const auto m=compact_native_r5_metadata::expected(ids);require(m.offsets[512]==routes&&!m.sticky,\"valid metadata differs\");\n    const uint32_t expectedJobs=name==\"u10\"?10u:name==\"u25\"?25u:50u;\n    require(m.jobCount==expectedJobs,\"fixture job count differs\");++cases;\n  }\n",
+    "count": 1
+  },
+  {
+    "old": "int main(int argc,char **argv) {",
+    "new": "int r5PrimitiveEntry(int argc,char **argv) {",
+    "count": 1
+  },
+  {
+    "old": "std::string caseName=\"oldmixed\";",
+    "new": "std::string caseName=\"u10\";",
+    "count": 1
+  },
+  {
+    "old": "if(caseName==\"permuted\"&&!explicitRank)rankShift=73;",
+    "new": "(void)explicitRank;",
+    "count": 1
+  },
+  {
+    "old": "rankShift=numeric(argv[i+1],0,511);",
+    "new": "rankShift=numeric(argv[i+1],0,49);",
+    "count": 1
+  },
+  {
+    "old": "      MetalBackend backend(argv[2]);const uint64_t physical=",
+    "new": "      R5BackendLifetime lifetime;MetalBackend backend(argv[2]);r5Resources.gpu=true;\n      const auto initial=backend.memoryStats();r5Resources.initialOwned=initial.allocatedBytes;r5Resources.initialDevice=initial.deviceCurrentAllocatedBytes;\n      const uint64_t physical=",
+    "count": 1
+  },
+  {
+    "old": "      const uint64_t planned=one::oneLayerPlannedBytes(metadata.layers[layerIndex])+(128ULL<<20);",
+    "new": "      R5FinalLedger finalLedger{backend,governor};const uint64_t planned=R5ReservationBytes;",
+    "count": 1
+  },
+  {
+    "old": "      const uint64_t before=backend.memoryStats().allocatedBytes;auto layer=one::OneLayerPayload::load(backend,metadata,layerIndex);",
+    "new": "      const uint64_t before=backend.memoryStats().allocatedBytes;std::vector<Guard> guards;\n      auto layer=selectedBank(backend,metadata.layers[layerIndex],[&](uint64_t bytes){return guarded(backend,bytes,guards);});",
+    "count": 1
+  },
+  {
+    "old": "if(rankShift){auto *r=static_cast<uint32_t *>(layer.ranks.contents());for(uint32_t id=0;id<512;++id)r[id]=(id+rankShift)%512;}",
+    "new": "if(rankShift){auto *r=static_cast<uint32_t *>(layer.ranks.contents());for(uint32_t id=0;id<50;++id)r[id]=(id+rankShift)%50;}",
+    "count": 1
+  },
+  {
+    "old": "const auto immutable=layer.immutableHashes();std::vector<Guard> guards;",
+    "new": "const auto immutable=layer.immutableHashes();",
+    "count": 1
+  },
+  {
+    "old": "one layer plus128MiB reservation",
+    "new": "384MiB selected-bank reservation",
+    "count": 1
+  },
+  {
+    "old": "<<metadata.layers[layerIndex].bytes",
+    "new": "<<R5SelectedBytes",
+    "count": 1
+  },
+  {
+    "old": "splash-private-parallel-integer-native-m16-batch-v1",
+    "new": "splash-private-R5-parallel-integer-original-native-m16-v1",
+    "count": 1
+  },
+  {
+    "old": "      backend.stop();std::cout",
+    "new": "      sourceUnchanged();backend.stop();r5Resources.stopped=true;std::cout",
+    "count": 1
+  },
+  {
+    "old": "      const uint64_t after=backend.memoryStats().allocatedBytes;",
+    "new": "      bool rankBoundRejected=false;\n      {auto ranks=copyBuffer<uint32_t>(layer.ranks);ranks[size_t(ids[0])]=50;auto shortBank=layer;shortBank.ranks=upload(backend,ranks,guards);\n        const auto count=backend.submissionCount();try{CommandGraph graph;nativeGraph(graph,shortBank,h,id,s,diag,false,2);}catch(const std::runtime_error&){rankBoundRejected=true;}\n        require(rankBoundRejected&&backend.submissionCount()==count,\"finite out-of-bank rank must refuse before submit\");}\n      const uint64_t after=backend.memoryStats().allocatedBytes;",
+    "count": 1
+  },
+  {
+    "old": "safety.pass()&&badRankNativePass;",
+    "new": "safety.pass()&&badRankNativePass&&rankBoundRejected;",
+    "count": 1
+  }
+]

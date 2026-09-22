@@ -77,7 +77,7 @@ class LocalProfileV9CandidateTests(unittest.TestCase):
         self.assertEqual(second["environment"], V9_ENVIRONMENT)
         self.assertEqual(second["minimum_physical_ram_bytes"], 256 * 1024**3)
         self.assertEqual(launcher.LOCAL_PROFILE, accepted)
-        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v10")
+        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v12")
         self.assertEqual(dict(os.environ), process)
         self.assertFalse((self.root / ".splash-local-profile.json").exists())
 
@@ -96,7 +96,7 @@ class LocalProfileV9CandidateTests(unittest.TestCase):
         for probe in (manifest, hardware, operands, experts):
             probe.assert_not_called()
 
-    def test_historical_v9_is_rejected_by_active_v10_before_probes(self):
+    def test_historical_v9_is_rejected_by_active_v12_before_probes(self):
         historical = self.candidate()
         (self.root / ".splash-local-profile.json").write_text(json.dumps(historical))
         with (
@@ -110,7 +110,7 @@ class LocalProfileV9CandidateTests(unittest.TestCase):
         for probe in (manifest, hardware, operands, experts):
             probe.assert_not_called()
 
-    def test_active_v10_preserves_exact_historical_v5_through_v9_routes(self):
+    def test_active_v12_preserves_exact_historical_v5_through_v9_routes(self):
         for helper, name, expected, memory in (
             (launcher._local_profile_v5_candidate, "m5-ultra-flash-next-v5", V5_ENVIRONMENT, 192),
             (launcher._local_profile_v6_candidate, "m5-ultra-flash-next-v6", V6_ENVIRONMENT, 192),

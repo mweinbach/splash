@@ -1,0 +1,531 @@
+// Private CPU-compiled experiment. Root is the sole GPU coordinator.
+// Distinct from existing scalar triangular solve per value: prepare F32 W/U
+// once per head/chunk, then apply state through SG4/8 device tensor products.
+// BF16 q/k/v/beta and exposed output; F32 decay, transforms, and carried state.
+#include <metal_stdlib>
+#include <metal_tensor>
+#include <MetalPerformancePrimitives/MetalPerformancePrimitives.h>
+#include "abi.hpp"
+#include "native_helper.metal"
+#include "native_audit_helper.metal"
+#pragma METAL fp math_mode(safe)
+#pragma clang fp contract(off)
+#pragma clang fp reassociate(off)
+using namespace metal;
+using namespace mpp::tensor_ops;
+
+inline void gtc_error(device atomic_uint &diagnostics, uint flag) {
+  atomic_fetch_or_explicit(&diagnostics, flag, memory_order_relaxed);
+}
+// Sticky per(lane,value head) reasons. A selected head is fully restored and
+// replayed from its immutable incoming state after speculative WY completes.
+enum : uint { GTC_RANGE = 1u, GTC_CANCEL = 2u, GTC_NONFINITE = 4u, GTC_NORM = 8u };
+inline void gtc_mark(threadgroup atomic_uint &local,uint reason) {
+  atomic_fetch_or_explicit(&local,reason,memory_order_relaxed);
+}
+
+inline bool gtc_valid(constant FlashGDNParams &p) {
+  return p.rows && p.rows <= 2048 && p.lanes && p.lanes <= 32 &&
+      p.key_heads == 16 && p.value_heads == 48 && p.key_dimension == 128 &&
+      p.value_dimension == 128 && p.convolution_taps == 4 &&
+      isfinite(p.norm_epsilon) && p.norm_epsilon > 0.0f &&
+      p.convolution_lane_stride_bytes >= ulong(3) * 10240 * 2 &&
+      !(p.convolution_lane_stride_bytes % 2) &&
+      p.recurrent_lane_stride_bytes >= ulong(48) * 128 * 128 * 4 &&
+      !(p.recurrent_lane_stride_bytes % 4);
+}
+template <ushort Time> constexpr uint gtc_stride() {
+  return 3 * Time * 128 + Time * Time + 3 * Time;
+}
+template <ushort Time> constexpr uint gtc_old_stride() {
+  return 3 * Time * 128 + Time * Time + Time;
+}
+// Same FP32 operation order as v3's main W norm. Only the location/frequency
+// changes: once per head/chunk/token, before four value tiles consume it.
+inline void gtc_weight_norm(device const float *prepared, ulong base, uint token,
+    uint simdLane, thread float &result, thread uint &reason) {
+  float sum = 0.0f;
+  bool bad = false;
+  for (uint i = 0; i < 4; ++i) {
+    const uint raw = reinterpret_cast<device const uint *>(prepared)[base + token * 128 + 4 * simdLane + i];
+    const float x = as_type<float>(raw);
+    const float square = x * x;
+    if (((raw & 0x7fffffffu) && square < 0x1p-126f) ||
+        !isfinite(square) || square >= 0x1.fffffep127f) bad = true;
+    sum += square;
+  }
+  const float norm = simd_sum(sum);
+  if (!isfinite(norm) || norm >= 0x1.fffffep127f) bad = true;
+  reason = simd_any(bad) ? uint(GTC_NORM) : 0u;
+  result = sqrt(norm) * 1.000125f;
+}
+
+template <ushort Time, ushort Groups>
+inline void gtc_prepare(device const bfloat *mixed, device const float *decay,
+    device const bfloat *beta, device float *prepared,
+    device atomic_uint &diagnostics, constant FlashGDNParams &p, device uint *range, threadgroup atomic_uint &local,
+    uint3 group, uint3 threads, uint tid,
+    threadgroup float *gram, threadgroup float *inverse,
+    threadgroup float *scaled, threadgroup float *alphas,
+    threadgroup float *betas, threadgroup float *prefix, threadgroup uint *alphaWords) {
+  const uint chunks = (p.rows + Time - 1) / Time;
+  if (!gtc_valid(p) || threads.x != uint(Groups) * 32 ||
+      threads.y != 1 || threads.z != 1 || group.x >= 48 ||
+      group.y >= chunks || group.z >= p.lanes) {
+    if (!tid) gtc_error(diagnostics, FlashGDNInvalidParameters);
+    return;
+  }
+  const uint head = group.x, keyHead = head / 3, begin = group.y * Time;
+  const uint batch = group.z, count = min(uint(Time), p.rows - begin);
+  const ulong base = ((ulong(batch) * chunks + group.y) * 48 + head) * gtc_stride<Time>();
+  const ulong source = (ulong(batch) * p.rows + begin) * 10240;
+  if (!tid) atomic_store_explicit(&local,0u,memory_order_relaxed);
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  for (uint i = tid; i < gtc_stride<Time>(); i += Groups * 32)
+    prepared[base + i] = 0.0f;
+  if (tid < Time) {
+    const ulong gate = (ulong(batch) * p.rows + begin + tid) * 48 + head;
+    const uint word = tid < count ? reinterpret_cast<device const uint *>(decay)[gate] : 0x3f800000u;
+    alphaWords[tid] = word;
+    alphas[tid] = as_type<float>(word);
+    const uint betaWord = tid < count ? uint(reinterpret_cast<device const ushort *>(beta)[gate]) << 16 : 0u;
+    betas[tid] = as_type<float>(betaWord);
+    if ((betaWord & 0x7fffffffu) && (betaWord & 0x7fffffffu) < 0x00800000u)
+      gtc_mark(local,GTC_RANGE);
+    if (tid < count && (!isfinite(betas[tid]) || betas[tid] < 0.0f || betas[tid] > 1.0f))
+      gtc_mark(local,GTC_RANGE);
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup | mem_flags::mem_device);
+  if (tid < Time) {
+    float product = 1.0f;
+    float segment = 1.0f;
+    for (uint t = 0; t <= tid; ++t) {
+      const float alpha = alphas[t];
+      if (!isfinite(alpha) || alpha < 0.0f || alpha > 1.0f)
+        gtc_mark(local,GTC_RANGE);
+      // For finite[0,1] factors, the longest nonzero segment dominates every
+      // contiguous relative product. Real zeros reset this independent scan.
+      const uint alphaBits = alphaWords[t] & 0x7fffffffu;
+      if (!alphaBits) segment = 1.0f;
+      else {
+        if (alphaBits < 0x00800000u) gtc_mark(local,GTC_RANGE);
+        segment *= abs(alpha);
+        // MSL permits RTZ and FTZ. The boundary margin exceeds gamma32 for
+        // worst-case u=2^-23; bit tests distinguish actual zeros from FTZ.
+        if (!isfinite(segment) || segment < 0x1p-126f * 1.000008f)
+          gtc_mark(local,GTC_RANGE);
+      }
+      product *= alpha;
+    }
+    prefix[tid] = product;
+    prepared[base + 3 * Time * 128 + Time * Time + tid] = tid < count ? product : 0.0f;
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  const uint rangeReason=atomic_load_explicit(&local,memory_order_relaxed);
+  if (!tid) range[(ulong(batch)*chunks+group.y)*48+head]=rangeReason;
+  if (rangeReason) return; // Uniform: coefficients remain defined zeros/unused.
+  auto qt = tensor(const_cast<device bfloat *>(mixed) + source + keyHead * 128,
+      dextents<int,2>{128, int(count)}, array<int,2>{1,10240});
+  auto kt = tensor(const_cast<device bfloat *>(mixed) + source + 2048 + keyHead * 128,
+      dextents<int,2>{128, int(count)}, array<int,2>{1,10240});
+  auto vt = tensor(const_cast<device bfloat *>(mixed) + source + 4096 + head * 128,
+      dextents<int,2>{128, int(count)}, array<int,2>{1,10240});
+  auto q = qt.slice(0,0), k = kt.slice(0,0), v = vt.slice(0,0);
+  constexpr auto gd = matmul2d_descriptor(Time,Time,128,false,true,false,
+      matmul2d_descriptor::mode::multiply);
+  matmul2d<gd,execution_simdgroups<Groups>> gop;
+  auto kk = gop.template get_destination_cooperative_tensor<decltype(k),decltype(k),float>();
+  gop.run(k,k,kk);
+#pragma unroll
+  for (ushort i = 0; i < kk.get_capacity(); ++i) {
+    if (!kk.is_valid_element(i)) continue;
+    const auto ix = kk.get_multidimensional_index(i);
+    gram[ix[1] * Time + ix[0]] = kk[i];
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  for (uint i = tid; i < Time * Time; i += Groups * 32) {
+    const uint token = i / Time, previous = i % Time;
+    float product = 1.0f;
+    for (uint a = previous + 1; a <= token; ++a) product *= alphas[a];
+    gram[i] = token < count && previous < token ?
+        gram[i] * betas[token] * product : 0.0f;
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  // One thread owns each inverse column. Dependences never cross columns.
+  if (tid < Time) {
+    for (uint token = 0; token < Time; ++token) {
+      float value = token == tid ? 1.0f : 0.0f;
+      for (uint previous = 0; previous < token; ++previous)
+        value -= gram[token * Time + previous] * inverse[previous * Time + tid];
+      inverse[token * Time + tid] = value;
+    }
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  for (uint i = tid; i < Time * Time; i += Groups * 32)
+    scaled[i] = inverse[i] * betas[i % Time] * prefix[i % Time];
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  auto ft = tensor(scaled,dextents<int,2>{Time,Time},array<int,2>{1,Time});
+  auto f = ft.template slice<Time,Time>(0,0);
+  constexpr auto td = matmul2d_descriptor(Time,128,Time,false,false,false,
+      matmul2d_descriptor::mode::multiply);
+  matmul2d<td,execution_simdgroups<Groups>> top;
+  auto w = top.template get_destination_cooperative_tensor<decltype(f),decltype(k),float>();
+  top.run(f,k,w);
+#pragma unroll
+  for (ushort i = 0; i < w.get_capacity(); ++i) {
+    if (!w.is_valid_element(i)) continue;
+    const auto ix = w.get_multidimensional_index(i);
+    if (uint(ix[1]) < count) prepared[base + ix[1] * 128 + ix[0]] = w[i];
+  }
+  threadgroup_barrier(mem_flags::mem_threadgroup | mem_flags::mem_device);
+  const uint normGroup = tid / 32, normLane = tid % 32;
+  for (uint token = normGroup; token < Time; token += Groups) {
+    float value; uint reason;
+    gtc_weight_norm(prepared,base,token,normLane,value,reason);
+    if (!normLane) {
+      prepared[base + gtc_old_stride<Time>() + token] = value;
+      reinterpret_cast<device uint *>(prepared)[base + gtc_old_stride<Time>() + Time + token] = reason;
+    }
+  }
+  // Cached reasons are not merged into global head flags here. V3 merged them
+  // in the state phase; preserving that point avoids premature head skipping.
+  for (uint i = tid; i < Time * Time; i += Groups * 32)
+    scaled[i] = inverse[i] * betas[i % Time];
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  auto u = top.template get_destination_cooperative_tensor<decltype(f),decltype(v),float>();
+  top.run(f,v,u);
+#pragma unroll
+  for (ushort i = 0; i < u.get_capacity(); ++i) {
+    if (!u.is_valid_element(i)) continue;
+    const auto ix = u.get_multidimensional_index(i);
+    if (uint(ix[1]) < count) prepared[base + Time * 128 + ix[1] * 128 + ix[0]] = u[i];
+  }
+  auto qk = gop.template get_destination_cooperative_tensor<decltype(q),decltype(k),float>();
+  gop.run(q,k,qk);
+#pragma unroll
+  for (ushort i = 0; i < qk.get_capacity(); ++i) {
+    if (!qk.is_valid_element(i)) continue;
+    const auto ix = qk.get_multidimensional_index(i);
+    const uint token = ix[1], previous = ix[0];
+    float product = 1.0f;
+    for (uint a = previous + 1; a <= token; ++a) product *= alphas[a];
+    if (token < count && previous <= token)
+      prepared[base + 3 * Time * 128 + token * Time + previous] = qk[i] * product;
+  }
+  for (uint i = tid; i < Time * 128; i += Groups * 32) {
+    const uint token = i / 128;
+    if (token >= count) continue;
+    float product = 1.0f;
+    for (uint a = token + 1; a < count; ++a) product *= alphas[a];
+    prepared[base + 2 * Time * 128 + i] = product * float(mixed[
+        source + token * 10240 + 2048 + keyHead * 128 + i % 128]);
+  }
+}
+
+template <ushort Values, ushort Time, ushort Groups, bool Audit, bool Probe>
+inline void gtc_apply(device const bfloat *mixed, device const float *decay,
+    device const bfloat *beta, device float *recurrent, device bfloat *output,
+    device atomic_uint &diagnostics, constant TileChunkParams &control,
+    device const float *prepared, device const uint *range, device uint *decisions,
+    uint3 group, uint3 threads, uint tid, threadgroup uint *scratch,
+    threadgroup atomic_uint &local, device float *history, device float *deltaAudit,
+    device float *outputAudit, device uint *incomingSeeds) {
+  constant FlashGDNParams &p=control.gdn;
+  auto delta=reinterpret_cast<threadgroup float *>(scratch);
+  auto stateQuery=delta+Values*Time;
+  auto stateNorm=stateQuery+Values*Time;
+  auto weightNorm=stateNorm+Values;
+  auto deltaNorm=weightNorm+Time;
+  auto conditionNorm=deltaNorm+Groups;
+  if (!gtc_valid(p) || p.lanes!=1 || control.mode>3 || control.reserved || threads.x != uint(Groups) * 32 ||
+      threads.y != 1 || threads.z != 1 || group.x >= 48 ||
+      group.y >= 128 / Values || group.z >= p.lanes || (Audit && group.x != 0)) {
+    if (!tid) gtc_error(diagnostics,FlashGDNInvalidParameters);
+    return;
+  }
+  const uint head = group.x, keyHead = head / 3, batch = group.z;
+  const uint valueBegin = group.y * Values, chunks = (p.rows + Time - 1) / Time;
+  const ulong stateBase = ulong(batch) * p.recurrent_lane_stride_bytes / 4 +
+      (head * 128 + valueBegin) * 128;
+  auto st = tensor(recurrent + stateBase,dextents<int,2>{128,Values},array<int,2>{1,128});
+  auto s = st.template slice<128,Values>(0,0);
+  auto dt = tensor(delta,dextents<int,2>{Time,Values},array<int,2>{1,Time});
+  auto d = dt.template slice<Time,Values>(0,0);
+  constexpr auto pd = matmul2d_descriptor(Values,Time,128,false,true,false,
+      matmul2d_descriptor::mode::multiply);
+  matmul2d<pd,execution_simdgroups<Groups>> pop;
+  constexpr auto od = matmul2d_descriptor(Values,Time,Time,false,true,false,
+      matmul2d_descriptor::mode::multiply);
+  matmul2d<od,execution_simdgroups<Groups>> oop;
+  constexpr auto ud = matmul2d_descriptor(Values,128,Time,false,false,false,
+      matmul2d_descriptor::mode::multiply);
+  matmul2d<ud,execution_simdgroups<Groups>> uop;
+  for (uint begin = 0; begin < p.rows; begin += Time) {
+    const uint count = min(uint(Time),p.rows-begin);
+    const ulong base = ((ulong(batch) * chunks + begin / Time) * 48 + head) * gtc_stride<Time>();
+    const uint chunk=begin/Time;
+    if constexpr (Audit || Probe) {
+      const ulong seedBase=Audit ? ulong(chunk)*128*128 : (ulong(chunk)*48+head)*128*128;
+      for (uint i=tid;i<Values*128;i+=Groups*32)
+        incomingSeeds[seedBase+valueBegin*128+i]=reinterpret_cast<device const uint *>(recurrent)[stateBase+i];
+    }
+    const uint initialRange=range[chunk*48+head]; // Immutable preparation result.
+    if (!tid) atomic_store_explicit(&local,initialRange,memory_order_relaxed);
+    if constexpr (Audit || Probe)
+      threadgroup_barrier(mem_flags::mem_threadgroup | mem_flags::mem_device);
+    else threadgroup_barrier(mem_flags::mem_threadgroup);
+    const bool forced=control.mode==1 || (control.mode==2 && (chunk&1u));
+    const bool attemptWY=control.mode==3 || (!forced && !initialRange);
+    if (attemptWY) {
+
+    auto wt = tensor(const_cast<device float *>(prepared) + base,
+        dextents<int,2>{128,Time},array<int,2>{1,128});
+    auto w = wt.template slice<128,Time>(0,0);
+    const uint simdGroup = tid / 32, simdLane = tid % 32;
+    // Projection-conditioning selector, not a W/U+history accuracy certificate.
+    // Cauchy bounds avoid hiding cancellation inside the projected dot.
+    for (uint value = simdGroup; value < Values; value += Groups) {
+      float sum = 0.0f;
+      for (uint i = 0; i < 4; ++i) {
+        const uint raw = reinterpret_cast<device const uint *>(recurrent)[stateBase + value * 128 + 4 * simdLane + i];
+        const float x = as_type<float>(raw);
+        const float square = x * x;
+        if (((raw & 0x7fffffffu) && square < 0x1p-126f) ||
+            !isfinite(square) || square >= 0x1.fffffep127f)
+          gtc_mark(local,GTC_NORM);
+        sum += square;
+      }
+      const float norm = simd_sum(sum);
+      if (!isfinite(norm) || norm >= 0x1.fffffep127f) gtc_mark(local,GTC_NORM);
+      if (!simdLane) stateNorm[value] = sqrt(norm) * 1.000125f;
+    }
+    for (uint token = simdGroup; token < Time; token += Groups) {
+      const uint reason = reinterpret_cast<device const uint *>(prepared)[base + gtc_old_stride<Time>() + Time + token];
+      if (reason) gtc_mark(local,reason);
+      if (!simdLane) weightNorm[token] = prepared[base + gtc_old_stride<Time>() + token];
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    auto sw = pop.template get_destination_cooperative_tensor<decltype(s),decltype(w),float>();
+    pop.run(s,w,sw);
+    float localDelta2 = 0.0f, localCondition2 = 0.0f;
+#pragma unroll
+    for (ushort i = 0; i < sw.get_capacity(); ++i) {
+      if (!sw.is_valid_element(i)) continue;
+      const auto ix = sw.get_multidimensional_index(i);
+      const float u = prepared[base + Time * 128 + ix[0] * 128 + valueBegin + ix[1]];
+      const float value = uint(ix[0]) < count ? u - sw[i] : 0.0f;
+      delta[ix[1] * Time + ix[0]] = value;
+      if (uint(ix[0]) < count) {
+        const float bound = abs(u) + stateNorm[ix[1]] * weightNorm[ix[0]];
+        const float valueSquare = value * value, boundSquare = bound * bound;
+        if (((as_type<uint>(value) & 0x7fffffffu) && valueSquare < 0x1p-126f) ||
+            ((as_type<uint>(bound) & 0x7fffffffu) && boundSquare < 0x1p-126f) ||
+            !isfinite(valueSquare) || !isfinite(boundSquare) ||
+            valueSquare >= 0x1.fffffep127f || boundSquare >= 0x1.fffffep127f)
+          gtc_mark(local,GTC_NORM);
+        localDelta2 += valueSquare;
+        localCondition2 += boundSquare;
+        if (!isfinite(value) || !isfinite(bound)) gtc_mark(local,GTC_NONFINITE);
+      }
+    }
+    const float d2 = simd_sum(localDelta2), c2 = simd_sum(localCondition2);
+    if (!simdLane) { deltaNorm[simdGroup] = d2; conditionNorm[simdGroup] = c2; }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    if (!tid) {
+      float sumD = 0.0f, sumC = 0.0f;
+      for (uint i = 0; i < Groups; ++i) { sumD += deltaNorm[i]; sumC += conditionNorm[i]; }
+      // gamma_(256) / original relative gate ~= .3051851 for MSL's permitted
+      // RTZ (u=2^-23). The extra squared-ratio margin is
+      // conservative for the *local projection selector*. Transform/history
+      // accuracy remains an independently reported numerical qualification.
+      if (!isfinite(sumD) || !isfinite(sumC) ||
+          sumD >= 0x1.fffffep127f || sumC >= 0x1.fffffep127f)
+        gtc_mark(local,GTC_NORM);
+      else if (sumC > 0.0f && sumD <= 0.095f * sumC)
+        gtc_mark(local,GTC_CANCEL);
+    }
+    auto qt = tensor(const_cast<device bfloat *>(mixed) +
+        (ulong(batch) * p.rows + begin) * 10240 + keyHead * 128,
+        dextents<int,2>{128,int(count)},array<int,2>{1,10240});
+    auto q = qt.slice(0,0);
+    auto sq = pop.template get_destination_cooperative_tensor<decltype(s),decltype(q),float>();
+    pop.run(s,q,sq);
+#pragma unroll
+    for (ushort i = 0; i < sq.get_capacity(); ++i) {
+      if (!sq.is_valid_element(i)) continue;
+      const auto ix = sq.get_multidimensional_index(i);
+      stateQuery[ix[1] * Time + ix[0]] =
+          prepared[base + 3 * Time * 128 + Time * Time + ix[0]] * sq[i];
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    auto at = tensor(const_cast<device float *>(prepared) + base + 3 * Time * 128,
+        dextents<int,2>{Time,Time},array<int,2>{1,Time});
+    auto attention = at.template slice<Time,Time>(0,0);
+    auto result = oop.template get_destination_cooperative_tensor<decltype(d),decltype(attention),float>();
+    oop.run(d,attention,result);
+#pragma unroll
+    for (ushort i = 0; i < result.get_capacity(); ++i) {
+      if (!result.is_valid_element(i)) continue;
+      const auto ix = result.get_multidimensional_index(i);
+      const uint token = ix[0], value = ix[1];
+      if (token >= count) continue;
+      const float y = stateQuery[value * Time + token] + result[i];
+      output[(ulong(batch) * p.rows + begin + token) * 6144 + head * 128 + valueBegin + value] = bfloat(y);
+      if (!isfinite(y) || abs(y) >= 0x1.fffffep127f) gtc_mark(local,GTC_NONFINITE);
+      if constexpr (Audit) {
+        deltaAudit[(ulong(batch) * p.rows + begin + token) * 128 + valueBegin + value] = delta[value * Time + token];
+        outputAudit[(ulong(batch) * p.rows + begin + token) * 128 + valueBegin + value] = y;
+      }
+    }
+    if constexpr (Audit) {
+      for (uint i = tid; i < Values * 128; i += Groups * 32) {
+        const uint value = i / 128, dimension = i % 128;
+        for (uint token = 0; token < count; ++token) {
+          float y = prepared[base + 3 * Time * 128 + Time * Time + token] * recurrent[stateBase + i];
+          for (uint previous = 0; previous <= token; ++previous) {
+            float product = 1.0f;
+            for (uint a = previous + 1; a <= token; ++a)
+              product *= decay[(ulong(batch) * p.rows + begin + a) * 48 + head];
+            y += product * delta[value * Time + previous] * float(mixed[
+                (ulong(batch) * p.rows + begin + previous) * 10240 +
+                2048 + keyHead * 128 + dimension]);
+          }
+          history[((ulong(batch) * p.rows + begin + token) * 128 + valueBegin + value) * 128 + dimension] = y;
+        }
+      }
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    auto et = tensor(const_cast<device float *>(prepared) + base + 2 * Time * 128,
+        dextents<int,2>{128,Time},array<int,2>{1,128});
+    auto e = et.template slice<128,Time>(0,0);
+    auto update = uop.template get_destination_cooperative_tensor<decltype(d),decltype(e),float>();
+    uop.run(d,e,update);
+    const float endPrefix = prepared[base + 3 * Time * 128 + Time * Time + count - 1];
+#pragma unroll
+    for (ushort i = 0; i < update.get_capacity(); ++i) {
+      if (!update.is_valid_element(i)) continue;
+      const auto ix = update.get_multidimensional_index(i);
+      const uint item = ix[1] * 128 + ix[0];
+      const float value = endPrefix * recurrent[stateBase + item] + update[i];
+      update[i] = value; // Retained registers: persistent incoming state unchanged.
+      if (!isfinite(value) || abs(value) >= 0x1.fffffep127f) gtc_mark(local,GTC_NONFINITE);
+    }
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    if (control.mode==3 || !atomic_load_explicit(&local,memory_order_relaxed)) {
+#pragma unroll
+      for (ushort i=0;i<update.get_capacity();++i) {
+        if (!update.is_valid_element(i)) continue;
+        const auto ix=update.get_multidimensional_index(i);
+        recurrent[stateBase+ix[1]*128+ix[0]]=update[i];
+      }
+    }
+    } // speculative WY region
+    threadgroup_barrier(mem_flags::mem_threadgroup | mem_flags::mem_device);
+    const uint reason=atomic_load_explicit(&local,memory_order_relaxed);
+    const bool native=control.mode!=3 && (forced || reason);
+    if (!tid) decisions[(ulong(chunk)*48+head)*4+group.y]=reason|(native?256u:0u)|(forced?512u:0u);
+    if (native) {
+      // Shared phase storage: candidate temporaries are dead before reuse.
+      threadgroup_barrier(mem_flags::mem_threadgroup);
+      auto queries=reinterpret_cast<threadgroup bfloat *>(scratch);
+      auto keys=queries+16*136;
+      auto values=keys+16*136;
+      auto nativeBetas=values+16*16;
+      auto nativeDecays=reinterpret_cast<threadgroup float *>(nativeBetas+16);
+      FlashGDNParams cp=p; cp.rows=count; cp.lanes=1;
+      for (uint wave=0;wave<4;++wave) {
+        const uint3 ng{head,group.y*4+wave,0};
+        if constexpr (Audit) {
+          gtca_audit_recurrence<8,16>(mixed+ulong(begin)*10240,decay+ulong(begin)*48,
+              beta+ulong(begin)*48,recurrent,output+ulong(begin)*6144,diagnostics,cp,
+              ng,threads,tid,tid%32,tid/32,queries,keys,values,nativeDecays,nativeBetas,
+              history+ulong(begin)*128*128,deltaAudit+ulong(begin)*128,outputAudit+ulong(begin)*128);
+        } else {
+          gtcn_recurrence<8,16>(mixed+ulong(begin)*10240,decay+ulong(begin)*48,
+              beta+ulong(begin)*48,recurrent,output+ulong(begin)*6144,diagnostics,cp,
+              ng,tid,tid%32,tid/32,queries,keys,values,nativeDecays,nativeBetas);
+        }
+      }
+    }
+    threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup);
+  }
+}
+
+// Explicit packed buffer ABI. Root alone instantiates/runs these pipelines.
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_prepare_t32_sg8(
+    device const bfloat *mixed [[buffer(0)]],device const float *decay [[buffer(1)]],
+    device const bfloat *beta [[buffer(2)]],device float *prepared [[buffer(3)]],
+    device uint *range [[buffer(4)]],device atomic_uint &diagnostics [[buffer(5)]],
+    constant TileChunkParams &control [[buffer(6)]],uint3 group [[threadgroup_position_in_grid]],
+    uint3 threads [[threads_per_threadgroup]],uint tid [[thread_index_in_threadgroup]]) {
+  if (control.gdn.lanes!=1 || control.mode>3 || control.reserved) {
+    if (!tid) gtc_error(diagnostics,FlashGDNInvalidParameters); return;
+  }
+  threadgroup float gram[1024],inverse[1024],scaled[1024],alphas[32],betas[32],prefix[32];
+  threadgroup uint alphaWords[32]; threadgroup atomic_uint local;
+  gtc_prepare<32,8>(mixed,decay,beta,prepared,diagnostics,control.gdn,range,local,
+      group,threads,tid,gram,inverse,scaled,alphas,betas,prefix,alphaWords);
+}
+#define GTC_ARGS \
+  device const bfloat *mixed [[buffer(0)]],device const float *decay [[buffer(1)]], \
+  device const bfloat *beta [[buffer(2)]],device float *state [[buffer(3)]], \
+  device bfloat *output [[buffer(4)]],device atomic_uint &diagnostics [[buffer(5)]], \
+  device const float *prepared [[buffer(6)]],device const uint *range [[buffer(7)]], \
+  device uint *decisions [[buffer(8)]]
+#define GTC_THREADS \
+  uint3 group [[threadgroup_position_in_grid]],uint3 threads [[threads_per_threadgroup]], \
+  uint tid [[thread_index_in_threadgroup]]
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_local_t32_v32_sg8(
+    GTC_ARGS,constant TileChunkParams &control [[buffer(9)]],GTC_THREADS) {
+  threadgroup uint scratch[2332];threadgroup atomic_uint local;
+  gtc_apply<32,32,8,false,false>(mixed,decay,beta,state,output,diagnostics,control,
+      prepared,range,decisions,group,threads,tid,scratch,local,nullptr,nullptr,nullptr,nullptr);
+}
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_local_audit_t32_v32_sg8(
+    GTC_ARGS,device float *history [[buffer(9)]],device float *delta [[buffer(10)]],
+    device float *pre [[buffer(11)]],device uint *seeds [[buffer(12)]],
+    constant TileChunkParams &control [[buffer(13)]],GTC_THREADS) {
+  threadgroup uint scratch[2332];threadgroup atomic_uint local;
+  gtc_apply<32,32,8,true,false>(mixed,decay,beta,state,output,diagnostics,control,
+      prepared,range,decisions,group,threads,tid,scratch,local,history,delta,pre,seeds);
+}
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_local_probe_t32_v32_sg8(
+    GTC_ARGS,device uint *seeds [[buffer(9)]],constant TileChunkParams &control [[buffer(10)]],
+    GTC_THREADS) {
+  threadgroup uint scratch[2332];threadgroup atomic_uint local;
+  gtc_apply<32,32,8,false,true>(mixed,decay,beta,state,output,diagnostics,control,
+      prepared,range,decisions,group,threads,tid,scratch,local,nullptr,nullptr,nullptr,seeds);
+}
+#undef GTC_THREADS
+#undef GTC_ARGS
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_native_control(
+    device const bfloat *mixed [[buffer(0)]],device const float *decay [[buffer(1)]],
+    device const bfloat *beta [[buffer(2)]],device float *state [[buffer(3)]],
+    device bfloat *output [[buffer(4)]],device atomic_uint &diagnostics [[buffer(5)]],
+    constant TileChunkParams &control [[buffer(6)]],uint3 group [[threadgroup_position_in_grid]],
+    uint3 threads [[threads_per_threadgroup]],uint tid [[thread_index_in_threadgroup]],
+    uint lane [[thread_index_in_simdgroup]],uint sg [[simdgroup_index_in_threadgroup]]) {
+  if (control.gdn.lanes!=1 || threads.x!=256 || threads.y!=1 || threads.z!=1) {
+    if (!tid) gtc_error(diagnostics,FlashGDNInvalidParameters);return;
+  }
+  threadgroup bfloat q[16*136],k[16*136],v[16*16],betaCache[16];threadgroup float alphaCache[16];
+  FlashGDNParams p=control.gdn;
+  gtcn_recurrence<8,16>(mixed,decay,beta,state,output,diagnostics,p,group,tid,lane,sg,
+      q,k,v,alphaCache,betaCache);
+}
+[[max_total_threads_per_threadgroup(256)]] kernel void private_gdn_tile_native_audit_control(
+    device const bfloat *mixed [[buffer(0)]],device const float *decay [[buffer(1)]],
+    device const bfloat *beta [[buffer(2)]],device float *state [[buffer(3)]],
+    device bfloat *output [[buffer(4)]],device atomic_uint &diagnostics [[buffer(5)]],
+    device float *history [[buffer(6)]],device float *delta [[buffer(7)]],device float *pre [[buffer(8)]],
+    constant TileChunkParams &control [[buffer(9)]],uint3 group [[threadgroup_position_in_grid]],
+    uint3 threads [[threads_per_threadgroup]],uint tid [[thread_index_in_threadgroup]],
+    uint lane [[thread_index_in_simdgroup]],uint sg [[simdgroup_index_in_threadgroup]]) {
+  if (control.gdn.lanes!=1 || threads.x!=256 || threads.y!=1 || threads.z!=1) {
+    if (!tid) gtc_error(diagnostics,FlashGDNInvalidParameters);return;
+  }
+  threadgroup bfloat q[16*136],k[16*136],v[16*16],betaCache[16];threadgroup float alphaCache[16];
+  FlashGDNParams p=control.gdn;
+  gtca_audit_recurrence<8,16>(mixed,decay,beta,state,output,diagnostics,p,group,threads,tid,lane,sg,
+      q,k,v,alphaCache,betaCache,history,delta,pre);
+}

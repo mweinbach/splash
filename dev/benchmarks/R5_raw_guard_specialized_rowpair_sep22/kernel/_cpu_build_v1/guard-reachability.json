@@ -1,0 +1,506 @@
+{
+  "schema": "R5-raw-guard-specialization-actual-AIR-reachability-v1",
+  "pass": true,
+  "candidate_AIR_sha256": "14840f06165cd882d2f4477a46235f11a3ce9d9111d0ad2654223e4c9821cab6",
+  "precompile_independent_source_GO_sha256": "617a9e81cd2df3cd4bcab21994eb1c1497b3deee71e4ccded156c974bffaf8aa",
+  "authorized_observed_shape_format_count": 7,
+  "packet_cases": 49,
+  "all_authorized_actual_guard_paths_dynamic_i64_udiv_executions": 0,
+  "source_generic_fallback_retained": true,
+  "unsupported_geometry_still_refused": true,
+  "scope": "Actual SSA guard paths for exactly seven authorized shape/format tuples; compact/max-admitted and overflow/min/even refusal boundaries. Stops before first data load. No geometry sweep, numerical or GPU performance claim.",
+  "GPU_work": false,
+  "operand_payload_reads": 0,
+  "cases": [
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 260
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 260
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 126
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 126
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 260
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 260
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 126
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 126
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 264
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 264
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 175
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 175
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 108
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 128
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 128
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 240
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 240
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 155
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 155
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 92
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 258
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 258
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 104
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 124
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 124
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 258
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 258
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 171
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 104
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 124
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 124
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "compact",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 240
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "maximum_allowed",
+      "reached_data_boundary": true,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 240
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "weight_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 155
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "parameter_overflow_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 155
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "short_code_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 92
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "short_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "packet_case": "odd_parameter_refusal",
+      "reached_data_boundary": false,
+      "dynamic_i64_udiv_executions": 0,
+      "actual_executed_SSA_nodes": 106
+    }
+  ]
+}

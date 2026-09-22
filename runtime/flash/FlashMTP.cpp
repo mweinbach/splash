@@ -15,6 +15,7 @@
 #include "metal/abi/FlashForward.h"
 #include "metal/abi/FlashMTP.h"
 #include "metal/abi/FlashAffine.h"
+#include "metal/abi/FlashQSAFast.h"
 
 #include <algorithm>
 #include <array>
@@ -75,6 +76,52 @@ void addHeadQSA(metal::CommandGraph &graph, const FlashQSAFastInputs &input,
       addQSAFast(graph, input, state, workspace, fastWorkspace, begin, rows,
           FlashQSAFastMode::PartitionedF32Probabilities, 4, true);
   }
+}
+void addTeacherQSACache(metal::CommandGraph &graph, const FlashQSAFastInputs &input,
+    FlashQSAState &state, FlashQSAWorkspace &workspace,
+    FlashQSAFastWorkspace &fastWorkspace, uint32_t begin, uint32_t rows,
+    const AttentionPolicy &policy) {
+  // Copy the authoritative cache-writing prefix. Selection and attention
+  // write only scratch; none is consumed by a later independent teacher pair.
+  metal::CommandGraph qualified;
+  addHeadQSA(qualified, input, state, workspace, fastWorkspace, begin, rows, policy);
+  bool appendSeen = false, stopped = false;
+  for (const auto &dispatch : qualified.dispatches()) {
+    const auto &name = dispatch.pipelineName;
+    if (name == "flash_qsa_index_scores" || name == "flash_qsa_select_blocks") {
+      stopped = true;
+      break;
+    }
+    const bool preparation = name == "flash_qsa_fast_prepare" ||
+        name.starts_with("flash_qsa_norm_rope_") || name == "flash_qsa_append_aux" ||
+        name.starts_with("flash_qsa_pool_rope_");
+    if (!preparation || dispatch.bytes.size() != 1 ||
+        dispatch.bytes[0].index != dispatch.buffers.size())
+      throw std::logic_error("Flash teacher QSA cache prefix changed");
+    appendSeen |= name == "flash_qsa_fast_prepare" || name == "flash_qsa_append_aux";
+    std::vector<metal::MetalBuffer> buffers;
+    buffers.reserve(dispatch.buffers.size());
+    for (uint32_t index = 0; index < dispatch.buffers.size(); ++index) {
+      if (dispatch.buffers[index].index != index)
+        throw std::logic_error("Flash teacher QSA cache binding order changed");
+      buffers.push_back(dispatch.buffers[index].buffer);
+    }
+    if (dispatch.bytes[0].sizeBytes == sizeof(FlashQSAFastParams)) {
+      FlashQSAFastParams params;
+      std::memcpy(&params, dispatch.bytes[0].data, sizeof(params));
+      graph.add(name, std::move(buffers), params,
+          dispatch.threadgroups, dispatch.threadsPerThreadgroup);
+    } else if (dispatch.bytes[0].sizeBytes == sizeof(FlashQSAParams)) {
+      FlashQSAParams params;
+      std::memcpy(&params, dispatch.bytes[0].data, sizeof(params));
+      graph.add(name, std::move(buffers), params,
+          dispatch.threadgroups, dispatch.threadsPerThreadgroup);
+    } else {
+      throw std::logic_error("Flash teacher QSA cache parameter ABI changed");
+    }
+  }
+  if (!appendSeen || !stopped)
+    throw std::logic_error("Flash teacher QSA cache prefix is incomplete");
 }
 std::vector<std::string> denseHeadPrefixes() {
   // Cache only trained head matrices. Shared embedding/vocabulary matrices
@@ -481,6 +528,18 @@ void FlashMTPForward::truncate(FlashMTPState &request, uint64_t retainedLength) 
 FlashMTPResult FlashMTPForward::forward(FlashMTPState &request,
     metal::MetalBuffer previousHidden, std::span<const uint32_t> nextTokens,
     FlashMTPLogits mode) {
+  return forwardImpl(request, std::move(previousHidden), nextTokens, mode, false);
+}
+
+metal::CommandTiming FlashMTPForward::primeTeacherCache(FlashMTPState &request,
+    metal::MetalBuffer previousHidden, std::span<const uint32_t> nextTokens) {
+  return forwardImpl(request, std::move(previousHidden), nextTokens,
+      FlashMTPLogits::None, true).timing;
+}
+
+FlashMTPResult FlashMTPForward::forwardImpl(FlashMTPState &request,
+    metal::MetalBuffer previousHidden, std::span<const uint32_t> nextTokens,
+    FlashMTPLogits mode, bool teacherCacheOnly) {
   if (!impl_) throw std::logic_error("Flash MTP is not initialized");
   std::lock_guard lock(impl_->mutex);
   if (!request.impl_ || request.impl_->owner != impl_->owner || request.impl_->poisoned)
@@ -563,6 +622,23 @@ FlashMTPResult FlashMTPForward::forward(FlashMTPState &request,
   attentionInputs.indexKConvention = impl_->weights.normConvention(ikNorm);
   attentionInputs.epsilon = impl_->descriptor.normEpsilon;
   attentionInputs.theta = impl_->descriptor.rotaryTheta;
+  if (teacherCacheOnly) {
+    addTeacherQSACache(graph, attentionInputs, state.qsa, impl_->qsaWorkspace,
+        impl_->qsaFastWorkspace, static_cast<uint32_t>(state.length), rows,
+        impl_->attentionPolicy);
+    metal::CommandTiming timing;
+    try {
+      timing = impl_->backend.submitCommand(graph.dispatches());
+      uint32_t status = 0;
+      std::memcpy(&status, diag.contents(), sizeof(status));
+      if (status) throw std::runtime_error("Flash teacher cache sticky diagnostics failed: " + std::to_string(status));
+    } catch (...) {
+      state.poisoned = true;
+      throw;
+    }
+    state.length += rows;
+    return {timing, {}, 0, {}, 0, state.length, {}, 0};
+  }
   addHeadQSA(graph, attentionInputs, state.qsa, impl_->qsaWorkspace,
       impl_->qsaFastWorkspace, static_cast<uint32_t>(state.length), rows,
       impl_->attentionPolicy);

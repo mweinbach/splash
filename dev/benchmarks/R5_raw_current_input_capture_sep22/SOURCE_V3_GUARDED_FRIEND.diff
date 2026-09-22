@@ -1,0 +1,32 @@
+--- c884-v2/inspect.hpp
++++ guarded-friend-v3/inspect.hpp
+@@ -88,6 +88,7 @@
+   }
+   struct Undefined { std::string label; metal::MetalBuffer buffer; uint64_t begin; };
+   static std::vector<r5_raw_current_capture_sep22::Role> captureInventory(const FlashForward &target);
++  static void validateCaptureDestination(const FlashForward &target,const metal::MetalBuffer &destination){target.batchValidateExternalDestination(destination);}
+   static std::vector<Plane> tapePlanes(const FlashForward &target);
+   static std::vector<Undefined> tapeUndefined(const FlashForward &target);
+   static std::string tapeMetadata(const FlashForward &target);
+--- c884-v2/overlay.py
++++ guarded-friend-v3/overlay.py
+@@ -23,7 +23,7 @@
+         text = once(text, '    timing = impl_->backend.submitCommand(graph.dispatches());\n    uint32_t status = 0;\n', '    r5_raw_current_capture_sep22::recordGraph(graph,verification,rows,begin);\n    timing = impl_->backend.submitCommand(graph.dispatches());\n    uint32_t status = 0;\n')
+         return text + '\n' + inspection
+     text = once(text, '      raw_q4_verify_sep22::validateDependencies(); // Freeze strict rowpair before paths/model/backend.', '      r5_raw_current_capture_sep22::validateStartup(); // Private source-only diagnostic admission.\n      raw_q4_verify_sep22::validateDependencies(); // Freeze strict rowpair before paths/model/backend.')
+-    text = once(text, '        words_((weights.descriptor().vocabularySize + 31) / 32) {}', '        words_((weights.descriptor().vocabularySize + 31) / 32) {\n    if(r5_raw_current_capture_sep22::Config::frozenConfig().proof){\n      r5_raw_current_capture_sep22::require(head_&&singletonMTP_.explicitOverride&&singletonMTP_.maximumDepth==4&&!batch_&&!jointVerify_&&!jointHead_&&!batchPrefill_,"R5 capture requires genuine singleton trained fixed4 source");\n      const auto wholeCapturePlan=r5_raw_current_capture_sep22::Proof::sourcePlan(capacity_); // BEFORE capture owner/host/slot allocations.\n      rawCapture_=std::make_unique<r5_raw_current_capture_sep22::Owner>(backend_,governor_,FlashDeepPrefixOracle::captureInventory(forward_));\n      for(const auto &slot:rawCapture_->slots)if(slot.base)forward_.batchValidateExternalDestination(slot.base);\n      rawProof_=std::make_unique<r5_raw_current_capture_sep22::Proof>(*rawCapture_,forward_,wholeCapturePlan);\n    }\n  }')
++    text = once(text, '        words_((weights.descriptor().vocabularySize + 31) / 32) {}', '        words_((weights.descriptor().vocabularySize + 31) / 32) {\n    if(r5_raw_current_capture_sep22::Config::frozenConfig().proof){\n      r5_raw_current_capture_sep22::require(head_&&singletonMTP_.explicitOverride&&singletonMTP_.maximumDepth==4&&!batch_&&!jointVerify_&&!jointHead_&&!batchPrefill_,"R5 capture requires genuine singleton trained fixed4 source");\n      const auto wholeCapturePlan=r5_raw_current_capture_sep22::Proof::sourcePlan(capacity_); // BEFORE capture owner/host/slot allocations.\n      rawCapture_=std::make_unique<r5_raw_current_capture_sep22::Owner>(backend_,governor_,FlashDeepPrefixOracle::captureInventory(forward_));\n      for(const auto &slot:rawCapture_->slots)if(slot.base)FlashDeepPrefixOracle::validateCaptureDestination(forward_,slot.base);\n      rawProof_=std::make_unique<r5_raw_current_capture_sep22::Proof>(*rawCapture_,forward_,wholeCapturePlan);\n    }\n  }')
+     text = once(text, '  Transport &transport_;', '  std::unique_ptr<r5_raw_current_capture_sep22::Owner> rawCapture_;\n  std::unique_ptr<r5_raw_current_capture_sep22::Proof> rawProof_;\n  Transport &transport_;')
+     text = once(text, '  const auto verified = depth ? forward_.verify(*request.state, inputs)\n                              : forward_.forward(*request.state, inputs, false, true);', '  std::optional<r5_raw_current_capture_sep22::Scope> rawScope;\n  if(rawCapture_)rawScope.emplace(*rawCapture_,id,generation,depth,static_cast<uint32_t>(inputs.size()));\n  const auto verified = depth ? forward_.verify(*request.state, inputs)\n                              : forward_.forward(*request.state, inputs, false, true);\n  if(rawScope)rawScope->complete();\n  if(rawProof_)rawProof_->verified(*request.state,verified,id,generation,depth,static_cast<uint32_t>(inputs.size()));')
+     text = once(text, '  const auto committed = depth ? forward_.commitVerify(*request.state, retained) : metal::CommandTiming{};', '  const auto committed = depth ? forward_.commitVerify(*request.state, retained) : metal::CommandTiming{};\n  if(rawProof_)rawProof_->committed(*request.state,retained,id,generation);')
+--- c884-v2/SOURCE_PREP.json
++++ guarded-friend-v3/SOURCE_PREP.json
+@@ -195,7 +195,7 @@
+             "      r5_raw_current_capture_sep22::require(head_&&singletonMTP_.explicitOverride&&singletonMTP_.maximumDepth==4&&!batch_&&!jointVerify_&&!jointHead_&&!batchPrefill_,\"R5 capture requires genuine singleton trained fixed4 source\");\n",
+             "      const auto wholeCapturePlan=r5_raw_current_capture_sep22::Proof::sourcePlan(capacity_); // BEFORE capture owner/host/slot allocations.\n",
+             "      rawCapture_=std::make_unique<r5_raw_current_capture_sep22::Owner>(backend_,governor_,FlashDeepPrefixOracle::captureInventory(forward_));\n",
+-            "      for(const auto &slot:rawCapture_->slots)if(slot.base)forward_.batchValidateExternalDestination(slot.base);\n",
++            "      for(const auto &slot:rawCapture_->slots)if(slot.base)FlashDeepPrefixOracle::validateCaptureDestination(forward_,slot.base);\n",
+             "      rawProof_=std::make_unique<r5_raw_current_capture_sep22::Proof>(*rawCapture_,forward_,wholeCapturePlan);\n",
+             "    }\n",
+             "  }\n"

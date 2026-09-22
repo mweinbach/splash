@@ -1,0 +1,193 @@
+{
+  "schema": "raw-Q5-rowpair-independent-source-AIR-review-v1",
+  "created_at_utc": "2026-09-22T09:49:31.389470+00:00",
+  "pass": true,
+  "scope": "new Q5/G128 R4 K6144 N2560 program/source/compiler readiness only",
+  "component": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1",
+  "gpu_executed": false,
+  "model_payload_bytes_read": 0,
+  "captured_exported_or_tensor_payloads_read_or_hashed": false,
+  "frozen_component_tree_modified": false,
+  "CPP_shader_generator_or_builder_edited_during_audit": false,
+  "only_this_new_audit_receipt_written": true,
+  "Q4_qualification_inherited": false,
+  "artifacts_and_sources": {
+    "native-qmv_AIR": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/native-qmv.air",
+      "sha256": "efec83efc7c8aa89c69d1c322c91848bd446c434bd5dde3ca430e1fae544f5c4",
+      "bytes": 49568
+    },
+    "native-qmv_LLVM": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/native-qmv.ll",
+      "sha256": "c4c284381c376cf523f8238c4deb568cfbfaa93facd5c8dd6e1d31d599726293",
+      "bytes": 356521
+    },
+    "candidate_AIR": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/candidate.air",
+      "sha256": "99d57fd78957cfcc68ecc30d426c754b0dd702e42a32acef0008155234482a69",
+      "bytes": 10128
+    },
+    "candidate_LLVM": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/candidate.ll",
+      "sha256": "798eb2b6de1445fa5f6cb1394717eb4709fe2ee128e742f60e5618fe36163cc2",
+      "bytes": 35017
+    },
+    "control_probe_AIR": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/control_probe.air",
+      "sha256": "da519b3668936f18ff73a2fa84e84a3fad8f68b9cd941b6597889b9d0f63868b",
+      "bytes": 14112
+    },
+    "control_probe_LLVM": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/control_probe.ll",
+      "sha256": "f6b2640add74f3756ef6f9e0a44927b49dac6fa4efaa2eeb7883f85592de2bd6",
+      "bytes": 63262
+    },
+    "candidate_probe_AIR": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/candidate_probe.air",
+      "sha256": "3f696ba5a0848e24e5ea3483293c87d2e330cdeb147db1310f8d9f543b3d36cb",
+      "bytes": 10288
+    },
+    "candidate_probe_LLVM": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/candidate_probe.ll",
+      "sha256": "9d109cdbbc782f769835199fd6076580eb4cf368efc02a0ed6d138a5c6f0eff8",
+      "bytes": 35765
+    },
+    "original_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/source/runtime/metal/kernels/shared/flash_affine_qmv_f32.metal",
+      "sha256": "4c271477b47d037cbe4018f73e6ba8f1a27dbfca4c9a0e98a6fce93b0155e73a",
+      "bytes": 21767
+    },
+    "original_ABI": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/source/runtime/metal/abi/FlashAffine.h",
+      "sha256": "f5852abb1a3525017eb7394790e8ba2c7523b877e6b8ccf09719c78ef13c4878",
+      "bytes": 1577
+    },
+    "pair_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/pair.metalh",
+      "sha256": "760939b191da28f26d1f313f3f0ab03a1618d4100d97b4172799c45831ce16af",
+      "bytes": 5076
+    },
+    "timed_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/candidate.metal",
+      "sha256": "97c0c02ddeab9368e42cac955a63bf1c3bc5e4a33c275b34570961b37927a454",
+      "bytes": 974
+    },
+    "literal_helpers": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/literal.metalh",
+      "sha256": "7b0d5808b9ae88f45aec8ed7dd4c322c6960f8bc814581925e0f1732559672f5",
+      "bytes": 20497
+    },
+    "control_probe_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/control_probe.metal",
+      "sha256": "19fa922ff0b19de766e7835701293be9d390cded9a3f133787cdfb6b1a033bc9",
+      "bytes": 21367
+    },
+    "candidate_probe_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/candidate_probe.metal",
+      "sha256": "63898eb15f47f9e631d1989d8fa134fe0e473df4221a72d83a02cba22c974864",
+      "bytes": 6247
+    },
+    "source_tap_journal": {
+      "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/generated/source-journal.json",
+      "sha256": "6a0f12a769c5ea380ebbc7952b365acc719cb98d4ba00c59e0256cd3378d4525",
+      "bytes": 2705
+    }
+  },
+  "compiler_profile": {
+    "all_four_actual_AIRs": "Metal4.1.0 /AIR2.9 /Apple32023.921.6 /SDK27 /O3/default-fast/min27",
+    "common_options": [
+      "air.compile.denorms_disable",
+      "air.compile.fast_math_enable",
+      "air.compile.framebuffer_fetch_enable"
+    ],
+    "selected_literal_and_pair_math_mode": "original safe pragma preserved",
+    "original_native_AIR_kept_immutable": true
+  },
+  "literal_Q5_source_chronology": {
+    "rows0and1_twelve_sequential_fragment_terms_token_exact_after_integer_alias_restore": true,
+    "groups_per_vector": 2,
+    "input_vector_values": 16,
+    "original_x_pointer_mutation": "x +=8*i for i0 then1",
+    "original_weight_pointer_mutation": "w +=5*i for i0 then1",
+    "K_whole_chunks": 12,
+    "Block": 512,
+    "separate_crossbyte_fragment_multiplication256_preserved": true,
+    "fivebit_coeff_reconstruction_added": false,
+    "independent_load_vector16_Q5_XSUM_result_accumulator_SIMD_BF16_finite_paths": true,
+    "shared_data": "integer bytes/masks and common BF16 scale/bias converted to F32"
+  },
+  "actual_AIR_transitive_census": {
+    "normalization": "expand defined outlined calls; retain opcode/intrinsic/complete call attrs; erase SSA names and metadata numbers",
+    "native_kernel_and_control_probe_count": 174,
+    "paired_timed_and_candidate_probe_count": 104,
+    "native_control_nonvacuous_ordered_census_equal": true,
+    "paired_timed_probe_nonvacuous_ordered_census_equal": true,
+    "count_difference_explanation": "generic native/control project includes fast and slow CFG branches; admitted pair is fixed fast-only and shares integer coefficient work",
+    "whole_kernel_SSA_dependency_equivalence_proved": false
+  },
+  "limited_actual_qdot_SSA_dependency_proof": {
+    "scope": "outlined qdot<float16,5> result per row with explicit input/weight pointer and loop-phi model; not entire projected kernel or GPU register allocation",
+    "native_vs_timed_row0": true,
+    "native_vs_timed_row1": true,
+    "native_vs_probe_row0": true,
+    "native_vs_probe_row1": true,
+    "canonical_dependency_sha256": "caed695bf81723c675fcbde8354c458034b189fb9625d2b611b5c387c8e1de02",
+    "same_12_sequential_llvm_fmuladd_chain_per8values": true,
+    "same_mask_integer_signed_to_F32_conversions": true,
+    "same_crossbyte_x_times256_nodes": true,
+    "same_scale_accum_bias_XSUM_final_graph": true,
+    "other_row_input_XSUM_or_accumulator_dependency_absent": true,
+    "two_iteration_index0then1_loop_condition": true,
+    "note": "Native itself contracts these expressions to llvm.fmuladd. Pair preserves the actual native graph; no blanket no-FMA claim."
+  },
+  "source_and_tap_guards": {
+    "candidate_probe_removed_taps_namespace_pointer_plumbing_restores_pair_source_byte_exact": true,
+    "rows": 4,
+    "selections": 1,
+    "experts": 1,
+    "flags": 0,
+    "bits": 5,
+    "group_size": 128,
+    "input": 6144,
+    "output": 2560,
+    "code_stride_min": 3840,
+    "BF16_parameter_stride_min": 96,
+    "parameter_row_and_expert_even_alignment": true,
+    "route_pairs": "0/1 and2/3",
+    "groups": [
+      320,
+      2,
+      1
+    ],
+    "threads": [
+      64,
+      1,
+      1
+    ],
+    "old_new_CTA_count": [
+      1280,
+      640
+    ],
+    "private_helper_original_namespace_weak_definitions": 0
+  },
+  "register_and_address_effects": {
+    "native_Q5_fast_address_taken_float_arrays_per_lane": "float16 plusfloat4 =80 logical bytes",
+    "pair_address_taken_allocas_per_lane": "2xfloat16 plus2xfloat4 plus2scalarfloat outrefs =168 logical bytes",
+    "pair_has_six_thread_private_allocas": true,
+    "physical_GPU_register_or_spill_count_known": false,
+    "IR_alloca_does_not_prove_physical_spill": true,
+    "pair_project_explicit_global_data_stores": "two BF16 output streams only; diagnostics through atomic OR",
+    "input_weight_scale_bias_mutation_added": false,
+    "extra_live_row_data_and_address_taken_dot_refs_can_change_backend_allocation": true
+  },
+  "Root_GPU_gates_required": [
+    "native timed/control probe all10240BF16 outputs anddiagnostics",
+    "paired timed/candidate probe all10240BF16 outputs anddiagnostics",
+    "native/paired all10240rawF32 sums exact beforetiming",
+    "guards/alignment/poison/sentinel/invalidmetadata andexact output behavior",
+    "independent Q5 numerical gates; noQ4resultreuse"
+  ],
+  "numerical_exactness_certified": false,
+  "GPU_register_equality_proved": false,
+  "performance_certified": false
+}

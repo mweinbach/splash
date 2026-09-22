@@ -1,0 +1,208 @@
+{
+  "schema": "R4-raw-large-guard-pair-literal-inverse-journal-v1",
+  "original_source_sha256": "4c271477b47d037cbe4018f73e6ba8f1a27dbfca4c9a0e98a6fce93b0155e73a",
+  "rows_and_dead_tail_delta_restores_frozen_guard_R5_pair_byte_exact": true,
+  "R5_source_before": "\ntemplate <ushort Bits, ushort GroupSize>\ninline void project_pair(const device bfloat *input,\n    const device uchar *weights, const device uchar *scales,\n    const device uchar *biases, device bfloat *output,\n    device atomic_uint *diagnostics, constant FlashAffineParams &p,\n    uint3 group, uint simd_group, uint lane) {\n  constexpr uint Values = Bits == 6 ? 8 : 16;\n  constexpr uint Block = Values * 32;\n  static_assert((Bits == 4 && GroupSize == 64) || Bits == 5 ||\n                (Bits == 6 && GroupSize == 64));\n  static_assert(GroupSize % Values == 0);\n  const bool observed =\n      (Bits == 4 && GroupSize == 64 &&\n       ((p.input_size == 2560 && (p.output_size == 10240 || p.output_size == 12288)) ||\n        (p.input_size == 6144 && p.output_size == 2560))) ||\n      (Bits == 5 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 10240) ||\n      (Bits == 5 && GroupSize == 128 &&\n       ((p.input_size == 6144 && p.output_size == 2560) ||\n        (p.input_size == 2560 && p.output_size == 6144))) ||\n      (Bits == 6 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 6144);\n  if (!observed || p.rows != 5 || p.selections != 1 || p.experts != 1 || p.flags ||\n      p.bits != Bits || p.group_size != GroupSize || p.input_size % Block ||\n      p.output_size % 8 || p.weight_row_stride_bytes < ulong(p.input_size) * Bits / 8 ||\n      p.parameter_row_stride_bytes < ulong(p.input_size / GroupSize) * 2 ||\n      p.parameter_row_stride_bytes % 2 || p.parameter_expert_stride_bytes % 2 ||\n      !row_stride_bounds<Bits, GroupSize>(p)) {\n    if (!lane) atomic_fetch_or_explicit(diagnostics, 2u, memory_order_relaxed);\n    return;\n  }\n  const uint out_row = group.x * 8 + simd_group * 4;\n  if (group.x >= p.output_size / 8 || group.y >= 3 || group.z || out_row >= p.output_size) return;\n  if (group.y == 2) {\n    // Literal original math body, explicit real fifth row. Calling the old\n    // project driver with group.y2 would silently compute row2 and is forbidden.\n    r5_raw_odd_literal::project_math<Bits, GroupSize, true>(\n        input + ulong(4) * p.input_size, weights, scales, biases, output,\n        diagnostics, p, out_row, 0, ulong(4), lane);\n    return;\n  }\n  const ulong route0 = ulong(group.y) * 2, route1 = route0 + 1;\n  const device bfloat *x0 = input + route0 * p.input_size;\n  const device bfloat *x1 = input + route1 * p.input_size;\n  thread float x_thread0[Values], x_thread1[Values];\n  thread float result0[4] = {0}, result1[4] = {0};\n  for (uint k = 0; k < p.input_size; k += Block) {\n    const uint channel = k + lane * Values;\n    const float sum0 = r5_raw_odd_literal::mlx_qmv_f32xsum_v1_load_vector<\n        bfloat, float, Values, Bits>(x0 + channel, x_thread0);\n    const float sum1 = r5_raw_odd_literal::mlx_qmv_f32xsum_v1_load_vector<\n        bfloat, float, Values, Bits>(x1 + channel, x_thread1);\n    const uint coefficient = channel / GroupSize;\n    for (ushort row = 0; row < 4; ++row) {\n      const device uchar *wl = weights +\n          ulong(out_row + row) * p.weight_row_stride_bytes + ulong(channel) * Bits / 8;\n      const ulong offset = ulong(out_row + row) * p.parameter_row_stride_bytes;\n      const device bfloat *sl = reinterpret_cast<const device bfloat *>(scales + offset);\n      const device bfloat *bl = reinterpret_cast<const device bfloat *>(biases + offset);\n      const float s = float(sl[coefficient]);\n      const float b = float(bl[coefficient]);\n      float dot0, dot1;\n      qdot_pair<Bits, Values>(wl, x_thread0, x_thread1, s, b, sum0, sum1, dot0, dot1);\n      result0[row] += dot0;\n      result1[row] += dot1;\n    }\n  }\n  for (ushort row = 0; row < 4; ++row) {\n    const float sum0 = simd_sum(result0[row]);\n    if (lane == 0) {\n      const bfloat value0 = bfloat(sum0);\n      if (!r5_raw_odd_literal::finite(sum0) || !r5_raw_odd_literal::finite(float(value0)))\n        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);\n      output[route0 * p.output_size + out_row + row] = value0;\n    }\n    const float sum1 = simd_sum(result1[row]);\n    if (lane == 0) {\n      const bfloat value1 = bfloat(sum1);\n      if (!r5_raw_odd_literal::finite(sum1) || !r5_raw_odd_literal::finite(float(value1)))\n        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);\n      output[route1 * p.output_size + out_row + row] = value1;\n    }\n  }\n}\n",
+  "R4_source_after": "\ntemplate <ushort Bits, ushort GroupSize>\ninline void project_pair(const device bfloat *input,\n    const device uchar *weights, const device uchar *scales,\n    const device uchar *biases, device bfloat *output,\n    device atomic_uint *diagnostics, constant FlashAffineParams &p,\n    uint3 group, uint simd_group, uint lane) {\n  constexpr uint Values = Bits == 6 ? 8 : 16;\n  constexpr uint Block = Values * 32;\n  static_assert((Bits == 4 && GroupSize == 64) || Bits == 5 ||\n                (Bits == 6 && GroupSize == 64));\n  static_assert(GroupSize % Values == 0);\n  const bool observed =\n      (Bits == 4 && GroupSize == 64 &&\n       ((p.input_size == 2560 && (p.output_size == 10240 || p.output_size == 12288)) ||\n        (p.input_size == 6144 && p.output_size == 2560))) ||\n      (Bits == 5 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 10240) ||\n      (Bits == 5 && GroupSize == 128 &&\n       ((p.input_size == 6144 && p.output_size == 2560) ||\n        (p.input_size == 2560 && p.output_size == 6144))) ||\n      (Bits == 6 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 6144);\n  if (!observed || p.rows != 4 || p.selections != 1 || p.experts != 1 || p.flags ||\n      p.bits != Bits || p.group_size != GroupSize || p.input_size % Block ||\n      p.output_size % 8 || p.weight_row_stride_bytes < ulong(p.input_size) * Bits / 8 ||\n      p.parameter_row_stride_bytes < ulong(p.input_size / GroupSize) * 2 ||\n      p.parameter_row_stride_bytes % 2 || p.parameter_expert_stride_bytes % 2 ||\n      !row_stride_bounds<Bits, GroupSize>(p)) {\n    if (!lane) atomic_fetch_or_explicit(diagnostics, 2u, memory_order_relaxed);\n    return;\n  }\n  const uint out_row = group.x * 8 + simd_group * 4;\n  if (group.x >= p.output_size / 8 || group.y >= 2 || group.z || out_row >= p.output_size) return;\n  const ulong route0 = ulong(group.y) * 2, route1 = route0 + 1;\n  const device bfloat *x0 = input + route0 * p.input_size;\n  const device bfloat *x1 = input + route1 * p.input_size;\n  thread float x_thread0[Values], x_thread1[Values];\n  thread float result0[4] = {0}, result1[4] = {0};\n  for (uint k = 0; k < p.input_size; k += Block) {\n    const uint channel = k + lane * Values;\n    const float sum0 = r5_raw_odd_literal::mlx_qmv_f32xsum_v1_load_vector<\n        bfloat, float, Values, Bits>(x0 + channel, x_thread0);\n    const float sum1 = r5_raw_odd_literal::mlx_qmv_f32xsum_v1_load_vector<\n        bfloat, float, Values, Bits>(x1 + channel, x_thread1);\n    const uint coefficient = channel / GroupSize;\n    for (ushort row = 0; row < 4; ++row) {\n      const device uchar *wl = weights +\n          ulong(out_row + row) * p.weight_row_stride_bytes + ulong(channel) * Bits / 8;\n      const ulong offset = ulong(out_row + row) * p.parameter_row_stride_bytes;\n      const device bfloat *sl = reinterpret_cast<const device bfloat *>(scales + offset);\n      const device bfloat *bl = reinterpret_cast<const device bfloat *>(biases + offset);\n      const float s = float(sl[coefficient]);\n      const float b = float(bl[coefficient]);\n      float dot0, dot1;\n      qdot_pair<Bits, Values>(wl, x_thread0, x_thread1, s, b, sum0, sum1, dot0, dot1);\n      result0[row] += dot0;\n      result1[row] += dot1;\n    }\n  }\n  for (ushort row = 0; row < 4; ++row) {\n    const float sum0 = simd_sum(result0[row]);\n    if (lane == 0) {\n      const bfloat value0 = bfloat(sum0);\n      if (!r5_raw_odd_literal::finite(sum0) || !r5_raw_odd_literal::finite(float(value0)))\n        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);\n      output[route0 * p.output_size + out_row + row] = value0;\n    }\n    const float sum1 = simd_sum(result1[row]);\n    if (lane == 0) {\n      const bfloat value1 = bfloat(sum1);\n      if (!r5_raw_odd_literal::finite(sum1) || !r5_raw_odd_literal::finite(float(value1)))\n        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);\n      output[route1 * p.output_size + out_row + row] = value1;\n    }\n  }\n}\n",
+  "added_integer_guard_helper": "// Guard-only specialization of the original unsigned overflow test.\n// Every constant is the unique floor((UINT64_MAX-rowBytes)/(N-1)).\n// Unsupported geometry keeps the original generic expression; the outer\n// observed-shape guard still refuses unsupported geometry before math.\ntemplate <ushort Bits, ushort GroupSize>\ninline bool row_stride_bounds(constant FlashAffineParams &p) {\n  if (Bits == 4 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 10240)\n    return p.weight_row_stride_bytes <= 1801615789990189ul &&\n        p.parameter_row_stride_bytes <= 1801615789990189ul;\n  if (Bits == 4 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 12288)\n    return p.weight_row_stride_bytes <= 1501322053691670ul &&\n        p.parameter_row_stride_bytes <= 1501322053691670ul;\n  if (Bits == 4 && GroupSize == 64 && p.input_size == 6144 && p.output_size == 2560)\n    return p.weight_row_stride_bytes <= 7208575253501191ul &&\n        p.parameter_row_stride_bytes <= 7208575253501192ul;\n  if (Bits == 5 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 10240)\n    return p.weight_row_stride_bytes <= 1801615789990189ul &&\n        p.parameter_row_stride_bytes <= 1801615789990189ul;\n  if (Bits == 5 && GroupSize == 128 && p.input_size == 6144 && p.output_size == 2560)\n    return p.weight_row_stride_bytes <= 7208575253501191ul &&\n        p.parameter_row_stride_bytes <= 7208575253501192ul;\n  if (Bits == 5 && GroupSize == 128 && p.input_size == 2560 && p.output_size == 6144)\n    return p.weight_row_stride_bytes <= 3002888502964276ul &&\n        p.parameter_row_stride_bytes <= 3002888502964276ul;\n  if (Bits == 6 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 6144)\n    return p.weight_row_stride_bytes <= 3002888502964276ul &&\n        p.parameter_row_stride_bytes <= 3002888502964276ul;\n  if (p.output_size <= 1) return false;\n  return p.weight_row_stride_bytes <=\n      (~ulong(0) - ulong(p.input_size) * Bits / 8) / (p.output_size - 1) &&\n      p.parameter_row_stride_bytes <=\n      (~ulong(0) - ulong(p.input_size / GroupSize) * 2) / (p.output_size - 1);\n}\n\n",
+  "original_helpers_inverse_byte_exact": true,
+  "control_tap_inverse_byte_exact": true,
+  "candidate_tap_inverse_byte_exact": true,
+  "per_format_per_row_FP_inverse": [
+    {
+      "bits": 4,
+      "per_row_FP_expression_inverse_byte_exact": true,
+      "original_FP_statements": [
+        "accum +=\n          (x_thread[4 * i] * (packed & 0x000f) +\n           x_thread[4 * i + 1] * (packed & 0x00f0) +\n           x_thread[4 * i + 2] * (packed & 0x0f00) +\n           x_thread[4 * i + 3] * (packed & 0xf000));"
+      ],
+      "shared_integer_masks": {
+        "(packed & 0x000f)": "m0",
+        "(packed & 0x00f0)": "m1",
+        "(packed & 0x0f00)": "m2",
+        "(packed & 0xf000)": "m3"
+      }
+    },
+    {
+      "bits": 5,
+      "per_row_FP_expression_inverse_byte_exact": true,
+      "original_FP_statements": [
+        "accum += (w[0] & 0x1f) * x_thread[0];",
+        "accum += (w[0] & 0xe0) * x_thread[1];",
+        "accum += (w[1] & 0x3) * (x_thread[1] * 256.0f);",
+        "accum += (w[1] & 0x7c) * x_thread[2];",
+        "accum += (w[1] & 0x80) * x_thread[3];",
+        "accum += (w[2] & 0xf) * (x_thread[3] * 256.0f);",
+        "accum += (w[2] & 0xf0) * x_thread[4];",
+        "accum += (w[3] & 0x1) * (x_thread[4] * 256.0f);",
+        "accum += (w[3] & 0x3e) * x_thread[5];",
+        "accum += (w[3] & 0xc0) * x_thread[6];",
+        "accum += (w[4] & 0x7) * (x_thread[6] * 256.0f);",
+        "accum += (w[4] & 0xf8) * x_thread[7];"
+      ],
+      "shared_integer_masks": {
+        "(w[0] & 0x1f)": "m0",
+        "(w[0] & 0xe0)": "m1",
+        "(w[1] & 0x3)": "m2",
+        "(w[1] & 0x7c)": "m3",
+        "(w[1] & 0x80)": "m4",
+        "(w[2] & 0xf)": "m5",
+        "(w[2] & 0xf0)": "m6",
+        "(w[3] & 0x1)": "m7",
+        "(w[3] & 0x3e)": "m8",
+        "(w[3] & 0xc0)": "m9",
+        "(w[4] & 0x7)": "m10",
+        "(w[4] & 0xf8)": "m11"
+      }
+    },
+    {
+      "bits": 6,
+      "per_row_FP_expression_inverse_byte_exact": true,
+      "original_FP_statements": [
+        "accum += (w[0] & 0x3f) * x_thread[0];",
+        "accum += (w[0] & 0xc0) * x_thread[1];",
+        "accum += (w[1] & 0x0f) * (x_thread[1] * 256.0f);",
+        "accum += (w[1] & 0xf0) * x_thread[2];",
+        "accum += (w[2] & 0x03) * (x_thread[2] * 256.0f);",
+        "accum += (w[2] & 0xfc) * x_thread[3];"
+      ],
+      "shared_integer_masks": {
+        "(w[0] & 0x3f)": "m0",
+        "(w[0] & 0xc0)": "m1",
+        "(w[1] & 0x0f)": "m2",
+        "(w[1] & 0xf0)": "m3",
+        "(w[2] & 0x03)": "m4",
+        "(w[2] & 0xfc)": "m5"
+      }
+    }
+  ],
+  "control_tap_changes": [
+    {
+      "before": "device bfloat *output, device atomic_uint *diagnostics,\n    constant FlashAffineParams &p, uint out_row, uint expert,",
+      "after": "device bfloat *output, device atomic_uint *diagnostics,\n    device float *raw_f32,\n    constant FlashAffineParams &p, uint out_row, uint expert,",
+      "count": 1
+    },
+    {
+      "before": "        output[route * p.output_size + out_row + row] = value;",
+      "after": "        output[route * p.output_size + out_row + row] = value;\n        raw_f32[route * p.output_size + out_row + row] = sum;",
+      "count": 1
+    },
+    {
+      "before": "device atomic_uint *diagnostics, constant FlashAffineParams &p,\n    uint3 group, uint simd_group, uint lane)",
+      "after": "device atomic_uint *diagnostics, device float *raw_f32,\n    constant FlashAffineParams &p, uint3 group, uint simd_group, uint lane)",
+      "count": 1
+    },
+    {
+      "before": "x, weights, scales, biases, output, diagnostics, p, out_row,",
+      "after": "x, weights, scales, biases, output, diagnostics, raw_f32, p, out_row,",
+      "count": 2
+    }
+  ],
+  "candidate_tap_changes": [
+    {
+      "before": "#include \"literal.metalh\"",
+      "after": "#include \"control_tap.metalh\"",
+      "count": 1
+    },
+    {
+      "before": "namespace r5_raw_odd_rowpair_sep22 {",
+      "after": "namespace r5_raw_odd_rowpair_tap_sep22 {",
+      "count": 1
+    },
+    {
+      "before": "device atomic_uint *diagnostics, constant FlashAffineParams &p,",
+      "after": "device atomic_uint *diagnostics, device float *raw_f32,\n    constant FlashAffineParams &p,",
+      "count": 1
+    },
+    {
+      "before": "r5_raw_odd_literal::",
+      "after": "r5_raw_odd_control_tap::",
+      "count": 6
+    },
+    {
+      "before": "      output[route0 * p.output_size + out_row + row] = value0;",
+      "after": "      output[route0 * p.output_size + out_row + row] = value0;\n      raw_f32[route0 * p.output_size + out_row + row] = sum0;",
+      "count": 1
+    },
+    {
+      "before": "      output[route1 * p.output_size + out_row + row] = value1;",
+      "after": "      output[route1 * p.output_size + out_row + row] = value1;\n      raw_f32[route1 * p.output_size + out_row + row] = sum1;",
+      "count": 1
+    }
+  ],
+  "tap_floating_operations_added": 0,
+  "tail": "R5-only dead tail removed; physicalrows4/gridY2",
+  "observed_shape_format_combinations": [
+    [
+      4,
+      64,
+      2560,
+      10240
+    ],
+    [
+      4,
+      64,
+      2560,
+      12288
+    ],
+    [
+      4,
+      64,
+      6144,
+      2560
+    ],
+    [
+      5,
+      64,
+      2560,
+      10240
+    ],
+    [
+      5,
+      128,
+      6144,
+      2560
+    ],
+    [
+      5,
+      128,
+      2560,
+      6144
+    ],
+    [
+      6,
+      64,
+      2560,
+      6144
+    ]
+  ],
+  "formats": [
+    [
+      4,
+      64
+    ],
+    [
+      5,
+      64
+    ],
+    [
+      5,
+      128
+    ],
+    [
+      6,
+      64
+    ]
+  ],
+  "GPU_work": false,
+  "tensor_or_execution_report_payload_reads": 0,
+  "source_guard_proof_sha256": "f6678903719b903a175e0d5614ac077eba7d1cec0354d7240d92b9a9c5e7b165",
+  "generated_source_sha256": {
+    "candidate.metal": "b47f7f4c7d48dd8d3ae87818ff4ad9fd1ad07bb77ff5e152bb748684fdb4c69e",
+    "candidate_probe.metal": "80baa29d1e6a3a1851c7e63d88e33fc5e494268c0e7a35f9c9a5761e0bd46558",
+    "control_probe.metal": "02878ce8e8db844c6afcfe2e526e70add77224120f33dd58d22ae8d6cb53bcb0",
+    "control_tap.metalh": "2e8cf812b8eeb178e6c4c4c952b5ec5ef88a69c25bf3312ce2c47a1bcb09be98",
+    "literal.metalh": "8bf527439200751a6ad03e743d5f16517bc7f88b4ed07d1b283902b70d074738",
+    "pair.metalh": "8a798cf2a78542604917e577b5fd89a584f7186e2c27e727648e6dc5e2e337f0",
+    "pair_tap.metalh": "f5eed2db8aa0401f721f995b8f0e9236cde6df7f204465a56885ecf38b6246f0"
+  }
+}

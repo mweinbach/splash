@@ -1,0 +1,19 @@
+# Separate canonical audit build; no GPU execution or changes to frozen libs.
+GDN_AUDIT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
+GDN_AUDIT_SOURCE := $(GDN_AUDIT_ROOT)/dev/benchmarks/gdn_chunk_sep21
+GDN_AUDIT_BUILD ?= $(GDN_AUDIT_ROOT)/build/gdn-canonical-audit-sep21
+GDN_AUDIT_CXX := xcrun -sdk macosx clang++
+GDN_AUDIT_FLAGS := -std=c++20 -O3 -ffp-contract=off -fno-fast-math -Wall -Wextra -Werror -Wno-deprecated-declarations -I$(GDN_AUDIT_ROOT)/runtime -mmacosx-version-min=27.0
+GDN_AUDIT_METALFLAGS := -std=metal4.1 -O3 -Wall -Wextra -Werror -I$(GDN_AUDIT_ROOT)/runtime -mmacosx-version-min=27.0
+.PHONY: all
+all: $(GDN_AUDIT_BUILD)/canonical-delta-oracle $(GDN_AUDIT_BUILD)/gdn-canonical-audit.metallib
+$(GDN_AUDIT_BUILD):
+	mkdir -p $@
+$(GDN_AUDIT_BUILD)/cpu-oracle.o: $(GDN_AUDIT_SOURCE)/cpu_oracle.cpp $(GDN_AUDIT_SOURCE)/cpu_oracle.hpp | $(GDN_AUDIT_BUILD)
+	$(GDN_AUDIT_CXX) $(GDN_AUDIT_FLAGS) -DGDN_CPU_ORACLE_NO_MAIN -c $< -o $@
+$(GDN_AUDIT_BUILD)/canonical-delta-oracle: $(GDN_AUDIT_SOURCE)/canonical_delta_oracle.mm $(GDN_AUDIT_SOURCE)/metal_oracle.mm $(GDN_AUDIT_SOURCE)/cpu_oracle.hpp $(GDN_AUDIT_BUILD)/cpu-oracle.o
+	$(GDN_AUDIT_CXX) $(GDN_AUDIT_FLAGS) -fobjc-arc $< $(GDN_AUDIT_BUILD)/cpu-oracle.o -framework Foundation -framework Metal -o $@
+$(GDN_AUDIT_BUILD)/canonical-audit.air: $(GDN_AUDIT_SOURCE)/canonical_audit.metal $(GDN_AUDIT_ROOT)/runtime/metal/abi/FlashGDN.h | $(GDN_AUDIT_BUILD)
+	xcrun -sdk macosx metal $(GDN_AUDIT_METALFLAGS) -c $< -o $@
+$(GDN_AUDIT_BUILD)/gdn-canonical-audit.metallib: $(GDN_AUDIT_BUILD)/canonical-audit.air
+	xcrun -sdk macosx metallib $^ -o $@

@@ -1,0 +1,213 @@
+{
+  "schema": "R1-duplicate-tid0-explicit-host-transform-v1",
+  "base_oracle_path": "build/expert-r1-traversal-sep22-component-v1/source/dev/benchmarks/expert_r1_traversal_sep22/oracle.mm",
+  "base_oracle_sha256": "340c2e9ad7a889ba3369408a5fdb68b3d488e905fbc1daae0ceea27c9fd3ef6b",
+  "base_CPU_READY_path": "build/expert-r1-traversal-sep22-component-v1/CPU_READY.json",
+  "base_CPU_READY_sha256": "5e6d6d05ab2f2c4da8d03aa05863c4c0e182a3a194d1ca20dcf27bb07cd2781a",
+  "derived_oracle_path": "dev/benchmarks/expert_r1_duplicate_tid0_sep22/oracle.mm",
+  "derived_oracle_sha256": "4162af46f8a11f25a81f247d84f9e57ba09b821b71abe1fe06a2a23dc9b3e0f8",
+  "ordered_exact_substitutions": [
+    {
+      "category": "candidate-names",
+      "before": "SwappedTap",
+      "after": "CandidateTap",
+      "exact_occurrences": 8
+    },
+    {
+      "category": "candidate-names",
+      "before": "Swapped",
+      "after": "Candidate",
+      "exact_occurrences": 12
+    },
+    {
+      "category": "candidate-names",
+      "before": "swapped",
+      "after": "candidate",
+      "exact_occurrences": 30
+    },
+    {
+      "category": "pipeline-names",
+      "before": "r1_traversal",
+      "after": "r1_duplicate_tid0",
+      "exact_occurrences": 8
+    },
+    {
+      "category": "report-identity",
+      "before": "R1 traversal",
+      "after": "R1 duplicate-tid0",
+      "exact_occurrences": 2
+    },
+    {
+      "category": "report-identity",
+      "before": "r1-traversal",
+      "after": "r1-duplicate-tid0",
+      "exact_occurrences": 3
+    },
+    {
+      "category": "restore-original-candidate-grid",
+      "before": "DispatchSize downGrid(bool candidate) {return candidate?DispatchSize{10,1,40}:DispatchSize{40,1,10};}",
+      "after": "DispatchSize downGrid(bool candidate) {(void)candidate;return {40,1,10};}",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "restore-original-CPU-grid-witness",
+      "before": "const uint32_t logicalX=candidate?z:x,logicalZ=candidate?x:z;",
+      "after": "const uint32_t logicalX=x,logicalZ=z;",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "restore-original-CPU-grid-witness",
+      "before": "logical=(phys.z,phys.y,phys.x) valid bounds",
+      "after": "original logical producer grid bounds",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "report-original-grid",
+      "before": "\\\"down_candidate_grid\\\":[10,1,40]",
+      "after": "\\\"down_candidate_grid\\\":[40,1,10]",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "report-original-grid",
+      "before": "\\\"logical_candidate_axes\\\":[\\\"physical.z\\\",\\\"physical.y\\\",\\\"physical.x\\\"]",
+      "after": "\\\"logical_axes\\\":[\\\"physical.x\\\",\\\"physical.y\\\",\\\"physical.z\\\"]",
+      "exact_occurrences": 1
+    }
+  ],
+  "guard_proof_extensions": [
+    {
+      "reason": "Reset all existing output/tap/census buffers before each malformed or valid-duplicate trial; invalid-rank raw fields remain defined unwritten sentinel",
+      "before": "        const auto changedX=copied(x),changedRanks=copied(ranks),changedIDs=copied(ids);\n        for(uint32_t i=0;i<5;++i){resetDiag(outputs[i].diagnostics);(void)submit(backend,plans[i].commands);}",
+      "after": "        const auto changedX=copied(x),changedRanks=copied(ranks),changedIDs=copied(ids);\n        for(uint32_t i=0;i<5;++i){p.check=\"malformed case=\"+std::to_string(test)+\" kind=\"+std::to_string(i);poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);}",
+      "exact_occurrences": 1
+    },
+    {
+      "reason": "Compare all existing malformed and valid-duplicate tap bytes without asserting malformed finiteness or numerical qualification",
+      "before": "        const uint32_t expected=test<2?Sticky|4:test<4?Sticky|5:test==4?Sticky|1:Sticky|5;",
+      "after": "        for(uint32_t stage=0;stage<8;++stage)equal(outputs[2].g[stage],outputs[3].g[stage],p,\"malformed case=\"+std::to_string(test)+\" GU raw/scaled/BF16 stage=\"+std::to_string(stage));\n        for(uint32_t stage=0;stage<3;++stage)equal(outputs[2].d[stage],outputs[3].d[stage],p,\"malformed case=\"+std::to_string(test)+\" down raw/scaled/BF16 stage=\"+std::to_string(stage));\n        const uint32_t expected=test<2?Sticky|4:test<4?Sticky|5:test==4?Sticky|1:Sticky|5;",
+      "exact_occurrences": 1
+    },
+    {
+      "reason": "Reset all existing taps before each zero/negative/NaN/Inf scale trial so exact comparisons cannot inherit prior field values",
+      "before": "        const auto changedScale=copied(bank.scales[plane]);\n        for(uint32_t i=0;i<5;++i){resetDiag(outputs[i].diagnostics);(void)submit(backend,plans[i].commands);}",
+      "after": "        const auto changedScale=copied(bank.scales[plane]);\n        for(uint32_t i=0;i<5;++i){p.check=\"bad-scale plane=\"+std::to_string(plane)+\" bits=\"+std::to_string(bits)+\" kind=\"+std::to_string(i);poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);}",
+      "exact_occurrences": 1
+    },
+    {
+      "reason": "Retain exact original malformed row-scale F32 and BF16 stage outputs with no finite/quality pass claim",
+      "before": "        require(diag(outputs[0].diagnostics)==(Sticky|4) && unchanged(bank.scales[plane],changedScale),\"literal bad-scale sticky4/source preserved\");",
+      "after": "        for(uint32_t stage=0;stage<8;++stage)equal(outputs[2].g[stage],outputs[3].g[stage],p,\"bad-scale GU raw/scaled/BF16 stage=\"+std::to_string(stage));\n        for(uint32_t stage=0;stage<3;++stage)equal(outputs[2].d[stage],outputs[3].d[stage],p,\"bad-scale down raw/scaled/BF16 stage=\"+std::to_string(stage));\n        require(diag(outputs[0].diagnostics)==(Sticky|4) && unchanged(bank.scales[plane],changedScale),\"literal bad-scale sticky4/source preserved\");",
+      "exact_occurrences": 1
+    },
+    {
+      "reason": "Report valid-duplicate raw parity separately from malformed unwritten sentinel-byte parity without numerical qualification",
+      "before": "     <<\",\\\"two_ownchain_complete_BF16_exact\\\":true,\\\"down_same_frozen_activation_exact\\\":true,\\\"posttiming_taps_bound_to_LAST_shipping_snapshots\\\":true\"",
+      "after": "     <<\",\\\"two_ownchain_complete_BF16_exact\\\":true,\\\"down_same_frozen_activation_exact\\\":true,\\\"posttiming_taps_bound_to_LAST_shipping_snapshots\\\":true\"\n     <<\",\\\"valid_duplicate_raw_stage_parity\\\":true,\\\"malformed_invalid_rank_raw_fields_unwritten_sentinel\\\":true,\\\"malformed_tap_byte_parity_is_numerical_qualification\\\":false\"",
+      "exact_occurrences": 1
+    }
+  ],
+  "assertions": {
+    "sealed_base_source_sha_matches_receipt": true,
+    "quality_function_byte_identical": true,
+    "Governor_ledger_function_byte_identical": true,
+    "readonly_selected_bank_loader_byte_identical": true,
+    "original_coefficient_geometry_and_params16_unchanged": true,
+    "original_producer_grids_both_variants": true,
+    "no_flags_epoch_summary_packet_or_new_buffer": true,
+    "journal_replay_byte_identical_to_derived_source": true,
+    "no_new_GPU_calls_buffers_or_metric_math_in_guard_extensions": true,
+    "malformed_raw_fields_poisoned_before_submit_and_not_finite_qualified": true,
+    "only_exact_journaled_names_grids_identity_guard_proof_and_optional_profile_removals": true,
+    "mandatory_inclusive2_vs2_ownchain_performance_only": true,
+    "optional_frozen_activation_buffer_removed_no_new_buffer": true
+  },
+  "exact_unified_diff": "--- build/expert-r1-traversal-sep22-component-v1/source/dev/benchmarks/expert_r1_traversal_sep22/oracle.mm\n+++ dev/benchmarks/expert_r1_duplicate_tid0_sep22/oracle.mm\n@@ -1,4 +1,4 @@\n-// Private bounded R1 traversal oracle. CPU mode opens no GPU or payload.\n+// Private bounded R1 duplicate-tid0 oracle. CPU mode opens no GPU or payload.\n // Root alone may call the explicit GPU path; no worker or whole-model claim.\n #import <Foundation/Foundation.h>\n #include \"flash/FlashGatheredMPP.hpp\"\n@@ -59,7 +59,7 @@\n   bool gpu=false,backendInitialized=false,backendStopped=false,backendDestroyed=false,hostValid=false,growth=false;\n   void write(bool complete,bool pass) const {\n     if(path.empty()) return;const auto temp=path.string()+\".writing\";std::ofstream out(temp);require(bool(out),\"progress open\");\n-    out<<\"{\\\"schema\\\":\\\"expert-r1-traversal-progress-v1\\\",\\\"completed\\\":\"<<(complete?\"true\":\"false\")\n+    out<<\"{\\\"schema\\\":\\\"expert-r1-duplicate-tid0-progress-v1\\\",\\\"completed\\\":\"<<(complete?\"true\":\"false\")\n        <<\",\\\"pass\\\":\"<<(pass?\"true\":\"false\")<<\",\\\"GPU_executed\\\":\"<<(gpu?\"true\":\"false\")\n        <<\",\\\"phase\\\":\"<<json::quote(phase)<<\",\\\"check\\\":\"<<json::quote(check)<<\",\\\"error\\\":\"<<json::quote(error)\n        <<\",\\\"coefficient_payload_bytes_read\\\":\"<<payloadRead<<\",\\\"checks\\\":\"<<checks<<\",\\\"bytes_compared\\\":\"<<bytes\n@@ -83,7 +83,7 @@\n struct Allocation final {MetalBuffer base,view;};\n MetalBuffer allocate(MetalBackend &backend,uint64_t bytes,std::vector<Allocation> &all) {\n   const uint64_t rounded=(bytes+GuardBytes-1)&~(GuardBytes-1);\n-  auto base=backend.allocateBuffer(rounded+2*GuardBytes,BufferStorage::Shared,\"bounded-r1-traversal\");\n+  auto base=backend.allocateBuffer(rounded+2*GuardBytes,BufferStorage::Shared,\"bounded-r1-duplicate-tid0\");\n   std::memset(base.contents(),0xa5,base.sizeBytes());auto view=backend.view(base,GuardBytes,bytes);std::memset(view.contents(),0,bytes);\n   all.push_back({base,view});return view;\n }\n@@ -131,10 +131,10 @@\n }\n double rowRMS(std::span<const uint16_t> values) {double square=0;for(auto bits:values){const double v=number(bits);require(std::isfinite(v),\"finite input fixture\");square+=v*v;}return std::sqrt(square/values.size());}\n bool same(DispatchSize a,DispatchSize b) {return a.x==b.x && a.y==b.y && a.z==b.z;}\n-DispatchSize gateGrid(bool swapped) {(void)swapped;return {10,1,10};}\n-DispatchSize downGrid(bool swapped) {return swapped?DispatchSize{10,1,40}:DispatchSize{40,1,10};}\n-void fullGrid(bool swapped,DispatchSize gate,DispatchSize down,DispatchSize threads={128,1,1}) {\n-  require(same(gate,gateGrid(swapped)) && same(down,downGrid(swapped)) && same(threads,{128,1,1}),\"host rejects partial/excess grid or threads before submission\");\n+DispatchSize gateGrid(bool candidate) {(void)candidate;return {10,1,10};}\n+DispatchSize downGrid(bool candidate) {(void)candidate;return {40,1,10};}\n+void fullGrid(bool candidate,DispatchSize gate,DispatchSize down,DispatchSize threads={128,1,1}) {\n+  require(same(gate,gateGrid(candidate)) && same(down,downGrid(candidate)) && same(threads,{128,1,1}),\"host rejects partial/excess grid or threads before submission\");\n }\n struct Bank final {std::array<MetalBuffer,3> codes,scales;std::filesystem::path source;struct stat before{};uint32_t expertBase=0;};\n void boundedRanks(std::span<const uint32_t> ranks,uint32_t base) {\n@@ -198,12 +198,12 @@\n   require(b.sizeBytes()==uint64_t(entries)*4,\"exact CTA census extent\");const auto *v=static_cast<const uint32_t *>(b.contents());\n   for(uint32_t i=0;i<entries;++i)require(v[i]==expected,\"actual logical CTA completion census\");\n }\n-enum class Kind:uint32_t { Original,Swapped,NativeTap,SwappedTap,NativeWrapper };\n-bool isSwapped(Kind kind){return kind==Kind::Swapped || kind==Kind::SwappedTap;}\n-bool isTap(Kind kind){return kind==Kind::NativeTap || kind==Kind::SwappedTap;}\n+enum class Kind:uint32_t { Original,Candidate,NativeTap,CandidateTap,NativeWrapper };\n+bool isCandidate(Kind kind){return kind==Kind::Candidate || kind==Kind::CandidateTap;}\n+bool isTap(Kind kind){return kind==Kind::NativeTap || kind==Kind::CandidateTap;}\n void preflight(const Bank &bank,MetalBuffer x,MetalBuffer ranks,MetalBuffer ids,const Output &out,Kind kind,\n     MetalBuffer downInput,DispatchSize gu,DispatchSize down,DispatchSize threads={128,1,1}) {\n-  fullGrid(isSwapped(kind),gu,down,threads);\n+  fullGrid(isCandidate(kind),gu,down,threads);\n   require(x.sizeBytes()==2560*2 && ranks.sizeBytes()==512*4 && ids.sizeBytes()==10*8 &&\n       out.act.sizeBytes()==10*640*2 && out.down.sizeBytes()==10*2560*2 && out.diagnostics.sizeBytes()==4 &&\n       downInput.sizeBytes()==10*640*2,\"exact bounded R1 primitive host extents\");\n@@ -217,15 +217,15 @@\n struct Plan final {CommandGraph owner;std::vector<ComputeDispatch> commands;};\n Plan graph(const Bank &bank,MetalBuffer x,MetalBuffer ranks,MetalBuffer ids,const Output &out,Kind kind,\n     FlashGatheredMPPParams params=Params,MetalBuffer sharedDownInput={}) {\n-  const bool swapped=isSwapped(kind),tap=isTap(kind);const auto downInput=sharedDownInput?sharedDownInput:out.act;\n-  preflight(bank,x,ranks,ids,out,kind,downInput,gateGrid(swapped),downGrid(swapped));\n+  const bool candidate=isCandidate(kind),tap=isTap(kind);const auto downInput=sharedDownInput?sharedDownInput:out.act;\n+  preflight(bank,x,ranks,ids,out,kind,downInput,gateGrid(candidate),downGrid(candidate));\n   const char *guName=\"flash_gathered_mpp_gate_up_m16_n64_sg4\",*downName=\"flash_gathered_mpp_down_m16_n64_sg4\";\n-  if(kind==Kind::Swapped){guName=\"r1_traversal_gu_swapped\";downName=\"r1_traversal_down_swapped\";}\n-  if(kind==Kind::NativeWrapper){guName=\"r1_traversal_gu_native\";downName=\"r1_traversal_down_native\";}\n-  if(kind==Kind::NativeTap){guName=\"r1_traversal_gu_native_tap\";downName=\"r1_traversal_down_native_tap\";}\n-  if(kind==Kind::SwappedTap){guName=\"r1_traversal_gu_swapped_tap\";downName=\"r1_traversal_down_swapped_tap\";}\n-  Plan plan;plan.owner.add(guName,{x,bank.codes[0],bank.scales[0],bank.codes[1],bank.scales[1],ranks,ids,out.act,out.diagnostics},params,gateGrid(swapped),{128,1,1});\n-  plan.owner.add(downName,{downInput,bank.codes[2],bank.scales[2],ranks,ids,out.down,out.diagnostics},params,downGrid(swapped),{128,1,1});\n+  if(kind==Kind::Candidate){guName=\"r1_duplicate_tid0_gu_candidate\";downName=\"r1_duplicate_tid0_down_candidate\";}\n+  if(kind==Kind::NativeWrapper){guName=\"r1_duplicate_tid0_gu_native\";downName=\"r1_duplicate_tid0_down_native\";}\n+  if(kind==Kind::NativeTap){guName=\"r1_duplicate_tid0_gu_native_tap\";downName=\"r1_duplicate_tid0_down_native_tap\";}\n+  if(kind==Kind::CandidateTap){guName=\"r1_duplicate_tid0_gu_candidate_tap\";downName=\"r1_duplicate_tid0_down_candidate_tap\";}\n+  Plan plan;plan.owner.add(guName,{x,bank.codes[0],bank.scales[0],bank.codes[1],bank.scales[1],ranks,ids,out.act,out.diagnostics},params,gateGrid(candidate),{128,1,1});\n+  plan.owner.add(downName,{downInput,bank.codes[2],bank.scales[2],ranks,ids,out.down,out.diagnostics},params,downGrid(candidate),{128,1,1});\n   for(const auto &d:plan.owner.dispatches())plan.commands.push_back(d);\n   require(plan.commands.size()==2 && plan.commands[0].bytes.size()==1 && plan.commands[0].bytes[0].index==9 &&\n       plan.commands[1].bytes.size()==1 && plan.commands[1].bytes[0].index==7,\"original two-dispatch 16-byte inline ABI\");\n@@ -284,15 +284,15 @@\n   require(OneExpertBytes==3*1638400+uint64_t(640+640+2560)*4 && FixtureBytes==10*OneExpertBytes,\"exact ten-expert bounded coefficient byte golden\");++checks;\n   for(bool permuted:{false,true}){auto ids=routeIDs(0,permuted);auto sorted=ids;std::sort(sorted.begin(),sorted.end());for(uint32_t i=0;i<10;++i){require(sorted[i]==i,\"ten distinct original experts/permuted routes\");++checks;}}\n   const auto hidden=hiddenFixture();const double rms=rowRMS(hidden);require(rms>.999 && rms<1.001,\"normalized true-row-RMS BF16 fixture\");++checks;\n-  for(bool swapped:{false,true}) {\n-    fullGrid(swapped,gateGrid(swapped),downGrid(swapped));++checks;\n-    for(uint32_t stage=0;stage<2;++stage){std::vector<uint32_t> seen(stage?400:100,0);const auto physical=stage?downGrid(swapped):gateGrid(swapped);\n-      for(uint32_t z=0;z<physical.z;++z)for(uint32_t x=0;x<physical.x;++x){const uint32_t logicalX=swapped?z:x,logicalZ=swapped?x:z;\n-        require(logicalX<(stage?40u:10u) && logicalZ<10,\"logical=(phys.z,phys.y,phys.x) valid bounds\");++seen[logicalZ*(stage?40:10)+logicalX];}\n+  for(bool candidate:{false,true}) {\n+    fullGrid(candidate,gateGrid(candidate),downGrid(candidate));++checks;\n+    for(uint32_t stage=0;stage<2;++stage){std::vector<uint32_t> seen(stage?400:100,0);const auto physical=stage?downGrid(candidate):gateGrid(candidate);\n+      for(uint32_t z=0;z<physical.z;++z)for(uint32_t x=0;x<physical.x;++x){const uint32_t logicalX=x,logicalZ=z;\n+        require(logicalX<(stage?40u:10u) && logicalZ<10,\"original logical producer grid bounds\");++seen[logicalZ*(stage?40:10)+logicalX];}\n       require(std::all_of(seen.begin(),seen.end(),[](uint32_t value){return value==1;}),\"CPU whole-grid CTA bijection\");checks+=seen.size();}\n-    for(uint32_t test=0;test<6;++test){auto gu=gateGrid(swapped),down=downGrid(swapped);DispatchSize threads{128,1,1};\n+    for(uint32_t test=0;test<6;++test){auto gu=gateGrid(candidate),down=downGrid(candidate);DispatchSize threads{128,1,1};\n       if(test==0)--gu.x;if(test==1)++gu.z;if(test==2)--down.x;if(test==3)++down.z;if(test==4)threads.x=64;if(test==5)threads.y=2;\n-      bool rejected=false;try{fullGrid(swapped,gu,down,threads);}catch(const std::runtime_error &){rejected=true;}require(rejected,\"CPU host partial/excess/threads rejection\");++checks;}\n+      bool rejected=false;try{fullGrid(candidate,gu,down,threads);}catch(const std::runtime_error &){rejected=true;}require(rejected,\"CPU host partial/excess/threads rejection\");++checks;}\n   }\n   bool rejected=false;try{(void)routeIDs(503,false);}catch(const std::runtime_error &){rejected=true;}require(rejected,\"CPU expert selection bound\");++checks;\n   std::array<uint32_t,512> ranks{};ranks.fill(UINT32_MAX);for(uint32_t i=0;i<10;++i)ranks[i]=i;boundedRanks(ranks,0);++checks;\n@@ -309,7 +309,7 @@\n   const std::string_view order=argc>6?argv[6]:\"normal\";require(order==\"normal\" || order==\"permuted\",\"normal/permuted route order\");const bool permuted=order==\"permuted\";\n   p.phase=\"metadata-only\";const auto metadata=loadFlashInt8ExpertStoreMetadata(argv[2],\"ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e\",\"edc4ffe67a2479bad999fd7cd26d05cc16549d52f79659577ad21ff1d8d310a0\",NormConvention::OnePlusWeight);\n   require(metadata.identitySha256==\"ba22514a30a41d5ddc734ad0aea0a67ce527a3a5c22b95031c1c5810972363f1\",\"registered canonical Full512 metadata identity\");\n-  std::array<TimingSet,3> measured;std::array<gemv_quality::MetricReport,2> initialQuality,finalQuality;\n+  std::array<TimingSet,1> measured;std::array<gemv_quality::MetricReport,2> initialQuality,finalQuality;\n   const auto selectedIDs=routeIDs(base,permuted);double inputRMS=0;uint64_t timedSubmissions=0;\n   {BackendLifetime lifetime{p};p.phase=\"backend-normal-governor-admission\";MetalBackend backend(argv[1]);p.backendInitialized=true;\n     const auto initial=backend.memoryStats();p.initialAllocated=initial.allocatedBytes;p.initialDevice=initial.deviceCurrentAllocatedBytes;p.library=hexDigest(backend.metallibSha256());require(!p.initialAllocated,\"no owned model allocation at backend baseline\");\n@@ -324,8 +324,7 @@\n       for(uint32_t slot=0;slot<10;++slot)require(rankData[selectedIDs[slot]]<10,\"healthy fixture stays within ten packed coefficient ranks\");\n       p.inputHash=qmv_one_layer::detail::hash(x.contents(),x.sizeBytes());p.idsHash=qmv_one_layer::detail::hash(ids.contents(),ids.sizeBytes());p.ranksHash=qmv_one_layer::detail::hash(ranks.contents(),ranks.sizeBytes());\n       std::array<Output,5> outputs{output(backend,allocations),output(backend,allocations),output(backend,allocations),output(backend,allocations),output(backend,allocations)};\n-      const auto sharedActivation=allocate(backend,10*640*2,allocations);\n-      std::array<Plan,5> plans{graph(bank,x,ranks,ids,outputs[0],Kind::Original),graph(bank,x,ranks,ids,outputs[1],Kind::Swapped),graph(bank,x,ranks,ids,outputs[2],Kind::NativeTap),graph(bank,x,ranks,ids,outputs[3],Kind::SwappedTap),graph(bank,x,ranks,ids,outputs[4],Kind::NativeWrapper)};\n+      std::array<Plan,5> plans{graph(bank,x,ranks,ids,outputs[0],Kind::Original),graph(bank,x,ranks,ids,outputs[1],Kind::Candidate),graph(bank,x,ranks,ids,outputs[2],Kind::NativeTap),graph(bank,x,ranks,ids,outputs[3],Kind::CandidateTap),graph(bank,x,ranks,ids,outputs[4],Kind::NativeWrapper)};\n       std::vector<MetalBuffer> immutable{x,ranks,ids};for(uint32_t i=0;i<3;++i){immutable.push_back(bank.codes[i]);immutable.push_back(bank.scales[i]);}\n       std::vector<std::vector<uint8_t>> saved;for(auto buffer:immutable)saved.push_back(copied(buffer));ledger(backend,gov,p);lease->commit();\n       p.phase=\"original-AIR-ownchain-taps-and-actual-completion-census\";\n@@ -337,8 +336,10 @@\n         auto *xb=static_cast<uint16_t *>(x.contents());auto *id=static_cast<int64_t *>(ids.contents());\n         if(test==0)xb[0]=0x7fc1;if(test==1)xb[127]=0x7f80;if(test==2){id[0]=-1;xb[0]=0x7fc1;}if(test==3)rankData[selectedIDs[0]]=512;if(test==4)id[0]=id[1];if(test==5)id[0]=512;\n         const auto changedX=copied(x),changedRanks=copied(ranks),changedIDs=copied(ids);\n-        for(uint32_t i=0;i<5;++i){resetDiag(outputs[i].diagnostics);(void)submit(backend,plans[i].commands);}\n+        for(uint32_t i=0;i<5;++i){p.check=\"malformed case=\"+std::to_string(test)+\" kind=\"+std::to_string(i);poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);}\n         for(uint32_t i=1;i<5;++i){equal(outputs[0].act,outputs[i].act,p,\"malformed activation bits/NaN policy\");equal(outputs[0].down,outputs[i].down,p,\"malformed down bits/NaN policy\");require(diag(outputs[i].diagnostics)==diag(outputs[0].diagnostics),\"same malformed sticky bits\");}\n+        for(uint32_t stage=0;stage<8;++stage)equal(outputs[2].g[stage],outputs[3].g[stage],p,\"malformed case=\"+std::to_string(test)+\" GU raw/scaled/BF16 stage=\"+std::to_string(stage));\n+        for(uint32_t stage=0;stage<3;++stage)equal(outputs[2].d[stage],outputs[3].d[stage],p,\"malformed case=\"+std::to_string(test)+\" down raw/scaled/BF16 stage=\"+std::to_string(stage));\n         const uint32_t expected=test<2?Sticky|4:test<4?Sticky|5:test==4?Sticky|1:Sticky|5;require(diag(outputs[0].diagnostics)==expected,\"literal original malformed diagnostic policy\");\n         require(unchanged(x,changedX) && unchanged(ranks,changedRanks) && unchanged(ids,changedIDs),\"nonfinite localA does not mutate source/route/rank operands\");canaries(allocations);++p.guardCases;\n       }\n@@ -349,8 +350,10 @@\n         const uint64_t scaleIndex=uint64_t(rankData[selectedIDs[0]])*(plane==2?2560:640);\n         std::memcpy(static_cast<uint8_t *>(bank.scales[plane].contents())+scaleIndex*4,&bits,4);\n         const auto changedScale=copied(bank.scales[plane]);\n-        for(uint32_t i=0;i<5;++i){resetDiag(outputs[i].diagnostics);(void)submit(backend,plans[i].commands);}\n+        for(uint32_t i=0;i<5;++i){p.check=\"bad-scale plane=\"+std::to_string(plane)+\" bits=\"+std::to_string(bits)+\" kind=\"+std::to_string(i);poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);}\n         for(uint32_t i=1;i<5;++i){equal(outputs[0].act,outputs[i].act,p,\"bad-scale activation exact original bits\");equal(outputs[0].down,outputs[i].down,p,\"bad-scale down exact original bits\");require(diag(outputs[i].diagnostics)==diag(outputs[0].diagnostics),\"same bad-scale sticky bits\");}\n+        for(uint32_t stage=0;stage<8;++stage)equal(outputs[2].g[stage],outputs[3].g[stage],p,\"bad-scale GU raw/scaled/BF16 stage=\"+std::to_string(stage));\n+        for(uint32_t stage=0;stage<3;++stage)equal(outputs[2].d[stage],outputs[3].d[stage],p,\"bad-scale down raw/scaled/BF16 stage=\"+std::to_string(stage));\n         require(diag(outputs[0].diagnostics)==(Sticky|4) && unchanged(bank.scales[plane],changedScale),\"literal bad-scale sticky4/source preserved\");\n         std::memcpy(bank.scales[plane].contents(),saved[4+2*plane].data(),bank.scales[plane].sizeBytes());canaries(allocations);++p.guardCases;\n       }\n@@ -363,7 +366,7 @@\n       }\n       p.phase=\"host-fullgrid-alias-submission-count-guards\";\n       for(uint32_t variant=0;variant<2;++variant)for(uint32_t test=0;test<7;++test) {\n-        const auto before=backend.submissionCount();bool rejected=false;auto out=outputs[variant];const auto kind=variant?Kind::Swapped:Kind::Original;\n+        const auto before=backend.submissionCount();bool rejected=false;auto out=outputs[variant];const auto kind=variant?Kind::Candidate:Kind::Original;\n         auto gu=gateGrid(variant),down=downGrid(variant);DispatchSize threads{128,1,1};\n         if(test==0)--gu.x;if(test==1)++gu.z;if(test==2)--down.x;if(test==3)++down.z;if(test==4)threads.x=64;\n         if(test==5)out.act=backend.view(bank.codes[0],0,out.act.sizeBytes());if(test==6)out.act=backend.view(out.down,0,out.act.sizeBytes());\n@@ -382,25 +385,15 @@\n       }\n       p.phase=\"final-qualification-and-freeze-before-warm\";\n       for(uint32_t i=0;i<5;++i){poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);}qualify(outputs,p);\n-      std::memcpy(sharedActivation.contents(),outputs[0].act.contents(),sharedActivation.sizeBytes());immutable.push_back(sharedActivation);saved.push_back(copied(sharedActivation));\n-      auto downOriginal=graph(bank,x,ranks,ids,outputs[0],Kind::Original,Params,sharedActivation),downSwapped=graph(bank,x,ranks,ids,outputs[1],Kind::Swapped,Params,sharedActivation);\n-      // Verify the down-only pair on exactly one immutable activation before any\n-      // warm or timed submission. Native/candidate full chains remain separate.\n-      (void)submit(backend,std::span<const ComputeDispatch>(&downOriginal.commands[1],1));\n-      (void)submit(backend,std::span<const ComputeDispatch>(&downSwapped.commands[1],1));equal(outputs[0].down,outputs[1].down,p,\"down SAME frozen activation BF16 bits\");\n-      const auto sameDownExpected=copied(outputs[0].down);\n-      auto sameNativeTap=graph(bank,x,ranks,ids,outputs[2],Kind::NativeTap,Params,sharedActivation),sameSwappedTap=graph(bank,x,ranks,ids,outputs[3],Kind::SwappedTap,Params,sharedActivation);\n       allImmutable(immutable,saved);sourceUnchanged(bank);canaries(allocations);ledger(backend,gov,p);resetDiag(outputs[0].diagnostics);resetDiag(outputs[1].diagnostics);\n-      std::array<std::array<std::span<const ComputeDispatch>,2>,3> commands{{\n-        {std::span<const ComputeDispatch>(&plans[0].commands[0],1),std::span<const ComputeDispatch>(&plans[1].commands[0],1)},\n-        {std::span<const ComputeDispatch>(&downOriginal.commands[1],1),std::span<const ComputeDispatch>(&downSwapped.commands[1],1)},\n+      std::array<std::array<std::span<const ComputeDispatch>,2>,1> commands{{\n         {std::span<const ComputeDispatch>(plans[0].commands),std::span<const ComputeDispatch>(plans[1].commands)}\n       }};\n-      p.phase=\"GU-downSAME-ownchain-read-free-150mswarm-and18-balanced-pairs\";\n+      p.phase=\"inclusive-ownchain2-vs2-read-free-150mswarm-and18-balanced-pairs\";\n       const auto beforeTiming=backend.submissionCount();\n       // From here through the final timed submit there are no .contents(),\n       // guards, diagnostics, output scans, resets, snapshots, or allocator reads.\n-      for(uint32_t mode=0;mode<3;++mode) {\n+      for(uint32_t mode=0;mode<1;++mode) {\n         for(uint32_t variant=0;variant<2;++variant)while(measured[mode].warmGPU[variant]<.150) {\n           require(measured[mode].warmCommands[variant]<100000,\"bounded warm timestamps available\");\n           const auto t=submit(backend,commands[mode][variant]);measured[mode].warmGPU[variant]+=t.gpuSeconds;++measured[mode].warmCommands[variant];\n@@ -409,21 +402,16 @@\n           const uint32_t variant=(pair+position)%2;measured[mode].samples[variant].push_back(submit(backend,commands[mode][variant]));\n         }\n       }\n-      timedSubmissions=backend.submissionCount()-beforeTiming;uint64_t expectedSubmissions=3*Pairs*2;\n+      timedSubmissions=backend.submissionCount()-beforeTiming;uint64_t expectedSubmissions=Pairs*2;\n       for(const auto &mode:measured)for(auto count:mode.warmCommands)expectedSubmissions+=count;\n       require(timedSubmissions==expectedSubmissions,\"warm/timed submission count exact\");\n       p.phase=\"LAST-shipping-bits-and-final-taps\";allImmutable(immutable,saved);canaries(allocations);\n       require(diag(outputs[0].diagnostics)==Sticky && diag(outputs[1].diagnostics)==Sticky,\"LAST shipping healthy sticky diagnostics\");\n       equal(outputs[0].act,outputs[1].act,p,\"LAST ownchain activation BF16 bits\");equal(outputs[0].down,outputs[1].down,p,\"LAST ownchain down BF16 bits\");finite(outputs[0].act,true);finite(outputs[0].down,true);\n-      require(unchanged(outputs[0].down,sameDownExpected) && unchanged(outputs[1].down,sameDownExpected),\"LAST chain/down-SAME outputs match frozen qualified down baseline\");\n       finalQuality={routeNumericGuard(outputs[0].act,outputs[1].act,640),routeNumericGuard(outputs[0].down,outputs[1].down,2560)};\n       const auto lastAct=copied(outputs[0].act),lastDown=copied(outputs[0].down);\n       for(uint32_t i=2;i<5;++i){poison(outputs[i],i==2 || i==3);(void)submit(backend,plans[i].commands);require(unchanged(outputs[i].act,lastAct) && unchanged(outputs[i].down,lastDown),\"final taps/native selfcontrol bound to actual LAST shipping snapshots\");}\n       qualify(outputs,p);\n-      for(uint32_t i=2;i<4;++i){std::memset(outputs[i].downCensus.contents(),0,outputs[i].downCensus.sizeBytes());resetDiag(outputs[i].diagnostics);}\n-      (void)submit(backend,std::span<const ComputeDispatch>(&sameNativeTap.commands[1],1));(void)submit(backend,std::span<const ComputeDispatch>(&sameSwappedTap.commands[1],1));\n-      for(uint32_t i=2;i<4;++i){require(diag(outputs[i].diagnostics)==Sticky && unchanged(outputs[i].down,sameDownExpected),\"final SAME frozen activation down taps bind last qualified outputs\");census(outputs[i].downCensus,400,1);}\n-      for(uint32_t i=0;i<3;++i){finite(outputs[2].d[i],i==2);finite(outputs[3].d[i],i==2);equal(outputs[2].d[i],outputs[3].d[i],p,\"final SAME activation raw/scaled F32/BF16 down taps\");}\n       allImmutable(immutable,saved);sourceUnchanged(bank);canaries(allocations);ledger(backend,gov,p);\n       for(const auto &mode:measured)for(uint32_t variant=0;variant<2;++variant){require(mode.warmGPU[variant]>=.150 && mode.samples[variant].size()==Pairs,\"all component variants warmed and18sample complete\");}\n     }\n@@ -434,7 +422,7 @@\n   }\n   require(p.backendStopped && p.backendDestroyed,\"backend stop/destructor before success publication\");p.phase=\"complete\";\n   const auto final=p.path.string()+\".final-writing\";std::ofstream out(final);require(bool(out),\"final report open\");out<<std::setprecision(17);\n-  out<<\"{\\\"schema\\\":\\\"expert-r1-traversal-component-v1\\\",\\\"pass\\\":true,\\\"qualification_complete\\\":true,\\\"GPU_executed\\\":true\"\n+  out<<\"{\\\"schema\\\":\\\"expert-r1-duplicate-tid0-component-v1\\\",\\\"pass\\\":true,\\\"qualification_complete\\\":true,\\\"GPU_executed\\\":true\"\n      <<\",\\\"layer\\\":\"<<layer<<\",\\\"expert_base\\\":\"<<base<<\",\\\"route_order\\\":\"<<json::quote(order)<<\",\\\"route_ids\\\":[\";\n   for(uint32_t i=0;i<10;++i){if(i)out<<',';out<<selectedIDs[i];}\n   out<<\"],\\\"rows\\\":1,\\\"selections\\\":10,\\\"ten_distinct_original_experts_packed_ranks\\\":true,\\\"synthetic_normalized_input\\\":true,\\\"actual_current_capture\\\":false\"\n@@ -442,20 +430,20 @@\n      <<\",\\\"input_sha256\\\":\"<<json::quote(p.inputHash)<<\",\\\"route_ids_sha256\\\":\"<<json::quote(p.idsHash)<<\",\\\"ranks_sha256\\\":\"<<json::quote(p.ranksHash)\n      <<\",\\\"metallib_sha256\\\":\"<<json::quote(p.library)<<\",\\\"wholemodel_speed_qualified\\\":false,\\\"model_quality_qualified\\\":false\"\n      <<\",\\\"Full512_payload_mapped_or_constructed\\\":false,\\\"full_raw_scaled_F32_and_BF16_gate_up_SwiGLU_down_exact\\\":true\"\n-     <<\",\\\"two_ownchain_complete_BF16_exact\\\":true,\\\"down_same_frozen_activation_exact\\\":true,\\\"posttiming_taps_bound_to_LAST_shipping_snapshots\\\":true\"\n+     <<\",\\\"two_ownchain_complete_BF16_exact\\\":true,\\\"posttiming_taps_bound_to_LAST_shipping_snapshots\\\":true\"\n+     <<\",\\\"valid_duplicate_raw_stage_parity\\\":true,\\\"malformed_invalid_rank_raw_fields_unwritten_sentinel\\\":true,\\\"malformed_tap_byte_parity_is_numerical_qualification\\\":false\"\n      <<\",\\\"original_global_and_per_route_quality_guards_retained\\\":true,\\\"maximum_relative_L2\\\":1e-4,\\\"minimum_cosine\\\":0.999999,\\\"quality_source\\\":\\\"dev/benchmarks/gemv_decode_sep21_v1b/quality.hpp\\\"\"\n-     <<\",\\\"final_down_taps_bound_to_SAME_frozen_activation_outputs\\\":true\"\n      <<\",\\\"healthy_untimed_actual_GU_completion_cells\\\":100,\\\"healthy_untimed_actual_down_completion_cells\\\":400\"\n      <<\",\\\"original_untapped_AIR_is_only_performance_control\\\":true,\\\"private_native_wrapper_untimed_selfcontrol_only\\\":true\"\n-     <<\",\\\"gate_native_grid\\\":[10,1,10],\\\"gate_swapped_grid\\\":[10,1,10],\\\"down_native_grid\\\":[40,1,10],\\\"down_swapped_grid\\\":[10,1,40]\"\n-     <<\",\\\"logical_swapped_axes\\\":[\\\"physical.z\\\",\\\"physical.y\\\",\\\"physical.x\\\"],\\\"producer_threads\\\":128\"\n+     <<\",\\\"gate_native_grid\\\":[10,1,10],\\\"gate_candidate_grid\\\":[10,1,10],\\\"down_native_grid\\\":[40,1,10],\\\"down_candidate_grid\\\":[40,1,10]\"\n+     <<\",\\\"logical_axes\\\":[\\\"physical.x\\\",\\\"physical.y\\\",\\\"physical.z\\\"],\\\"producer_threads\\\":128\"\n      <<\",\\\"guard_cases\\\":\"<<p.guardCases<<\",\\\"checks\\\":\"<<p.checks<<\",\\\"bytes_compared\\\":\"<<p.bytes\n      <<\",\\\"timing_CPU_buffer_reads\\\":false,\\\"sample_pairs_each_component\\\":18,\\\"balanced_pair_positions\\\":true,\\\"minimum_warm_GPU_seconds_each_variant_each_component\\\":0.15\"\n      <<\",\\\"warm_and_timed_submission_count\\\":\"<<timedSubmissions<<\",\\\"initial_activation_quality\\\":\";initialQuality[0].json(out);\n   out<<\",\\\"initial_down_quality\\\":\";initialQuality[1].json(out);out<<\",\\\"LAST_shipping_activation_quality\\\":\";finalQuality[0].json(out);\n   out<<\",\\\"LAST_shipping_down_quality\\\":\";finalQuality[1].json(out);out<<\",\\\"components\\\":[\";\n-  constexpr std::array<const char *,3> modes{\"GU-only\",\"down-SAME-frozen-activation\",\"two-dispatch-ownchain\"};\n-  for(uint32_t mode=0;mode<3;++mode){if(mode)out<<',';out<<\"{\\\"kind\\\":\"<<json::quote(modes[mode])<<\",\\\"control_warm_GPU_ms\\\":\"<<measured[mode].warmGPU[0]*1000\n+  constexpr std::array<const char *,1> modes{\"two-dispatch-ownchain\"};\n+  for(uint32_t mode=0;mode<1;++mode){if(mode)out<<',';out<<\"{\\\"kind\\\":\"<<json::quote(modes[mode])<<\",\\\"control_warm_GPU_ms\\\":\"<<measured[mode].warmGPU[0]*1000\n       <<\",\\\"candidate_warm_GPU_ms\\\":\"<<measured[mode].warmGPU[1]*1000<<\",\\\"control_warm_commands\\\":\"<<measured[mode].warmCommands[0]<<\",\\\"candidate_warm_commands\\\":\"<<measured[mode].warmCommands[1]\n       <<\",\\\"control_GPU_ms\\\":\";timings(out,measured[mode].samples[0],true);out<<\",\\\"candidate_GPU_ms\\\":\";timings(out,measured[mode].samples[1],true);\n     out<<\",\\\"control_wall_ms\\\":\";timings(out,measured[mode].samples[0],false);out<<\",\\\"candidate_wall_ms\\\":\";timings(out,measured[mode].samples[1],false);\n@@ -469,4 +457,4 @@\n      <<\"},\\\"backend_stopped_with_zero_fixture_ledger\\\":true,\\\"backend_destroyed_before_publication\\\":true\"\n      <<\",\\\"timing_scope\\\":\\\"bounded hot ten-expert synthetic R1 primitive only; component qualification, no whole-model or decode-throughput promotion\\\"}\\n\";\n   out.close();require(bool(out),\"final report close\");std::filesystem::rename(final,p.path);return 0;\n-} catch(const std::exception &e){p.error=e.what();try{p.write(true,false);}catch(...){}std::cerr<<\"R1 traversal oracle failed: \"<<e.what()<<'\\n';return 1;} } }\n+} catch(const std::exception &e){p.error=e.what();try{p.write(true,false);}catch(...){}std::cerr<<\"R1 duplicate-tid0 oracle failed: \"<<e.what()<<'\\n';return 1;} } }\n",
+  "GPU_work": false,
+  "model_capture_payload_reads": 0,
+  "explicit_component_profile_removals": [
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Retain only mandatory ownchain performance pair",
+      "before": "std::array<TimingSet,3> measured;",
+      "after": "std::array<TimingSet,1> measured;",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Remove optional frozen-activation GPU buffer inherited from axis component",
+      "before": "      const auto sharedActivation=allocate(backend,10*640*2,allocations);\n",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Remove optional down-on-SAME-activation setup, replay and additional graph plans",
+      "before": "      std::memcpy(sharedActivation.contents(),outputs[0].act.contents(),sharedActivation.sizeBytes());immutable.push_back(sharedActivation);saved.push_back(copied(sharedActivation));\n      auto downOriginal=graph(bank,x,ranks,ids,outputs[0],Kind::Original,Params,sharedActivation),downCandidate=graph(bank,x,ranks,ids,outputs[1],Kind::Candidate,Params,sharedActivation);\n      // Verify the down-only pair on exactly one immutable activation before any\n      // warm or timed submission. Native/candidate full chains remain separate.\n      (void)submit(backend,std::span<const ComputeDispatch>(&downOriginal.commands[1],1));\n      (void)submit(backend,std::span<const ComputeDispatch>(&downCandidate.commands[1],1));equal(outputs[0].down,outputs[1].down,p,\"down SAME frozen activation BF16 bits\");\n      const auto sameDownExpected=copied(outputs[0].down);\n      auto sameNativeTap=graph(bank,x,ranks,ids,outputs[2],Kind::NativeTap,Params,sharedActivation),sameCandidateTap=graph(bank,x,ranks,ids,outputs[3],Kind::CandidateTap,Params,sharedActivation);\n",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Remove optional GU-only and down-SAME command timing modes; both timed entries retain complete2dispatch chains",
+      "before": "      std::array<std::array<std::span<const ComputeDispatch>,2>,3> commands{{\n        {std::span<const ComputeDispatch>(&plans[0].commands[0],1),std::span<const ComputeDispatch>(&plans[1].commands[0],1)},\n        {std::span<const ComputeDispatch>(&downOriginal.commands[1],1),std::span<const ComputeDispatch>(&downCandidate.commands[1],1)},\n        {std::span<const ComputeDispatch>(plans[0].commands),std::span<const ComputeDispatch>(plans[1].commands)}\n      }};\n      p.phase=\"GU-downSAME-ownchain-read-free-150mswarm-and18-balanced-pairs\";\n",
+      "after": "      std::array<std::array<std::span<const ComputeDispatch>,2>,1> commands{{\n        {std::span<const ComputeDispatch>(plans[0].commands),std::span<const ComputeDispatch>(plans[1].commands)}\n      }};\n      p.phase=\"inclusive-ownchain2-vs2-read-free-150mswarm-and18-balanced-pairs\";\n",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "One mandatory warm/timed component, no additional profiles",
+      "before": "for(uint32_t mode=0;mode<3;++mode) {",
+      "after": "for(uint32_t mode=0;mode<1;++mode) {",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Exact ownchain warm/timed submission count",
+      "before": "uint64_t expectedSubmissions=3*Pairs*2;",
+      "after": "uint64_t expectedSubmissions=Pairs*2;",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Remove optional separate down-SAME baseline assertion",
+      "before": "      require(unchanged(outputs[0].down,sameDownExpected) && unchanged(outputs[1].down,sameDownExpected),\"LAST chain/down-SAME outputs match frozen qualified down baseline\");\n",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Remove optional posttiming down-SAME tap-only replays; final ownchain taps remain bound to LAST shipping snapshots",
+      "before": "      for(uint32_t i=2;i<4;++i){std::memset(outputs[i].downCensus.contents(),0,outputs[i].downCensus.sizeBytes());resetDiag(outputs[i].diagnostics);}\n      (void)submit(backend,std::span<const ComputeDispatch>(&sameNativeTap.commands[1],1));(void)submit(backend,std::span<const ComputeDispatch>(&sameCandidateTap.commands[1],1));\n      for(uint32_t i=2;i<4;++i){require(diag(outputs[i].diagnostics)==Sticky && unchanged(outputs[i].down,sameDownExpected),\"final SAME frozen activation down taps bind last qualified outputs\");census(outputs[i].downCensus,400,1);}\n      for(uint32_t i=0;i<3;++i){finite(outputs[2].d[i],i==2);finite(outputs[3].d[i],i==2);equal(outputs[2].d[i],outputs[3].d[i],p,\"final SAME activation raw/scaled F32/BF16 down taps\");}\n",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Do not report qualification for removed optional down-SAME path",
+      "before": ",\\\"down_same_frozen_activation_exact\\\":true",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Do not report removed optional down-SAME tap replay",
+      "before": "     <<\",\\\"final_down_taps_bound_to_SAME_frozen_activation_outputs\\\":true\"\n",
+      "after": "",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Report only inclusive ownchain performance",
+      "before": "constexpr std::array<const char *,3> modes{\"GU-only\",\"down-SAME-frozen-activation\",\"two-dispatch-ownchain\"};",
+      "after": "constexpr std::array<const char *,1> modes{\"two-dispatch-ownchain\"};",
+      "exact_occurrences": 1
+    },
+    {
+      "category": "remove-optional-component-profiling",
+      "reason": "Report one genuine performance component",
+      "before": "for(uint32_t mode=0;mode<3;++mode){",
+      "after": "for(uint32_t mode=0;mode<1;++mode){",
+      "exact_occurrences": 1
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "splash-parallel-integer-native-m16-r4-cost-proposal-v2",
+  "built": false,
+  "gpu_work": false,
+  "model_or_capture_payload_reads": false,
+  "model_or_capture_hashes": false,
+  "global_allocations_added": 0,
+  "threadgroup_bytes": 2432,
+  "serial_v1_stablemap_device_comparisons": 20480,
+  "parallel_count_cached_comparisons": 20480,
+  "parallel_count_critical_comparisons_per_thread": 80,
+  "stable_route_cached_comparisons": 1600,
+  "job_search_max_steps": 9,
+  "native_job_capacity": 514,
+  "duplicate40_job_starts": [
+    0,
+    16,
+    32
+  ],
+  "dispatches": 6,
+  "native_producer_ctas_per_layer": 2000,
+  "root_reported_medians_ms": {
+    "old_native": 0.332,
+    "compact_v1": 1.0547,
+    "current_gather": 0.2237
+  },
+  "conditional_cycle_scenarios_tps": {
+    "current": 51.911932880884954,
+    "halve_moe12ms": 59.5493164960461,
+    "remove_moe12ms": 69.8216056925178
+  }
+}

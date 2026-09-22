@@ -1,0 +1,139 @@
+[
+  {
+    "file": "abi.hpp",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/abi.hpp",
+    "base_sha256": "6d5ea7b59fe127b899708d1a8c9e37697ba509f05f23f2efeb8c73284fba5a75",
+    "edits": [
+      {
+        "old": "EXPERT_BATCH_ROWS",
+        "new": "EXPERT_R5_ROWS",
+        "count": 9
+      },
+      {
+        "old": "kCompactNativeBatch",
+        "new": "kCompactNativeR5",
+        "count": 6
+      },
+      {
+        "old": "EXPERT_R5_ROWS==8||EXPERT_R5_ROWS==16",
+        "new": "EXPERT_R5_ROWS==5",
+        "count": 1
+      },
+      {
+        "old": "fixed to 8 or 16",
+        "new": "fixed to 5",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "plan.metal",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/plan.metal",
+    "base_sha256": "76a04b9ceb3e46811f7343a403bea0ca8179307338b98c1c6c4cc17a267db995",
+    "edits": [
+      {
+        "old": "kCompactNativeBatch",
+        "new": "kCompactNativeR5",
+        "count": 13
+      },
+      {
+        "old": "expert_batch_compact_native_sep22",
+        "new": "expert_r5_compact_native_sep22",
+        "count": 1
+      },
+      {
+        "old": "fixed R8/R16",
+        "new": "fixed R5",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "metadata.hpp",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/metadata.hpp",
+    "base_sha256": "abcfc7341abeb68a25ad0146913436994daae645a62d373837cf02b298b73a10",
+    "edits": [
+      {
+        "old": "kCompactNativeBatch",
+        "new": "kCompactNativeR5",
+        "count": 14
+      },
+      {
+        "old": "compact_native_batch",
+        "new": "compact_native_r5",
+        "count": 2
+      },
+      {
+        "old": "fixed R8/R16",
+        "new": "fixed R5",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "safety.hpp",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/safety.hpp",
+    "base_sha256": "65f3daf275f5a36dee60495261c596e8a8b004348480411620a6895adeb7483e",
+    "edits": [
+      {
+        "old": "kCompactNativeBatch",
+        "new": "kCompactNativeR5",
+        "count": 5
+      },
+      {
+        "old": "compact_native_batch",
+        "new": "compact_native_r5",
+        "count": 5
+      },
+      {
+        "old": "expert_batch_compact_native_sep22",
+        "new": "expert_r5_compact_native_sep22",
+        "count": 1
+      },
+      {
+        "old": "fixed R8/R16",
+        "new": "fixed R5",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "oracle.mm",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/oracle.mm",
+    "base_sha256": "be0755eff15b9ab2a7564f151a32ba7242099be8efd90f5355b8c730f1f85414",
+    "edits": [
+      {
+        "old": "kCompactNativeBatch",
+        "new": "kCompactNativeR5",
+        "count": 5
+      },
+      {
+        "old": "compact_native_batch",
+        "new": "compact_native_r5",
+        "count": 12
+      },
+      {
+        "old": "expert_batch_compact_native_sep22",
+        "new": "expert_r5_compact_native_sep22",
+        "count": 1
+      },
+      {
+        "old": "fixed R8/R16",
+        "new": "fixed R5",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "probe.metal",
+    "base": "dev/benchmarks/expert_batch_compact_native_sep22/probe.metal",
+    "base_sha256": "9e93b7ff1fe49c6802cdd85b74a28a7471c0098fa9bc007236d905c19b1e0a92",
+    "edits": [
+      {
+        "old": "R8/R16",
+        "new": "R5",
+        "count": 1
+      }
+    ]
+  }
+]

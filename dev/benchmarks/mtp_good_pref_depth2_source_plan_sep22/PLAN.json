@@ -1,0 +1,88 @@
+{
+  "schema": "good-pref-fixed2-source-and-cycle-cost-plan-v1",
+  "scope": "SOURCE and Root-provided scalar diagnostic metadata only; no build/adapter/GPU/model/response work",
+  "source_parent": "rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2",
+  "parent_worker_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+  "parent_library_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+  "proposed_delta": {
+    "SPLASH_FLASH_MTP_DRAFT_DEPTH": "2",
+    "other_flags": "exact Root FMA-only or FMA+HCnorm baseline, W8/QSA2pass OFF; no new selector changes"
+  },
+  "source_legality": {
+    "canonical_parser_supports_depth2": true,
+    "actual_target_rows": 3,
+    "trained_head_draft_chain_calls_per_full_cycle": 1,
+    "trained_head_committed_fold_runs_before_drafts": true,
+    "same_accept_commit_abort_truncate_and_cancellation": true,
+    "joint_maximum_depth_unchanged": 3,
+    "singleton_fold_storage_rows": 4,
+    "needs_new_CPP_or_shader": false
+  },
+  "regime_jump": {
+    "row4_only_features_ineligible_at_physical3": [
+      "rawQ4 main GDN26 rowpair",
+      "compact native R4 expert planner",
+      "HC R4 producer padding",
+      "R4 preflight bundle"
+    ],
+    "verifier_cost_cannot_be_estimated_by_3_over_4_scaling": true,
+    "matched_current_depth2_cost_and_acceptance_unknown": true
+  },
+  "cost_screen": {
+    "Root_matched_FMA_HC_depth3_postfirst_outputs": 255,
+    "cycles": 79,
+    "E3": 3.2278481012658227,
+    "native_TPS": 70.7648683232306,
+    "effective_cycle_ms": 45.613708860759495,
+    "P3_definition": "unclamped probability all three proposed drafts matched; need Root matched-prefix histogram, not physical-depth or retained-afterquota histogram",
+    "E2_same_proposal_context_formula": "E3 - P3; actual depth2 trajectory must be measured",
+    "required_C2_ms_formula": "45.613708860759 - 14.131305882353 * P3",
+    "P3_aggregate_only_lower_bound": 0.22784810126582267,
+    "P3_aggregate_only_upper_bound": 0.7426160337552742,
+    "required_savings_ms_lower_bound": 3.2197912137006686,
+    "required_savings_ms_upper_bound": 10.494134326135518,
+    "cycle_cost_includes_head_fold_and_chain_target_restore_and_host_residual": true,
+    "no_peak_or_speed_forecast": true
+  },
+  "evidence_files": [
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashWorker.mm",
+      "sha256": "895fd5f5727983f2783591ef7a884dfca6a40d4c441411d46ca602866d92b34a"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashMTPWindow.hpp",
+      "sha256": "1bc6ac729dc1a456093c5c0b3e4e40a08c81b44d86241c09feb2209dc973de05"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashForward.cpp",
+      "sha256": "6579501de097188f9eff3eadddb057d9ab3ecd312bfad7b8873f99b223c5c9f0"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/raw_q4_verify_worker_sep22/policy.hpp",
+      "sha256": "95f8d7918fd033be10f31b95ba6c09127d32f6efb2c91febe1835c6ab58c3648"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/expert_r4_compact_verify_worker_sep22/bridge.hpp",
+      "sha256": "63aae64280c45e96d12fe99a07a851155a127d64dcab4b8d1db2fcd70b8236ab"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/hc_pad_verify_worker_sep22/worker_bridge.hpp",
+      "sha256": "c8a30c2c11a5cbf123c3273d89764ccd51258edaaaff85ca8af7c7b76eeba983"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/expert_r4_preflight_bundle_sep22/policy.hpp",
+      "sha256": "533f5c37f9ef71d09d8b7ddcd4ec222a82e6f84b47fecd92c8ffcc2234666a86"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-current-prefill-policy-and-depth-native-results-v2.json",
+      "sha256": "f6f7223c553d76ae0abe3c6a9c086dcfaa1395917b8083c11baeb4d409042f8e",
+      "scope": "explicitly Root-authorized small scalar-only metadata"
+    }
+  ],
+  "qualification": {
+    "new_depth2_policy_original22_not_qualified": true,
+    "current_internal_source_route_is_existing_native_fallback": true,
+    "Root_GPU_schedule_needed": true,
+    "no_changes_to_frozen_existing_files": true
+  }
+}

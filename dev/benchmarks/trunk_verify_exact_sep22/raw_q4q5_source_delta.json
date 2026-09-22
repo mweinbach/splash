@@ -1,0 +1,61 @@
+{
+  "schema": "rawQ4Q5-full-campaign-counter-and-source-extension-v1",
+  "parent_source": "build/trunkverify-rawQ4-GDN26-VerifyR4-sep22-v1/source/dev/benchmarks/trunk_verify_exact_sep22/oracle.mm",
+  "parent_source_sha256": "40011a8f59b7fff6013b5c73ac5588f5d5c3e497b7b74521565d14f882cacb04",
+  "changes": [
+    {
+      "old": "#include \"dev/benchmarks/raw_q4_verify_worker_sep22/policy.hpp\"",
+      "new": "#include \"dev/benchmarks/raw_q5_verify_worker_sep22/policy.hpp\"\n#include \"dev/benchmarks/raw_q4_verify_worker_sep22/policy.hpp\""
+    },
+    {
+      "old": "void early(){",
+      "new": "void early(){\n  raw_q5_verify_sep22::validateDependencies();\n  require(raw_q5_verify_sep22::requested(),\"new combined rawQ5 flag1 required\");\n  require(std::string_view(raw_q5_verify_sep22::kSourceIdentitySha256)==\"90d42b5ce8edd6c7254b6f9286628a7ffa7a6eede53fa3058eba8b519e9a64d6\",\"combined rawQ4Q5 source identity differs\");"
+    },
+    {
+      "old": "const auto rawBeforePref=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforePref=raw_q4_verify_sep22::graphRows.load();",
+      "new": "const auto rawBeforePref=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforePref=raw_q4_verify_sep22::graphRows.load();\n        const auto rawQ5BeforePref=raw_q5_verify_sep22::graphCalls.load(),rawQ5RowsBeforePref=raw_q5_verify_sep22::graphRows.load();"
+    },
+    {
+      "old": "require(raw_q4_verify_sep22::graphCalls.load()==rawBeforePref",
+      "new": "require(raw_q5_verify_sep22::graphCalls.load()==rawQ5BeforePref&&raw_q5_verify_sep22::graphRows.load()==rawQ5RowsBeforePref,\"Prefill executed excluded rawQ5 rowpair\");\n        require(raw_q4_verify_sep22::graphCalls.load()==rawBeforePref"
+    },
+    {
+      "old": "const auto rawBeforeVerify=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforeVerify=raw_q4_verify_sep22::graphRows.load();",
+      "new": "const auto rawBeforeVerify=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforeVerify=raw_q4_verify_sep22::graphRows.load();\n        const auto rawQ5BeforeVerify=raw_q5_verify_sep22::graphCalls.load(),rawQ5RowsBeforeVerify=raw_q5_verify_sep22::graphRows.load();"
+    },
+    {
+      "old": "require(raw_q4_verify_sep22::graphCalls.load()-rawBeforeVerify==26",
+      "new": "require(raw_q5_verify_sep22::graphCalls.load()-rawQ5BeforeVerify==36&&raw_q5_verify_sep22::graphRows.load()-rawQ5RowsBeforeVerify==144,\"Verify4 actual rawQ5 mainGDN36 counter differs\");\n        require(raw_q4_verify_sep22::graphCalls.load()-rawBeforeVerify==26"
+    },
+    {
+      "old": "const auto rawBeforeFuture=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforeFuture=raw_q4_verify_sep22::graphRows.load();std::vector<uint32_t> input;",
+      "new": "const auto rawBeforeFuture=raw_q4_verify_sep22::graphCalls.load(),rawRowsBeforeFuture=raw_q4_verify_sep22::graphRows.load();const auto rawQ5BeforeFuture=raw_q5_verify_sep22::graphCalls.load(),rawQ5RowsBeforeFuture=raw_q5_verify_sep22::graphRows.load();std::vector<uint32_t> input;"
+    },
+    {
+      "old": "require(raw_q4_verify_sep22::graphCalls.load()==rawBeforeFuture",
+      "new": "require(raw_q5_verify_sep22::graphCalls.load()==rawQ5BeforeFuture&&raw_q5_verify_sep22::graphRows.load()==rawQ5RowsBeforeFuture,\"excluded future AR/Prefill shape executed rawQ5 rowpair\");\n          require(raw_q4_verify_sep22::graphCalls.load()==rawBeforeFuture"
+    },
+    {
+      "old": "const uint32_t actualGuardCases=Access::actualBundleGuardProbes(target);",
+      "new": "const uint64_t actualRawQ5Calls=raw_q5_verify_sep22::graphCalls.load(),actualRawQ5Rows=raw_q5_verify_sep22::graphRows.load();\n      require(actualRawQ5Calls==180&&actualRawQ5Rows==720,\"five current Verify4 rawQ5 trials must produce180calls720rows\");\n      const uint32_t actualGuardCases=Access::actualBundleGuardProbes(target);"
+    },
+    {
+      "old": "std::ostringstream o;o<<\"{\\\"actual_rawQ4_rowpair_calls\\\":\"",
+      "new": "std::ostringstream o;o<<\"{\\\"actual_rawQ5_rowpair_calls\\\":\"<<actualRawQ5Calls<<\",\\\"actual_rawQ5_rowpair_rows\\\":\"<<actualRawQ5Rows<<\",\\\"combined_source_identity_sha256\\\":\"<<json::quote(raw_q5_verify_sep22::kSourceIdentitySha256)<<\",\\\"rawQ5_source_identity_sha256\\\":\"<<json::quote(raw_q5_verify_sep22::kSourceIdentitySha256)<<\",\\\"actual_rawQ4_rowpair_calls\\\":\""
+    },
+    {
+      "old": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+      "new": "613e4dfe6a9b429cabf8fbd2270b5857dbc601cde6d1b3af10c46fec1b8095c0"
+    },
+    {
+      "old": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+      "new": "8fffe24fd4d99174cc522dcef6090b5b2e72e36f26e5c78afe9df46a118d4246"
+    },
+    {
+      "old": "registered COMPOSITE compact1 HC1 bundle1 exact matrix",
+      "new": "registered rawQ4Q5 compact1 HC1 bundle1 registration1 exact matrix"
+    }
+  ],
+  "parent_campaign_arithmetic_unchanged": true,
+  "Root_GPU_qualification_required": true
+}

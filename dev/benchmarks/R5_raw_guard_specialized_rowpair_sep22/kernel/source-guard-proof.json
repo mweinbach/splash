@@ -1,0 +1,107 @@
+{
+  "schema": "R5-raw-guard-specialized-source-before-AIR-proof-v1",
+  "pass": true,
+  "authorized_shape_format_bijection_count": 7,
+  "overflow_boundary_cases": 98,
+  "full_min_even_overflow_refusal_cases": 1029,
+  "unsupported_geometry_refusal_cases": 35,
+  "source_review_GO_before_AIR_compile_required": true,
+  "AIR_compiled": false,
+  "GPU_work": false,
+  "old_literal_qdot_FP_tail_and_tap_source_preserved": true,
+  "newly_admitted_geometry": false,
+  "unsupported_geometry_generic_guard_retained": true,
+  "column_proof_preconditions": "shader threads64 + threads_per_simdgroup32 + simd_group<2 + lane<32; N%8, x<N/8; full canonical grid host refusal retained",
+  "only_removed_checks": "paired innerK/finalreduction out_row+row<N; literal original row4 retains all checks",
+  "source_reference_sha256": {
+    "build.py": "4e60738d62ac9aac796cb209b16f4a32a33c2834f69a1f6a8c8cd97a57587d7e",
+    "audit.py": "f7bdb6fc123930752a27f7bf93256d978d738dccf010e45f1c4ffe6124652506"
+  },
+  "shape_bounds": [
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "code_width_bytes": 1280,
+      "parameter_width_bytes": 80,
+      "maximum_weight_stride_bytes": 1801615789990189,
+      "maximum_parameter_stride_bytes": 1801615789990189,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "code_width_bytes": 1280,
+      "parameter_width_bytes": 80,
+      "maximum_weight_stride_bytes": 1501322053691670,
+      "maximum_parameter_stride_bytes": 1501322053691670,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "code_width_bytes": 3072,
+      "parameter_width_bytes": 192,
+      "maximum_weight_stride_bytes": 7208575253501191,
+      "maximum_parameter_stride_bytes": 7208575253501192,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "code_width_bytes": 1600,
+      "parameter_width_bytes": 80,
+      "maximum_weight_stride_bytes": 1801615789990189,
+      "maximum_parameter_stride_bytes": 1801615789990189,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "code_width_bytes": 3840,
+      "parameter_width_bytes": 96,
+      "maximum_weight_stride_bytes": 7208575253501191,
+      "maximum_parameter_stride_bytes": 7208575253501192,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "code_width_bytes": 1600,
+      "parameter_width_bytes": 40,
+      "maximum_weight_stride_bytes": 3002888502964276,
+      "maximum_parameter_stride_bytes": 3002888502964276,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "code_width_bytes": 1920,
+      "parameter_width_bytes": 80,
+      "maximum_weight_stride_bytes": 3002888502964276,
+      "maximum_parameter_stride_bytes": 3002888502964276,
+      "unique_floor_inequalities_proved": true,
+      "every_admitted_column_bounded_bijection": true
+    }
+  ],
+  "tensor_or_execution_payload_reads": 0
+}

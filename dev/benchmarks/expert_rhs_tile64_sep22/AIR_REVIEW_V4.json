@@ -1,0 +1,143 @@
+{
+  "schema": "expert-rhs-tile64-v4-independent-air-review-v1",
+  "created_at_utc": "2026-09-22T09:27:22.249510+00:00",
+  "pass": true,
+  "scope": "new v4 source/API-view/compiler/scalar-profile readiness; not GPU numerical or performance qualification",
+  "component": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4",
+  "gpu_executed": false,
+  "model_payload_bytes_read": 0,
+  "captured_exported_or_tensor_payloads_read_or_hashed": false,
+  "candidate_CPP_or_shader_source_files_edited_during_review": false,
+  "final_component_tree_modified": false,
+  "only_this_audit_receipt_written": true,
+  "artifacts_and_sources": {
+    "original_control_air": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/original-gathered.air",
+      "sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+      "bytes": 26608
+    },
+    "candidate_air": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/candidate.air",
+      "sha256": "8fe05e52a46183e19f9cb78d89a8d78d45a30a963d1921caaf9c042ffc79d85f",
+      "bytes": 47408
+    },
+    "original_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+      "sha256": "f63efa224f63a3c807fafd699742716d9ff1bac2b2ec08e21cbb13540bc01245",
+      "bytes": 7519
+    },
+    "original_abi_header": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/source/runtime/flash/FlashGatheredMPP.hpp",
+      "sha256": "2053df6d4e91a0e2a4f73114a1cfef04cbad321c2426ee200e4427dd8747143f",
+      "bytes": 2109
+    },
+    "candidate_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/source/dev/benchmarks/expert_rhs_tile64_sep22/candidate.metal",
+      "sha256": "1d19b08c9ca4fd59cbaf725e5898b5cb89ad723fa98caab41084be2453106203",
+      "bytes": 12447
+    },
+    "candidate_abi": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v4/source/dev/benchmarks/expert_rhs_tile64_sep22/abi.hpp",
+      "sha256": "9278f646f981da1e697201046bb54cd80d79af1190add7be64819209ea5d5c72",
+      "bytes": 1664
+    },
+    "primary_constraint_receipt": {
+      "path": "/Users/mweinbach/Projects/splash/dev/benchmarks/expert_rhs_tile64_sep22/PRIMARY_CONSTRAINT.json",
+      "sha256": "042894bdb258900490a6fc09672801a54375a498f2e4bce153abc90b09f535dd",
+      "bytes": 2175
+    },
+    "primary_pdf_snapshot": {
+      "path": "/tmp/splash-metal-shading-language-sep22-rhs-audit.pdf",
+      "sha256": "41538b30d2f1140a5b2a0c84ce0a9f7b67bf0c707e224cfea0bfe5a44aa26cf5",
+      "bytes": 14564497
+    },
+    "primary_text_snapshot": {
+      "path": "/tmp/splash-metal-shading-language-sep22-rhs-audit.txt",
+      "sha256": "ef8aab02a7079e79bf51ffc60c708ae29797f86099cc5bb6894278d05e9395cd",
+      "bytes": 692350
+    }
+  },
+  "old_v2_receipt_reused": false,
+  "old_invalid64_1_view_not_qualified": true,
+  "primary_API_constraint": {
+    "primary_url": "https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf",
+    "primary_version_date": "2026-06-04",
+    "reviewer_read_local_primary_text": true,
+    "printed_page92_get_stride0_always1": true,
+    "printed_pages100_101_table2_30_raw_constructor_firststride1": true,
+    "ordinary_signed_int8_not_FORMAT_rowpitch128_case": true,
+    "candidate_corrected_axes_extents": "N64,K",
+    "candidate_strides": "1,N64",
+    "candidate_transpose_right": false,
+    "reference_extents": "K,N64",
+    "reference_strides": "1,K",
+    "reference_transpose_right": true,
+    "all_candidate_and_reference_first_axis_strides1": true,
+    "logical_coefficient_view": "newB(n,k)=newCode[tileBase+k*64+n]=oldCode[tileBase+n*K+k]",
+    "packing_CPU_full_exhaustion": "Root-owned; not duplicated by this reviewer"
+  },
+  "compiler_profile": {
+    "metal_language": "4.1.0",
+    "air_version": "2.9.0",
+    "compiler": "Apple metal 32023.921 (metalfe-32023.921.6)",
+    "sdk": "27.0",
+    "recipe": "-std=metal4.1 -O3 -mmacosx-version-min=27.0; default-fast; no extra FP flags",
+    "math_options": [
+      "air.compile.denorms_disable",
+      "air.compile.fast_math_enable",
+      "air.compile.framebuffer_fetch_enable"
+    ],
+    "original_candidate_profile_equal": true,
+    "source_pragma_sequence_preserved": "safe support; fast sigmoid with explicit fast exp and contract/reassociate off; safe rank/scan/execute"
+  },
+  "scalar_profile": {
+    "gate_up_ordered_operations_and_typed_call_count": 19,
+    "down_count": 5,
+    "shipping_matches_original": true,
+    "reference_probe_matches_original": true,
+    "candidate_probe_matches_original": true,
+    "shipping_matches_candidate_probe": true,
+    "intrinsics_FP_flags_function_call_attributes_match": true,
+    "normalization": "private helper names, SSA register names, attribute IDs resolved, metadata numbering, nonsemantic predecessor comments; no FP flag/intrinsic erased",
+    "limitation": "operation signature sequence does not prove opaque matrix reduction values or operand dataflow"
+  },
+  "scan_and_symbols": {
+    "K2560_optimized_body_atomics_barrier_attrs_equal_original": true,
+    "K640_optimized_body_atomics_barrier_attrs_equal_original": true,
+    "original_gathered_mpp_helper_names_in_private_definitions": 0,
+    "original_untapped_control_AIR_preserved": true,
+    "finite_deviceA_and_nonfinite_threadgroup_safeA_policy_preserved": true,
+    "gate_invalid_rank_sticky": 1,
+    "down_invalid_rank_sticky": 5,
+    "per_group_guards_original": "rows1to16/selections10/experts512/reserved0/x/y/z/threads128x1x1",
+    "omitted_dispatch_groups_rejected_by_host_only": true
+  },
+  "opaque_descriptor_and_lowerer": {
+    "old_descriptor": "M16N64 dynamicK false,true,false multiply SG4",
+    "candidate_descriptor": "M16N64 dynamicK false,false,false multiply SG4",
+    "intentional_tensor_axis_and_transpose_changes": true,
+    "descriptor_specialization_and_cooperative_operand_layout_types_differ": true,
+    "opaque_full_IR_or_call_signature_equality_to_old_descriptor_NOT_claimed": true,
+    "core_call_counts": {
+      "gate_up": 13,
+      "down": 11
+    },
+    "element_pointer_getter_counts": {
+      "gate_up_original_shipping": 2,
+      "gate_up_probes": 4,
+      "down_original_shipping": 1,
+      "down_probes": 2
+    },
+    "probe_extra_getter_calls": "raw diagnostic reads; no scalar floating arithmetic additions",
+    "caveat": "Legal corrected view and matching scalar profile do not establish MPP backend reduction association, bit identity, or latency. Changed transpose/axes intentionally select a different opaque specialization."
+  },
+  "Root_GPU_gates_required": [
+    "original output/diagnostics versus private original-view reference probe",
+    "shipping output/diagnostics versus corrected-view candidate probe",
+    "every active raw G/U/down F32 dot and scaled F32 value",
+    "every BF16 G/U/SiLu/activation/down stage",
+    "exact invalid-rank/nonfinite/NaN/guard behavior before timing"
+  ],
+  "numerical_exactness_certified": false,
+  "performance_certified": false
+}

@@ -1,0 +1,130 @@
+{
+  "schema": "splash-native-fixed-batch-geometry-source-ledger-v1",
+  "gpu_work": false,
+  "payload_reads": false,
+  "global_allocations_added": 0,
+  "parent": "build/prefill-qsa-twopass-sep21-worker-v1",
+  "floating_consumers_changed": false,
+  "geometry": {
+    "8": {
+      "rows": 8,
+      "routes": 80,
+      "native_job_capacity": 516,
+      "original_M8_backing_capacity": 521,
+      "untouched_backing_records": 5,
+      "operand_rows": 143,
+      "threadgroup_bytes": 2752,
+      "original_scratch_views_bytes": {
+        "counts": 2048,
+        "offsets": 2052,
+        "routeMap": 320,
+        "inverse": 320,
+        "jobOffsets": 2052,
+        "jobCount": 4,
+        "tileJobs": 4168,
+        "packedInputs": 732160,
+        "packedActivated": 183040,
+        "scatteredDown": 409600
+      },
+      "original_scratch_sum_bytes": 1335764,
+      "native_dispatches": 10,
+      "compact_dispatches": 6,
+      "native_gate_grid": [
+        10,
+        80,
+        1
+      ],
+      "native_down_grid": [
+        40,
+        80,
+        1
+      ],
+      "original_poison_grid": [
+        10,
+        80,
+        1
+      ],
+      "original_pack_and_prepare_grid": [
+        143,
+        1,
+        1
+      ],
+      "compact_metadata_grid": [
+        1,
+        1,
+        1
+      ],
+      "compact_metadata_threads": [
+        256,
+        1,
+        1
+      ],
+      "native_metadata_ctas": 1029,
+      "compact_metadata_ctas": 1,
+      "conditional_48_layer_saved_ms_target": [
+        5.95,
+        6.13
+      ]
+    },
+    "16": {
+      "rows": 16,
+      "routes": 160,
+      "native_job_capacity": 521,
+      "original_M8_backing_capacity": 531,
+      "untouched_backing_records": 10,
+      "operand_rows": 223,
+      "threadgroup_bytes": 3392,
+      "original_scratch_views_bytes": {
+        "counts": 2048,
+        "offsets": 2052,
+        "routeMap": 640,
+        "inverse": 640,
+        "jobOffsets": 2052,
+        "jobCount": 4,
+        "tileJobs": 4248,
+        "packedInputs": 1141760,
+        "packedActivated": 285440,
+        "scatteredDown": 819200
+      },
+      "original_scratch_sum_bytes": 2258084,
+      "native_dispatches": 10,
+      "compact_dispatches": 6,
+      "native_gate_grid": [
+        10,
+        160,
+        1
+      ],
+      "native_down_grid": [
+        40,
+        160,
+        1
+      ],
+      "original_poison_grid": [
+        10,
+        160,
+        1
+      ],
+      "original_pack_and_prepare_grid": [
+        223,
+        1,
+        1
+      ],
+      "compact_metadata_grid": [
+        1,
+        1,
+        1
+      ],
+      "compact_metadata_threads": [
+        256,
+        1,
+        1
+      ],
+      "native_metadata_ctas": 1029,
+      "compact_metadata_ctas": 1,
+      "conditional_48_layer_saved_ms_target": [
+        5.95,
+        6.13
+      ]
+    }
+  }
+}

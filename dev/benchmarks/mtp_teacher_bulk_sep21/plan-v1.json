@@ -1,0 +1,129 @@
+{
+  "schema": "singleton-teacher-cache-only-bulk2048-source-plan-v1",
+  "gpu_executed": false,
+  "model_payload_bytes_read": 0,
+  "binary_built": false,
+  "maximum_bulk_rows": 2048,
+  "bulk_row_quantum": 128,
+  "canonical2047_sequence": [
+    1920,
+    127
+  ],
+  "cache_prefix_slices_per_bulk": 15,
+  "additional_coefficient_bytes": 0,
+  "additional_state_bytes": 0,
+  "additional_workspace_planned_bytes": 310181888,
+  "buffers": [
+    {
+      "name": "TokenIDs",
+      "bytes_per_row": 8,
+      "logical_bytes": 16384,
+      "planned_bytes": 16384
+    },
+    {
+      "name": "Embedding",
+      "bytes_per_row": 5120,
+      "logical_bytes": 10485760,
+      "planned_bytes": 10485760
+    },
+    {
+      "name": "EmbeddingNormalized",
+      "bytes_per_row": 5120,
+      "logical_bytes": 10485760,
+      "planned_bytes": 10485760
+    },
+    {
+      "name": "EmbeddingProjected",
+      "bytes_per_row": 5120,
+      "logical_bytes": 10485760,
+      "planned_bytes": 10485760
+    },
+    {
+      "name": "HiddenNormalized",
+      "bytes_per_row": 20480,
+      "logical_bytes": 41943040,
+      "planned_bytes": 41943040
+    },
+    {
+      "name": "HiddenProjected",
+      "bytes_per_row": 20480,
+      "logical_bytes": 41943040,
+      "planned_bytes": 41943040
+    },
+    {
+      "name": "Hyper",
+      "bytes_per_row": 20480,
+      "logical_bytes": 41943040,
+      "planned_bytes": 41943040
+    },
+    {
+      "name": "HCNormalized",
+      "bytes_per_row": 20480,
+      "logical_bytes": 41943040,
+      "planned_bytes": 41943040
+    },
+    {
+      "name": "HCDown",
+      "bytes_per_row": 640,
+      "logical_bytes": 1310720,
+      "planned_bytes": 1310720
+    },
+    {
+      "name": "HCUp",
+      "bytes_per_row": 20480,
+      "logical_bytes": 41943040,
+      "planned_bytes": 41943040
+    },
+    {
+      "name": "HCRawInjection",
+      "bytes_per_row": 8,
+      "logical_bytes": 16384,
+      "planned_bytes": 16384
+    },
+    {
+      "name": "HCInjectionWeights",
+      "bytes_per_row": 8,
+      "logical_bytes": 16384,
+      "planned_bytes": 16384
+    },
+    {
+      "name": "Mixed",
+      "bytes_per_row": 5120,
+      "logical_bytes": 10485760,
+      "planned_bytes": 10485760
+    },
+    {
+      "name": "QProjection",
+      "bytes_per_row": 24576,
+      "logical_bytes": 50331648,
+      "planned_bytes": 50331648
+    },
+    {
+      "name": "KProjection",
+      "bytes_per_row": 1024,
+      "logical_bytes": 2097152,
+      "planned_bytes": 2097152
+    },
+    {
+      "name": "VProjection",
+      "bytes_per_row": 1024,
+      "logical_bytes": 2097152,
+      "planned_bytes": 2097152
+    },
+    {
+      "name": "IndexProjection",
+      "bytes_per_row": 1280,
+      "logical_bytes": 2621440,
+      "planned_bytes": 2621440
+    },
+    {
+      "name": "Diagnostics",
+      "logical_bytes": 4,
+      "planned_bytes": 16384
+    }
+  ],
+  "source_baseline_gpu_ms": 12.308333243709058,
+  "source_baseline_call_ms": 17.255292999999998,
+  "source_call_minus_gpu_ms": 4.946959756290941,
+  "benchmark_gain_proven": false
+}

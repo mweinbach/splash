@@ -1,0 +1,90 @@
+// Private R4/K2560/N10240 Q4/G64 paired rows. No shipping entry is replaced.
+// The generated literal.metalh retains the original native QMV float helpers.
+#include "literal.metalh"
+
+namespace raw_q4_rowpair_sep22 {
+
+// Share only packed integer words/masks. Each row keeps the literal original
+// qdot's four parenthesized sums and its independent accumulation chronology.
+inline void qdot_pair(const device uchar *w,
+    const thread float *x0, const thread float *x1,
+    float scale, float bias, float sum0, float sum1,
+    thread float &dot0, thread float &dot1) {
+  float accum0 = 0, accum1 = 0;
+  for (int i = 0; i < 4; ++i) {
+    const uint16_t packed = uint16_t(w[2 * i]) |
+        (uint16_t(w[2 * i + 1]) << 8);
+    const uint16_t m0 = packed & 0x000f;
+    const uint16_t m1 = packed & 0x00f0;
+    const uint16_t m2 = packed & 0x0f00;
+    const uint16_t m3 = packed & 0xf000;
+    accum0 += (x0[4 * i] * m0 + x0[4 * i + 1] * m1 +
+               x0[4 * i + 2] * m2 + x0[4 * i + 3] * m3);
+    accum1 += (x1[4 * i] * m0 + x1[4 * i + 1] * m1 +
+               x1[4 * i + 2] * m2 + x1[4 * i + 3] * m3);
+  }
+  dot0 = scale * accum0 + sum0 * bias;
+  dot1 = scale * accum1 + sum1 * bias;
+}
+
+inline void project_pair(const device bfloat *input,
+    const device uchar *weights, const device uchar *scales,
+    const device uchar *biases, device bfloat *output,
+    device atomic_uint *diagnostics, constant FlashAffineParams &p,
+    uint3 group, uint simd_group, uint lane) {
+  if (p.rows != 4 || p.selections != 1 || p.experts != 1 ||
+      p.output_size != 10240 || p.input_size != 2560 ||
+      p.bits != 4 || p.group_size != 64 || p.flags ||
+      p.weight_row_stride_bytes < 1280 ||
+      p.parameter_row_stride_bytes < 80 ||
+      p.parameter_row_stride_bytes % 2 ||
+      p.parameter_expert_stride_bytes % 2) {
+    if (lane == 0)
+      atomic_fetch_or_explicit(diagnostics, 2u, memory_order_relaxed);
+    return;
+  }
+  const uint out_row = group.x * 8 + simd_group * 4;
+  const ulong route0 = ulong(group.y) * 2, route1 = route0 + 1;
+  if (out_row >= p.output_size || route1 >= p.rows || group.z) return;
+  const device bfloat *x0 = input + route0 * p.input_size;
+  const device bfloat *x1 = input + route1 * p.input_size;
+  thread float x_thread0[16], x_thread1[16];
+  thread float result0[4] = {0}, result1[4] = {0};
+  for (uint k = 0; k < p.input_size; k += 512) {
+    const uint channel = k + lane * 16;
+    const float sum0 = raw_q4_literal::mlx_qmv_f32xsum_v1_load_vector<
+        bfloat, float, 16, 4>(x0 + channel, x_thread0);
+    const float sum1 = raw_q4_literal::mlx_qmv_f32xsum_v1_load_vector<
+        bfloat, float, 16, 4>(x1 + channel, x_thread1);
+    const uint coefficient = channel / 64;
+    for (ushort row = 0; row < 4; ++row) {
+      const device uchar *wl = weights +
+          ulong(out_row + row) * p.weight_row_stride_bytes + ulong(channel) / 2;
+      const ulong offset = ulong(out_row + row) * p.parameter_row_stride_bytes;
+      const device bfloat *sl = reinterpret_cast<const device bfloat *>(scales + offset);
+      const device bfloat *bl = reinterpret_cast<const device bfloat *>(biases + offset);
+      const float s = float(sl[coefficient]), b = float(bl[coefficient]);
+      float dot0, dot1;
+      qdot_pair(wl, x_thread0, x_thread1, s, b, sum0, sum1, dot0, dot1);
+      result0[row] += dot0;
+      result1[row] += dot1;
+    }
+  }
+  for (ushort row = 0; row < 4; ++row) {
+    const float sum0 = simd_sum(result0[row]);
+    if (lane == 0) {
+      const bfloat value0 = bfloat(sum0);
+      if (!raw_q4_literal::finite(sum0) || !raw_q4_literal::finite(float(value0)))
+        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);
+      output[route0 * p.output_size + out_row + row] = value0;
+    }
+    const float sum1 = simd_sum(result1[row]);
+    if (lane == 0) {
+      const bfloat value1 = bfloat(sum1);
+      if (!raw_q4_literal::finite(sum1) || !raw_q4_literal::finite(float(value1)))
+        atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);
+      output[route1 * p.output_size + out_row + row] = value1;
+    }
+  }
+}
+} // namespace raw_q4_rowpair_sep22

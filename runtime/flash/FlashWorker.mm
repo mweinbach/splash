@@ -15,6 +15,8 @@
 #include "flash/FlashBatchVerify.hpp"
 #include "flash/FlashBatchMTPForward.hpp"
 #include "flash/FlashMTP.hpp"
+#include "flash/FlashPrefillDenseTiles.hpp"
+#include "flash/FlashQSABulk.hpp"
 #include "flash/FlashMTPDepth.hpp"
 #include "flash/FlashMTPWindow.hpp"
 #include "flash/FlashGreedy.hpp"
@@ -533,6 +535,31 @@ struct PhaseTiming {
     commandHost.add(timing.host);
   }
 };
+class StatusTimingWindow final {
+public:
+  void append(double value) {
+    samples_.push_back(value);
+    if (samples_.size() > 4096) samples_.pop_front();
+    dirty_ = true;
+  }
+  [[nodiscard]] size_t size() const noexcept { return samples_.size(); }
+  [[nodiscard]] double p50() const { refresh(); return p50_; }
+  [[nodiscard]] double p95() const { refresh(); return p95_; }
+private:
+  void refresh() const {
+    if (!dirty_) return;
+    // Both status percentiles share the exact previous sorted-window rule.
+    // Command safe points do not append samples, so they reuse this result.
+    std::vector<double> sorted(samples_.begin(), samples_.end());
+    std::sort(sorted.begin(), sorted.end());
+    p50_ = sorted.empty() ? 0 : sorted[static_cast<size_t>((sorted.size() - 1) * .5)];
+    p95_ = sorted.empty() ? 0 : sorted[static_cast<size_t>((sorted.size() - 1) * .95)];
+    dirty_ = false;
+  }
+  std::deque<double> samples_;
+  mutable double p50_ = 0, p95_ = 0;
+  mutable bool dirty_ = true;
+};
 float logit(uint16_t value) { return std::bit_cast<float>(uint32_t{value} << 16); }
 bool mtpEligible(const wire::RequestFrame &frame) {
   return frame.constraint == wire::ConstraintMode::None &&
@@ -645,6 +672,43 @@ void cpuSelfTest() {
   const auto require = [](bool valid, const char *what) {
     if (!valid) throw std::runtime_error(std::string("Flash CPU self-test: ") + what);
   };
+  {
+    StatusTimingWindow window;
+    require(window.size() == 0 && window.p50() == 0 && window.p95() == 0,
+            "empty status timing window has zero percentiles");
+    window.append(9);
+    require(window.size() == 1 && window.p50() == 9 && window.p95() == 9,
+            "status percentiles refresh after append");
+    window.append(1);
+    require(window.p50() == 1 && window.p95() == 1,
+            "status percentile indices retain lower-rank convention");
+    require(window.p50() == 1 && window.p95() == 1,
+            "unchanged status window retains cached exact percentiles");
+    std::deque<double> prior;
+    StatusTimingWindow rolling;
+    const auto oldPercentile = [&](double fraction) {
+      std::vector<double> sorted(prior.begin(), prior.end());
+      std::sort(sorted.begin(), sorted.end());
+      return sorted.empty() ? 0 : sorted[static_cast<size_t>((sorted.size() - 1) * fraction)];
+    };
+    for (uint32_t index = 0; index < 4130; ++index) {
+      const double value = static_cast<double>((index * 7919) % 997) / 7;
+      rolling.append(value); prior.push_back(value);
+      if (prior.size() > 4096) prior.pop_front();
+      if (index < 16 || index % 31 == 0 || index >= 4095) {
+        require(rolling.size() == prior.size() && rolling.p50() == oldPercentile(.5) &&
+                    rolling.p95() == oldPercentile(.95),
+                "cached status percentiles match prior rule across append and eviction");
+      }
+    }
+    StatusTimingWindow evicted;
+    for (uint32_t index = 0; index < 4096; ++index) evicted.append(index);
+    require(evicted.p50() == 2047 && evicted.p95() == 3890,
+            "full timing window percentiles use original indices");
+    evicted.append(4096);
+    require(evicted.size() == 4096 && evicted.p50() == 2048 && evicted.p95() == 3891,
+            "timing-window eviction invalidates cache despite unchanged sample count");
+  }
   Request greedy;
   greedy.logits = {0x3f80, 0x4000, 0x4000, 0x0000}; // 1,2,2,0
   require(selectToken(greedy) == 1, "greedy tie must choose lower token id");
@@ -1273,7 +1337,7 @@ void cpuSelfTest() {
     require(!wire::serializeMessage(wire::TokensEvent{77, 9, widestTokens}, widestLimits),
             "fifteen-draft limits must reject seventeen-token frames");
   }
-  std::cout << R"({"valid":true,"gpu_work":false,"checks":["greedy","masked_argmax","seed","top_k","top_p","invalid_sampling","fragmented_frames","truncation","mtp_eligibility","mtp_prefix_commit","mtp_eos_budget","mtp_block_framing","deep_mtp_prefix_budget","deep_mtp_depth_parser","deep_mtp_joint_transition","deep_mtp_eight_token_framing","batch_control_guards","prefill_geometry","sliced_mtp_priming","batch_prefill_control_guards","batch_prefill_real_windows","batch_prefill_partial_cohorts","batch_prefill_owned_priming","batch_prefill_cookie_deadlines","batch_prefill_width_accounting","batch_mtp_prefill_eligibility","batch_mtp_prefill_owned_compaction","batch_mtp_prefill_exact_pairs","batch_mtp_prefill_command_accounting","batch_mtp_prefill_cookie_cancel_deadline","batch_mtp_prefill_late_deadline_rebuild","batch_mtp_prefill_flag_dependencies","gpu_prefill_copy_flag_dependencies","allocation_arrival_cohort_refresh","allocation_refresh_c1_no_wait","allocation_refresh_bounded","allocation_refresh_cancel_deadline","joint_budget","joint_no_padding","joint_cookie_drop","joint_borrowed_layout","admission_pressure_retry","admission_deadline_budget","admission_pressure_recovery"]})" << '\n';
+  std::cout << R"({"valid":true,"gpu_work":false,"checks":["status_timing_cache","greedy","masked_argmax","seed","top_k","top_p","invalid_sampling","fragmented_frames","truncation","mtp_eligibility","mtp_prefix_commit","mtp_eos_budget","mtp_block_framing","deep_mtp_prefix_budget","deep_mtp_depth_parser","deep_mtp_joint_transition","deep_mtp_eight_token_framing","batch_control_guards","prefill_geometry","sliced_mtp_priming","batch_prefill_control_guards","batch_prefill_real_windows","batch_prefill_partial_cohorts","batch_prefill_owned_priming","batch_prefill_cookie_deadlines","batch_prefill_width_accounting","batch_mtp_prefill_eligibility","batch_mtp_prefill_owned_compaction","batch_mtp_prefill_exact_pairs","batch_mtp_prefill_command_accounting","batch_mtp_prefill_cookie_cancel_deadline","batch_mtp_prefill_late_deadline_rebuild","batch_mtp_prefill_flag_dependencies","gpu_prefill_copy_flag_dependencies","allocation_arrival_cohort_refresh","allocation_refresh_c1_no_wait","allocation_refresh_bounded","allocation_refresh_cancel_deadline","joint_budget","joint_no_padding","joint_cookie_drop","joint_borrowed_layout","admission_pressure_retry","admission_deadline_budget","admission_pressure_recovery"]})" << '\n';
 }
 
 class Worker final {
@@ -1681,8 +1745,8 @@ private:
     if (tokens.empty() || tokens.size() > request.frame.logicalMaxOutputTokens - request.emitted)
       throw std::logic_error("Flash token emission exceeds its logical output budget");
     const auto now = Clock::now();
-    if (!request.firstToken) { request.firstToken = now; append(ttft_, milliseconds(request.arrived, now)); }
-    else append(itl_, milliseconds(*request.lastToken, now) / tokens.size());
+    if (!request.firstToken) { request.firstToken = now; ttft_.append(milliseconds(request.arrived, now)); }
+    else itl_.append(milliseconds(*request.lastToken, now) / tokens.size());
     request.lastToken = now;
     transport_.send(wire::TokensEvent{request.frame.requestId, request.emitted,
                                      std::vector<uint32_t>(tokens.begin(), tokens.end())});
@@ -1719,6 +1783,19 @@ private:
     std::memcpy(request.mtpFoldHidden.contents(), static_cast<const uint8_t *>(source.contents()) + offset, bytes);
   }
   void tickMTP(Request &request);
+  metal::CommandTiming teacherPrime(FlashMTPState &state, metal::MetalBuffer hidden,
+      std::span<const uint32_t> tokens) {
+    if (!head_) throw std::logic_error("Flash teacher priming has no trained head");
+    if (mtpTeacherCacheOnly_) {
+      const auto timing = head_->primeTeacherCache(state, std::move(hidden), tokens);
+      ++teacherCachePrimeCalls_;
+      return timing;
+    }
+    const auto result = head_->forward(state, std::move(hidden), tokens, FlashMTPLogits::None);
+    if (result.logitRows || result.logitsBF16)
+      throw std::logic_error("Flash teacher priming unexpectedly returned vocabulary logits");
+    return result.timing;
+  }
   void tick(Request &request) {
     const uint64_t id = request.frame.requestId;
     const uint64_t generation = request.generation;
@@ -1750,14 +1827,13 @@ private:
                                              uint64_t{primeCount} * kHyper * 2);
           inFlight_ = true; publishStatus();
           const auto primeBegan = Clock::now();
-          const auto prime = head_->forward(*request.mtpState, hidden,
-              std::span(request.frame.promptTokens).subspan(promptBegin + primeBegin + 1, primeCount),
-              FlashMTPLogits::None);
-          traceRequestCommand("prompt_head_priming", "mtp_head", {id, generation}, static_cast<uint32_t>(primeCount), prime.timing);
+          const auto timing = teacherPrime(*request.mtpState, hidden,
+              std::span(request.frame.promptTokens).subspan(promptBegin + primeBegin + 1, primeCount));
+          traceRequestCommand("prompt_head_priming", "mtp_head", {id, generation}, static_cast<uint32_t>(primeCount), timing);
           const auto host = std::chrono::duration<double>(Clock::now() - primeBegan).count();
-          mtpPrime_.add(static_cast<uint32_t>(primeCount), prime.timing, host);
-          prefill_.gpu += prime.timing.gpuSeconds; prefill_.wall += prime.timing.wallSeconds;
-          prefill_.lastGpu += prime.timing.gpuSeconds; prefill_.lastWall += prime.timing.wallSeconds;
+          mtpPrime_.add(static_cast<uint32_t>(primeCount), timing, host);
+          prefill_.gpu += timing.gpuSeconds; prefill_.wall += timing.wallSeconds;
+          prefill_.lastGpu += timing.gpuSeconds; prefill_.lastWall += timing.wallSeconds;
           prefill_.host += host;
           if (!safePoint(id, generation)) return;
         }
@@ -1784,14 +1860,6 @@ private:
     drain(); expire();
     if (transport_.stopping()) return;
     if (Request *live = find(id); live && live->generation == generation && !live->logits.empty()) maskOrEmit(*live);
-  }
-  static void append(std::deque<double> &window, double value) {
-    window.push_back(value); if (window.size() > 4096) window.pop_front();
-  }
-  static double percentile(const std::deque<double> &window, double fraction) {
-    if (window.empty()) return 0;
-    std::vector<double> sorted(window.begin(), window.end()); std::sort(sorted.begin(), sorted.end());
-    return sorted[static_cast<size_t>((sorted.size() - 1) * fraction)];
   }
   static void appendTiming(std::ostringstream &out, const PhaseTiming &phase) {
     out << "{\"last_gpu_ms\":" << phase.lastGpu * 1000 << ",\"last_wall_ms\":" << phase.lastWall * 1000
@@ -1900,6 +1968,7 @@ private:
   uint32_t batchPrefillRows_ = kDefaultBatchPrefillRows;
   metal::MetalBuffer batchPrefillHidden_;
   const bool gpuPrefillCopy_ = environmentSwitch("SPLASH_FLASH_GPU_PREFILL_COPY");
+  const bool mtpTeacherCacheOnly_ = environmentSwitch("SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY");
   FlashBatchMTPForward *batchPrimeHead_ = nullptr;
   metal::MetalBuffer batchPrimeInput_;
   const SavedOperandsResidencyStatus savedResidency_;
@@ -1924,6 +1993,7 @@ private:
   uint64_t nextMask_ = 1, nextGeneration_ = 1, submitted_ = 0, completed_ = 0, cancelled_ = 0, failed_ = 0, emitted_ = 0;
   bool inFlight_ = false;
   uint64_t mtpRequests_ = 0, arRequests_ = 0, mtpCycles_ = 0, mtpCommittedHeadCalls_ = 0;
+  uint64_t teacherCachePrimeCalls_ = 0;
   uint64_t drafted_ = 0, accepted_ = 0, matched_ = 0, emittedAccepted_ = 0;
   std::array<uint64_t, kFlashSingletonMaximumVerifyRows> acceptedPrefixes_{};
   std::array<uint64_t, kFlashSingletonMaximumVerifyRows> mtpDepthCycles_{};
@@ -1948,7 +2018,7 @@ private:
   std::array<std::unique_ptr<Request>, kConcurrent> active_;
   PhaseTiming prefill_, decode_;
   PhaseTiming mtpPrime_, mtpBatchPrime_, mtpHead_, mtpVerify_, mtpCommit_;
-  std::deque<double> ttft_, itl_;
+  StatusTimingWindow ttft_, itl_;
 };
 
 bool Worker::tickBatchPrefill(uint32_t primarySlot) {
@@ -2144,10 +2214,9 @@ bool Worker::tickBatchPrefill(uint32_t primarySlot) {
         const auto hidden = backend_.view(batchPrefillHidden_,
             headPrimeSourceOffset(selectedLanes.front(), rows, member.primedRows, totalRows),
             uint64_t{totalRows} * kHyper * 2);
-        const auto primed = head_->forward(*headStates.front(), hidden, compactTokens, FlashMTPLogits::None);
-        if (primed.logicalLength != expectedLengths.front() || primed.logitRows || primed.logitsBF16)
+        timing = teacherPrime(*headStates.front(), hidden, compactTokens);
+        if (headStates.front()->logicalLength() != expectedLengths.front())
           throw std::runtime_error("Flash sequential head priming returned invalid real pair metadata");
-        timing = primed.timing;
       }
       const auto host = std::chrono::duration<double>(Clock::now() - primeBegan).count();
       traceGroupCommand("prompt_head_priming", "mtp_head", static_cast<uint32_t>(selectedLanes.size()), timing,
@@ -2190,13 +2259,13 @@ bool Worker::tickBatchPrefill(uint32_t primarySlot) {
             uint64_t{count} * kHyper * 2);
         inFlight_ = true; publishStatus();
         const auto primeBegan = Clock::now();
-        const auto primed = head_->forward(*request->mtpState, hidden,
-            std::span(member.primeTokens).subspan(primeBegin, count), FlashMTPLogits::None);
-        traceRequestCommand("prompt_head_priming", "mtp_head", member.cookie, count, primed.timing);
+        const auto timing = teacherPrime(*request->mtpState, hidden,
+            std::span(member.primeTokens).subspan(primeBegin, count));
+        traceRequestCommand("prompt_head_priming", "mtp_head", member.cookie, count, timing);
         const auto host = std::chrono::duration<double>(Clock::now() - primeBegan).count();
-        mtpPrime_.add(count, primed.timing, host);
-        prefill_.gpu += primed.timing.gpuSeconds; prefill_.wall += primed.timing.wallSeconds;
-        prefill_.lastGpu += primed.timing.gpuSeconds; prefill_.lastWall += primed.timing.wallSeconds;
+        mtpPrime_.add(count, timing, host);
+        prefill_.gpu += timing.gpuSeconds; prefill_.wall += timing.wallSeconds;
+        prefill_.lastGpu += timing.gpuSeconds; prefill_.lastWall += timing.wallSeconds;
         prefill_.host += host;
         if (!safePoint(member.cookie.id, member.cookie.generation)) {
           if (transport_.stopping()) return true;
@@ -2771,6 +2840,8 @@ void Worker::publishStatus() {
                                                   batch_ ? "native-worker5-ar-batch-or-greedy-mtp3-v2" :
                                                   head_ ? kWorkerMTPSemantics : "native-worker5-autoregression-v1")
       << R"(,"mtp_semantics":)" << (head_ ? json::quote(kFlashMTPSemantics) : "null")
+      << R"(,"mtp_teacher_priming_route":)" << (head_ ? json::quote(mtpTeacherCacheOnly_
+          ? kFlashMTPTeacherCacheSemantics : "mtp-full-forward-none-logits-v1") : "null")
       << R"(,"mtp_attention_route":)" << (head_ ? json::quote(head_->attentionRouteSemantics()) : "null")
       << R"(,"batch_semantics":)" << (batch_ ? json::quote(kFlashBatchForwardExecution) : "null")
       << R"(,"joint_head_semantics":)" << (jointHead_ ? json::quote(kFlashBatchMTPSemantics) : "null")
@@ -2865,6 +2936,12 @@ void Worker::publishStatus() {
   out << R"(,"qsa_output_f32_n32_route_counters":{"scope":"main model graph construction since startup; not completed GPU dispatches","encoded_calls":)"
       << forward_.qsaOutF32N32EncodedCalls()
       << R"(,"encoded_real_rows":)" << forward_.qsaOutF32N32EncodedRealRows() << '}';
+  const auto bulkQSACounters = forward_.qsaBulkPrefillCounters();
+  out << R"(,"qsa_bulk_prefill_route_counters":{"scope":"completed main model target commands since startup","completed_prefill_calls":)"
+      << bulkQSACounters.completedPrefillCalls
+      << R"(,"completed_prefill_tokens":)" << bulkQSACounters.completedPrefillTokens
+      << R"(,"completed_layer_calls":)" << bulkQSACounters.completedLayerCalls
+      << R"(,"completed_sg8_layer_calls":)" << bulkQSACounters.completedSG8LayerCalls << '}';
   const auto requestTrace = requestCommandTraceInfo();
   out << R"(,"request_command_trace":{"enabled":)" << (requestTrace.enabled ? "true" : "false")
       << R"(,"records":)" << requestTrace.records
@@ -2957,10 +3034,10 @@ void Worker::publishStatus() {
       << R"(,"model_timing":{"scope":"worker_lifetime_command","prefill":)";
   appendTiming(out, prefill_);
   out << R"(,"decode":)"; appendTiming(out, decode_);
-  out << R"(},"metrics":{"ttft_ms":{"p50":)" << percentile(ttft_, .5)
-      << R"(,"p95":)" << percentile(ttft_, .95) << R"(,"samples":)" << ttft_.size()
-      << R"(},"itl_ms":{"p50":)" << percentile(itl_, .5)
-      << R"(,"p95":)" << percentile(itl_, .95) << R"(,"samples":)" << itl_.size()
+  out << R"(},"metrics":{"ttft_ms":{"p50":)" << ttft_.p50()
+      << R"(,"p95":)" << ttft_.p95() << R"(,"samples":)" << ttft_.size()
+      << R"(},"itl_ms":{"p50":)" << itl_.p50()
+      << R"(,"p95":)" << itl_.p95() << R"(,"samples":)" << itl_.size()
       << R"(},"prefill_input_tokens":)" << prefill_.rows
       << R"(,"prefill_wall_ms":)" << prefill_.host * 1000
       << R"(,"prefill_tokens_per_second":)" << (prefill_.host > 0 ? prefill_.rows / prefill_.host : 0)
@@ -2972,6 +3049,9 @@ void Worker::publishStatus() {
       << R"(,"drafted_tokens":)" << drafted_ << R"(,"accepted_draft_tokens":)" << accepted_
       << R"(,"accepted_draft_tokens_scope":"committed verifier input drafts","metal_failures":0})"
       << R"(,"mtp":{"enabled":)" << (head_ ? "true" : "false")
+      << R"(,"teacher_cache_only_requested":)" << (mtpTeacherCacheOnly_ ? "true" : "false")
+      << R"(,"teacher_cache_only_priming_calls":)" << teacherCachePrimeCalls_
+      << R"(,"teacher_cache_only_scope":"sequential prompt priming; true grouped head priming retains full None forward")"
       << R"(,"maximum_draft_tokens":)" << (head_ ? std::max(singletonMTP_.maximumDepth, jointHead_ ? kMTPDepth : 0) : 0)
       << R"(,"singleton_maximum_draft_tokens":)" << (head_ ? singletonMTP_.maximumDepth : 0)
       << R"(,"singleton_depth_override":)" << (singletonMTP_.explicitOverride ? std::to_string(singletonMTP_.maximumDepth) : "null")
@@ -3071,11 +3151,18 @@ int runFlashWorker(int argc, char **argv) {
       auto requestCommandTrace = FlashRequestCommandTrace::fromEnvironment();
       // Experimental runtime-only switch stays off until root qualification.
       const bool mtpEnabled = environmentSwitch("SPLASH_FLASH_MTP");
+      const bool teacherCacheOnlyEnabled = environmentSwitch("SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY");
+      if (teacherCacheOnlyEnabled && !mtpEnabled)
+        throw std::invalid_argument("SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY=1 requires SPLASH_FLASH_MTP=1");
+      const bool prefillDenseTilesEnabled = flashPrefillDenseTilesEnabled();
+      if (prefillDenseTilesEnabled && !environmentSwitch("SPLASH_FLASH_DENSE_CACHE"))
+        throw std::invalid_argument("SPLASH_FLASH_PREFILL_DENSE_TILES=1 requires SPLASH_FLASH_DENSE_CACHE=1");
       const bool batchEnabled = environmentSwitch("SPLASH_FLASH_BATCH");
       const bool batchPrefillEnabled = environmentSwitch("SPLASH_FLASH_BATCH_PREFILL");
       (void)flashGDNBatchILPEnabled();
       (void)flashGDNLazyRollbackEnabled();
       (void)flashQSAOutF32N32Enabled();
+      (void)qsaBulkPrefillSG8Enabled(qsaBulkPrefillEnabled());
       (void)flashBF16Q8HeadEnabled();
       const bool gpuPrefillCopyEnabled = environmentSwitch("SPLASH_FLASH_GPU_PREFILL_COPY");
       const bool batchMTPEnabled = environmentSwitch("SPLASH_FLASH_BATCH_MTP");

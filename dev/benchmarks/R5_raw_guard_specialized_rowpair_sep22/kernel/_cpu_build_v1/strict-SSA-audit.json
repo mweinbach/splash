@@ -1,0 +1,95 @@
+{
+  "schema": "R5-raw-odd-rowpair-actual-SSA-per-row-dependency-load-audit-v1",
+  "pass": true,
+  "actual_native_control_AIR_sha256": "efec83efc7c8aa89c69d1c322c91848bd446c434bd5dde3ca430e1fae544f5c4",
+  "actual_candidate_AIR_sha256": "14840f06165cd882d2f4477a46235f11a3ce9d9111d0ad2654223e4c9821cab6",
+  "arithmetic_helper_FP_policy_equal": true,
+  "actual_FP_intrinsic_ABI_and_attributes_equal": true,
+  "nonarithmetic_immutable_macroentry_has_unsafe_attrs_new_plainentry_safe": true,
+  "per_row_full_K_FP_chronology_and_typed_dependencies_equal_with_recorded_commutations": true,
+  "actual_typed_readonly_pointer_sets_equal": true,
+  "per_row_proof_cases": 280,
+  "finite_integer_mask_multiplicand_commutations_recorded": 109312,
+  "same_address_chunk_accumulator_operand_commutations_recorded": 7616,
+  "original_mask_operand_orders_canonicalized": 103680,
+  "original_chunk_operand_orders_canonicalized": 3520,
+  "same_opcode_actual_IR_dependency_address_attribute_mutation_negatives": {
+    "cross_row_input_pointer_same_opcode": true,
+    "integer_mask_same_opcode": true,
+    "prescale_constant_same_opcode": true,
+    "literal_tail_wrong_route": true,
+    "arithmetic_helper_attribute_drift": true
+  },
+  "reassociation_or_blanket_DAG_normalization": false,
+  "scope": "Actual SSA executed at lanes0/31, first/last output SIMD, all three row groups, compact/odd padded strides, fullK; finite-result path. No reassociation; only explicit finite integer-mask multiplicand and same-address += chunk operand commutations are accepted and recorded. Nonfinite bit parity is NOT proved.",
+  "actual_GPU_raw_bits_NaN_Inf_sticky_register_spill_or_performance_proved": false,
+  "shipping_tap_coupling_actual_SSA_audit_complete": true,
+  "shipping_tap_per_row_cases": 280,
+  "observed_shape_format_combinations": [
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 51200,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 2560,
+      "N": 12288,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 61440,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 4,
+      "group": 64,
+      "K": 6144,
+      "N": 2560,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 12800,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 5,
+      "group": 64,
+      "K": 2560,
+      "N": 10240,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 51200,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 6144,
+      "N": 2560,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 12800,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 5,
+      "group": 128,
+      "K": 2560,
+      "N": 6144,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 30720,
+      "partial_grid_host_admission_required": true
+    },
+    {
+      "bits": 6,
+      "group": 64,
+      "K": 2560,
+      "N": 6144,
+      "complete_rows": 5,
+      "complete_disjoint_output_words": 30720,
+      "partial_grid_host_admission_required": true
+    }
+  ],
+  "GPU_work": false,
+  "operand_payload_reads": 0
+}

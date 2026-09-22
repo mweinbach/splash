@@ -1,0 +1,115 @@
+{
+  "schema": "online-packed-V-QSA-literal-source-journal-v1",
+  "pass": true,
+  "compiler_work": false,
+  "GPU_work": false,
+  "authoritative_source": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/prefill4k_attention/bulk_attention_sg8.metal",
+  "authoritative_source_sha256": "9f5a1da89e05a20b109330eaced63a645000a5728538c8e9cafc738ce9ae0905",
+  "original_AIR": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/120-prefill4k_bulk_attention_sg8.air",
+  "original_AIR_sha256": "7e560b9b3e4c598fa04d3d061ec88b93ca20d705849b550e6390158d97a352d2",
+  "selected_wrapper_journal": [
+    {
+      "kind": "unselected_entry",
+      "old": "[[max_total_threads_per_threadgroup(128)]]\nkernel void flash_qsa_mpp_prefill_bulk_2048(\n    device const bfloat *queries [[buffer(0)]],\n    device const bfloat *keys [[buffer(1)]],\n    device const bfloat *values [[buffer(2)]],\n    device const uint *selected [[buffer(3)]],\n    device float *statistics [[buffer(4)]],\n    device float *numerators [[buffer(5)]],\n    device atomic_uint *diagnostics [[buffer(6)]],\n    constant FlashQSAFastParams &params [[buffer(7)]],\n    uint3 group [[threadgroup_position_in_grid]],\n    uint3 groupSize [[threads_per_threadgroup]],\n    uint tid [[thread_index_in_threadgroup]]) {\n  if (params.common.begin != 0 || params.common.rows != 2048 ||\n      params.common.capacity < 2048 || params.maximum_partitions < 4 ||\n      params.partitions != 4 || group.y != 0 || group.z != 0 ||\n      any(groupSize != uint3(128, 1, 1))) {\n    if (!tid) bulk_qsa_mpp_failure(diagnostics, 1u << 9);\n    return;\n  }\n  const uint cta = group.x;\n  if (cta >= 7936) return;\n  uint window;\n  uint3 localGroup;\n  uint partitions;\n  const bool temporal = cta >= 3328;\n  if (cta < 256) {\n    window = 0;\n    partitions = 1;\n    localGroup = uint3(cta % 128, cta / 128, 0);\n  } else if (cta < 3328) {\n    const uint offset = cta - 256;\n    window = 1 + offset / 1024;\n    const uint local = offset % 1024;\n    partitions = 4;\n    localGroup = uint3(local % 128, (local / 128) % 2, local / 256);\n  } else {\n    const uint offset = cta - 3328;\n    window = 4 + offset / 384;\n    const uint local = offset % 384;\n    partitions = 4;\n    localGroup = uint3(local % 48, (local / 48) % 2, local / 96);\n  }\n  FlashQSAFastParams localParams = params;\n  localParams.common.begin = window * 128;\n  localParams.common.rows = 128;\n  localParams.partitions = partitions;\n  const ulong firstRow = ulong(window) * 128;\n  const ulong scratchBase = firstRow * 24 * params.maximum_partitions;\n  device const bfloat *localQueries = queries + firstRow * 24 * 256;\n  device const uint *localSelected = selected + firstRow * 512;\n  device float *localStatistics = statistics + scratchBase * 2;\n  device float *localNumerators = numerators + scratchBase * 256;\n  threadgroup BulkAttentionScratch scratch;\n  if (temporal) {\n    bulk_rowtile_online<32>(localQueries, keys, values, localSelected,\n        localStatistics, localNumerators, diagnostics, localParams, localGroup, tid,\n        scratch.temporal.queryMemory, scratch.temporal.kvMemory, scratch.temporal.weights);\n  } else {\n    bulk_qsa_online_partition(localQueries, keys, values, localSelected,\n        localStatistics, localNumerators, diagnostics, localParams, localGroup, tid,\n        scratch.online.aq, scratch.online.kvMemory, scratch.online.kvMemory,\n        scratch.online.weights, scratch.online.maximum, scratch.online.sum,\n        scratch.online.alpha);\n  }\n}",
+      "new": "// Private component omits the unselected entry: flash_qsa_mpp_prefill_bulk_2048.",
+      "count": 1
+    }
+  ],
+  "candidate_address_journal": [
+    {
+      "kind": "global_V_address",
+      "old": "values[(ulong(token) * 2 + kv) * 256 + dimension + d]",
+      "new": "values[(ulong(kv) * 256 + dimension + d) * 2048 + token]",
+      "count": 1
+    },
+    {
+      "kind": "global_V_address",
+      "old": "values[(ulong(token) * 2 + kv) * 256 + chunk * 64 + i / 64]",
+      "new": "values[(ulong(kv) * 256 + chunk * 64 + i / 64) * 2048 + token]",
+      "count": 2
+    }
+  ],
+  "namespace_maps": {
+    "native": {
+      "bulk_qsa_mpp_failure": "qsa_online_packed_v_native_bulk_qsa_mpp_failure",
+      "bulk_qsa_mpp_visible": "qsa_online_packed_v_native_bulk_qsa_mpp_visible",
+      "bulk_qsa_mpp_token": "qsa_online_packed_v_native_bulk_qsa_mpp_token",
+      "bulk_qsa_online_partition": "qsa_online_packed_v_native_bulk_qsa_online_partition",
+      "bulk_rowtile_error": "qsa_online_packed_v_native_bulk_rowtile_error",
+      "BulkQueryStorage": "qsa_online_packed_v_native_BulkQueryStorage",
+      "bulk_rowtile_online": "qsa_online_packed_v_native_bulk_rowtile_online",
+      "BulkOnlineScratch": "qsa_online_packed_v_native_BulkOnlineScratch",
+      "BulkTemporalScratch": "qsa_online_packed_v_native_BulkTemporalScratch",
+      "BulkAttentionScratch": "qsa_online_packed_v_native_BulkAttentionScratch",
+      "bulk_temporal_sg8_error": "qsa_online_packed_v_native_bulk_temporal_sg8_error",
+      "BulkTemporalSG8QueryStorage": "qsa_online_packed_v_native_BulkTemporalSG8QueryStorage",
+      "bulk_temporal_sg8_online": "qsa_online_packed_v_native_bulk_temporal_sg8_online",
+      "bulk_qsa_fast_gate": "qsa_online_packed_v_native_bulk_qsa_fast_gate",
+      "flash_qsa_mpp_prefill_bulk_early_2048": "qsa_online_packed_v_native_early",
+      "flash_qsa_mpp_prefill_bulk_temporal_sg8_2048": "qsa_online_packed_v_native_temporal",
+      "flash_qsa_fast_prefill_bulk_reduce_2048": "qsa_online_packed_v_native_reduce"
+    },
+    "native_tap": {
+      "bulk_qsa_mpp_failure": "qsa_online_packed_v_native_tap_bulk_qsa_mpp_failure",
+      "bulk_qsa_mpp_visible": "qsa_online_packed_v_native_tap_bulk_qsa_mpp_visible",
+      "bulk_qsa_mpp_token": "qsa_online_packed_v_native_tap_bulk_qsa_mpp_token",
+      "bulk_qsa_online_partition": "qsa_online_packed_v_native_tap_bulk_qsa_online_partition",
+      "bulk_rowtile_error": "qsa_online_packed_v_native_tap_bulk_rowtile_error",
+      "BulkQueryStorage": "qsa_online_packed_v_native_tap_BulkQueryStorage",
+      "bulk_rowtile_online": "qsa_online_packed_v_native_tap_bulk_rowtile_online",
+      "BulkOnlineScratch": "qsa_online_packed_v_native_tap_BulkOnlineScratch",
+      "BulkTemporalScratch": "qsa_online_packed_v_native_tap_BulkTemporalScratch",
+      "BulkAttentionScratch": "qsa_online_packed_v_native_tap_BulkAttentionScratch",
+      "bulk_temporal_sg8_error": "qsa_online_packed_v_native_tap_bulk_temporal_sg8_error",
+      "BulkTemporalSG8QueryStorage": "qsa_online_packed_v_native_tap_BulkTemporalSG8QueryStorage",
+      "bulk_temporal_sg8_online": "qsa_online_packed_v_native_tap_bulk_temporal_sg8_online",
+      "bulk_qsa_fast_gate": "qsa_online_packed_v_native_tap_bulk_qsa_fast_gate",
+      "flash_qsa_mpp_prefill_bulk_early_2048": "qsa_online_packed_v_native_early_tap",
+      "flash_qsa_mpp_prefill_bulk_temporal_sg8_2048": "qsa_online_packed_v_native_temporal_tap",
+      "flash_qsa_fast_prefill_bulk_reduce_2048": "qsa_online_packed_v_native_reduce_tap"
+    },
+    "candidate": {
+      "bulk_qsa_mpp_failure": "qsa_online_packed_v_candidate_bulk_qsa_mpp_failure",
+      "bulk_qsa_mpp_visible": "qsa_online_packed_v_candidate_bulk_qsa_mpp_visible",
+      "bulk_qsa_mpp_token": "qsa_online_packed_v_candidate_bulk_qsa_mpp_token",
+      "bulk_qsa_online_partition": "qsa_online_packed_v_candidate_bulk_qsa_online_partition",
+      "bulk_rowtile_error": "qsa_online_packed_v_candidate_bulk_rowtile_error",
+      "BulkQueryStorage": "qsa_online_packed_v_candidate_BulkQueryStorage",
+      "bulk_rowtile_online": "qsa_online_packed_v_candidate_bulk_rowtile_online",
+      "BulkOnlineScratch": "qsa_online_packed_v_candidate_BulkOnlineScratch",
+      "BulkTemporalScratch": "qsa_online_packed_v_candidate_BulkTemporalScratch",
+      "BulkAttentionScratch": "qsa_online_packed_v_candidate_BulkAttentionScratch",
+      "bulk_temporal_sg8_error": "qsa_online_packed_v_candidate_bulk_temporal_sg8_error",
+      "BulkTemporalSG8QueryStorage": "qsa_online_packed_v_candidate_BulkTemporalSG8QueryStorage",
+      "bulk_temporal_sg8_online": "qsa_online_packed_v_candidate_bulk_temporal_sg8_online",
+      "bulk_qsa_fast_gate": "qsa_online_packed_v_candidate_bulk_qsa_fast_gate",
+      "flash_qsa_mpp_prefill_bulk_early_2048": "qsa_online_packed_v_candidate_early",
+      "flash_qsa_mpp_prefill_bulk_temporal_sg8_2048": "qsa_online_packed_v_candidate_temporal",
+      "flash_qsa_fast_prefill_bulk_reduce_2048": "qsa_online_packed_v_candidate_reduce"
+    },
+    "candidate_tap": {
+      "bulk_qsa_mpp_failure": "qsa_online_packed_v_candidate_tap_bulk_qsa_mpp_failure",
+      "bulk_qsa_mpp_visible": "qsa_online_packed_v_candidate_tap_bulk_qsa_mpp_visible",
+      "bulk_qsa_mpp_token": "qsa_online_packed_v_candidate_tap_bulk_qsa_mpp_token",
+      "bulk_qsa_online_partition": "qsa_online_packed_v_candidate_tap_bulk_qsa_online_partition",
+      "bulk_rowtile_error": "qsa_online_packed_v_candidate_tap_bulk_rowtile_error",
+      "BulkQueryStorage": "qsa_online_packed_v_candidate_tap_BulkQueryStorage",
+      "bulk_rowtile_online": "qsa_online_packed_v_candidate_tap_bulk_rowtile_online",
+      "BulkOnlineScratch": "qsa_online_packed_v_candidate_tap_BulkOnlineScratch",
+      "BulkTemporalScratch": "qsa_online_packed_v_candidate_tap_BulkTemporalScratch",
+      "BulkAttentionScratch": "qsa_online_packed_v_candidate_tap_BulkAttentionScratch",
+      "bulk_temporal_sg8_error": "qsa_online_packed_v_candidate_tap_bulk_temporal_sg8_error",
+      "BulkTemporalSG8QueryStorage": "qsa_online_packed_v_candidate_tap_BulkTemporalSG8QueryStorage",
+      "bulk_temporal_sg8_online": "qsa_online_packed_v_candidate_tap_bulk_temporal_sg8_online",
+      "bulk_qsa_fast_gate": "qsa_online_packed_v_candidate_tap_bulk_qsa_fast_gate",
+      "flash_qsa_mpp_prefill_bulk_early_2048": "qsa_online_packed_v_candidate_early_tap",
+      "flash_qsa_mpp_prefill_bulk_temporal_sg8_2048": "qsa_online_packed_v_candidate_temporal_tap",
+      "flash_qsa_fast_prefill_bulk_reduce_2048": "qsa_online_packed_v_candidate_reduce_tap"
+    }
+  },
+  "candidate_changes_only_global_V_address": true,
+  "exact_inverse_restores_entire_authoritative_source": true,
+  "unselected_entry_omission_identical_native_candidate": true,
+  "all_active_entry_bodies_otherwise_literal": true,
+  "tap_quotient_computed_once": true
+}

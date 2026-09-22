@@ -1,0 +1,13 @@
+{
+  "schema": "duplicate-TID0-literal-prefix-source-journal-v1",
+  "original_source_sha256": "f63efa224f63a3c807fafd699742716d9ff1bac2b2ec08e21cbb13540bc01245",
+  "original_prefix_sha256": "531e483faede0c7a0919efe93ea52f49938b8ec972d70b985222d9b6b7efa27a",
+  "candidate_prefix_sha256": "6878e283cf74c64bc81ddd34ff86a739275a3b48e154e7496e901a78dbb76d5e",
+  "edit_count": 1,
+  "before": "  for (uint slot = 0; slot < 10; ++slot)\n    if (route / 10 * 10 + slot != route && ids[route / 10 * 10 + slot] == id && !tid)\n      gathered_mpp_error(diag, 1u);",
+  "after": "  if (!tid)\n    for (uint slot = 0; slot < 10; ++slot)\n      if (route / 10 * 10 + slot != route && ids[route / 10 * 10 + slot] == id && !tid)\n        gathered_mpp_error(diag, 1u);",
+  "reverse_restores_original_prefix_exact": true,
+  "retained_inner_thread0_predicate": true,
+  "all_lane_own_ID_and_rank_checks_unchanged": true,
+  "floating_MPP_scan_sanitize_and_output_source_unchanged": true
+}

@@ -59,7 +59,13 @@ V9_ENVIRONMENT = {
 }
 EXPECTED_ENVIRONMENT = {
     **V9_ENVIRONMENT,
+    "SPLASH_FLASH_MTP_DRAFT_DEPTH": "3",
+    "SPLASH_FLASH_QSA_OUT_F32_N32": "1",
     "SPLASH_FLASH_PLE_SSD_STREAMING": "1",
+    "SPLASH_FLASH_PREFILL_DENSE_TILES": "1",
+    "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY": "1",
+    "SPLASH_FLASH_QSA_BULK_PREFILL": "1",
+    "SPLASH_FLASH_QSA_BULK_PREFILL_SG8": "1",
 }
 V6_ENVIRONMENT = {
     key: value
@@ -191,20 +197,20 @@ class LocalProfileTests(unittest.TestCase):
         refresh.assert_not_called()
         return environment
 
-    def test_v10_profile_has_exact_metadata_and_39_static_defaults(self):
+    def test_v12_profile_has_exact_metadata_and_44_static_defaults(self):
         self.assertEqual(
             {key: value for key, value in launcher.LOCAL_PROFILE.items() if key != "environment"},
             {
                 "schema_version": 1,
-                "profile": "m5-ultra-flash-next-v10",
+                "profile": "m5-ultra-flash-next-v12",
                 "source_identity_sha256": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
                 "architecture": "qwen4_exp",
                 "cpu_brand": "Apple M5 Ultra",
                 "minimum_physical_ram_bytes": 256 * 1024**3,
             },
         )
-        self.assertEqual(len(EXPECTED_ENVIRONMENT), 39)
-        self.assertEqual(list(EXPECTED_ENVIRONMENT.values()).count("1"), 36)
+        self.assertEqual(len(EXPECTED_ENVIRONMENT), 44)
+        self.assertEqual(list(EXPECTED_ENVIRONMENT.values()).count("1"), 41)
         self.assertEqual(launcher.LOCAL_PROFILE["environment"], EXPECTED_ENVIRONMENT)
         self.assertNotIn("SPLASH_FLASH_GPU_PREFILL_COPY", launcher.LOCAL_PROFILE["environment"])
 
@@ -428,6 +434,15 @@ class LocalProfileTests(unittest.TestCase):
             ("SPLASH_FLASH_BATCH", "SPLASH_FLASH_BATCH_MTP"),
             ("SPLASH_FLASH_MTP", "SPLASH_FLASH_BATCH_MTP_PREFILL"),
             ("SPLASH_FLASH_BATCH_PREFILL", "SPLASH_FLASH_BATCH_MTP_PREFILL"),
+            ("SPLASH_FLASH_DENSE_CACHE", "SPLASH_FLASH_PREFILL_DENSE_TILES"),
+            ("SPLASH_FLASH_MTP", "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY"),
+            ("SPLASH_FLASH_QSA_F32", "SPLASH_FLASH_QSA_BULK_PREFILL"),
+            ("SPLASH_FLASH_QSA_MPP", "SPLASH_FLASH_QSA_BULK_PREFILL"),
+            ("SPLASH_FLASH_QSA_ROW_TILES", "SPLASH_FLASH_QSA_BULK_PREFILL"),
+            ("SPLASH_FLASH_QSA_BULK_PREFILL", "SPLASH_FLASH_QSA_BULK_PREFILL_SG8"),
+            ("SPLASH_FLASH_QSA_F32", "SPLASH_FLASH_QSA_BULK_PREFILL_SG8"),
+            ("SPLASH_FLASH_QSA_MPP", "SPLASH_FLASH_QSA_BULK_PREFILL_SG8"),
+            ("SPLASH_FLASH_QSA_ROW_TILES", "SPLASH_FLASH_QSA_BULK_PREFILL_SG8"),
         )
         shared_defaults = dict(EXPECTED_ENVIRONMENT)
         for parent, child in dependencies:

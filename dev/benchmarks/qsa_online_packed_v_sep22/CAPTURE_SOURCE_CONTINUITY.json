@@ -1,0 +1,112 @@
+{
+  "schema": "online-QSA-packed-V-oldB4-fixture-source-continuity-v1",
+  "pass": true,
+  "GPU_work": false,
+  "model_capture_payload_reads": 0,
+  "operand_payload_hashes_computed": 0,
+  "capture_manifest_metadata_only": "build/release/flash/sep22-batch-qsa-actual-B4-lane0-layer3-input-v1/manifest.json",
+  "old_fixture_scope": "old-restored-B4-lane0-layer3-begin0-rows2048-capacity16384-U32-0a383",
+  "canonical_B1_55cf_trajectory_claim": false,
+  "all5_cache_planes_reconstructed_from_original_fresh_prefix": true,
+  "sources": [
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/prefill4k_attention/bulk_attention_sg8.metal",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill4k_attention/bulk_attention_sg8.metal",
+      "sha256": "9f5a1da89e05a20b109330eaced63a645000a5728538c8e9cafc738ce9ae0905",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/prefill4k_attention/bulk.cpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill4k_attention/bulk.cpp",
+      "sha256": "cacd7129e7d4a76e279fdbcab870c117070952ff6929d0ee6f1c8d1e749e1cc7",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/prefill4k_attention/coalesced.cpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill4k_attention/coalesced.cpp",
+      "sha256": "9260d0b3c790a9b482a5905038ffcbb24c01eec3888a6d397a8abb07ba2f2c1b",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSA.cpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSA.cpp",
+      "sha256": "023f8040c835b5efcb7959ba537b62e7fbade79479052a244133963ecd0bfd24",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSAFast.cpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSAFast.cpp",
+      "sha256": "83112d76e54dcbf5b506e27f31346b5831f58a8c11606e8a45984ae23120be00",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSAMPP.cpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSAMPP.cpp",
+      "sha256": "10c33265515cbde04a0909b2ddfc3e3d989c66b60ac7bc04c8d18853fbc73258",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSA.hpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSA.hpp",
+      "sha256": "a0b56fae5ec3791206ffb889e59ac5b60c9e1b4bd928ac3a8158c3623f2e3536",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSAFast.hpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSAFast.hpp",
+      "sha256": "5f12c7c95ce7accc988342cf9d0cdbd832f569b1f194826b5e3a45d7fa7ac349",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashQSAMPP.hpp",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashQSAMPP.hpp",
+      "sha256": "cb5d057a41ee80ab97f92849c783366ade401b946d9c9ad88e0ee65c64e8061b",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/abi/FlashQSA.h",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/metal/abi/FlashQSA.h",
+      "sha256": "639bbae2882600a0a3bb9363870628997813cdcba6ea525434d909066aade443",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/abi/FlashQSAFast.h",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/metal/abi/FlashQSAFast.h",
+      "sha256": "a770a0d7324703cf1cb1088a8b62864d6be3a44fd3ee87d7f795ab35f90edd64",
+      "exact": true
+    }
+  ],
+  "AIRs": [
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/105-flash_qsa.air",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/original-air/055-105-flash_qsa.air",
+      "sha256": "a87353bd2a59f9d962c49de89a6fd49fd46d900bfd8a4193837bd193bfa936f9",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/106-flash_qsa_fast.air",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/original-air/056-106-flash_qsa_fast.air",
+      "sha256": "08a369d05ff6a91311007029fcdcea6064f6fab45e241f8d698410f3c5a84436",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/107-flash_qsa_mpp.air",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/original-air/057-107-flash_qsa_mpp.air",
+      "sha256": "d999804afefee8f7ceaa50a0d89469437503d319ad964eda73d58af821c75504",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/109-flash_qsa_row_tiles.air",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/original-air/059-109-flash_qsa_row_tiles.air",
+      "sha256": "134314d3612e6b9edebe456194330f89034cd4de7e9f5dab7b9350e9fbccb1f8",
+      "exact": true
+    },
+    {
+      "current": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/120-prefill4k_bulk_attention_sg8.air",
+      "old": "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/original-air/070-120-prefill4k_bulk_attention_sg8.air",
+      "sha256": "7e560b9b3e4c598fa04d3d061ec88b93ca20d705849b550e6390158d97a352d2",
+      "exact": true
+    }
+  ],
+  "qualification": "source continuity only; Root must authenticate payloads and compare original captured output before candidate qualification"
+}

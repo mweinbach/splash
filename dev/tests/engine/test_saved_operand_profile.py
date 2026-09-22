@@ -1,4 +1,4 @@
-"""CPU-only saved-weight gates, active v10 defaults, and historical review copies."""
+"""CPU-only saved-weight gates, active v12 defaults, and historical review copies."""
 
 import copy
 import hashlib
@@ -31,13 +31,27 @@ V7_NEW_DEFAULTS = {
 }
 V8_NEW_DEFAULTS = {"SPLASH_FLASH_MTP_Q8_BF16_REGISTER": "1"}
 V9_NEW_DEFAULTS = {"SPLASH_FLASH_IDLE_RESIDENCY_MAINTENANCE": "1"}
-V10_NEW_DEFAULTS = {"SPLASH_FLASH_PLE_SSD_STREAMING": "1"}
+V10_NEW_DEFAULTS = {
+    "SPLASH_FLASH_PLE_SSD_STREAMING": "1",
+    "SPLASH_FLASH_QSA_OUT_F32_N32": "1",
+}
+V11_NEW_DEFAULTS = {
+    "SPLASH_FLASH_PREFILL_DENSE_TILES": "1",
+    "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY": "1",
+}
+V12_NEW_DEFAULTS = {
+    "SPLASH_FLASH_QSA_BULK_PREFILL": "1",
+    "SPLASH_FLASH_QSA_BULK_PREFILL_SG8": "1",
+}
 V5_STATIC_ENVIRONMENT = {
     key: value for key, value in EXPECTED_ENVIRONMENT.items()
     if key not in V6_NEW_DEFAULTS and key not in V7_NEW_DEFAULTS
     and key not in V8_NEW_DEFAULTS and key not in V9_NEW_DEFAULTS
     and key not in V10_NEW_DEFAULTS
+    and key not in V11_NEW_DEFAULTS
+    and key not in V12_NEW_DEFAULTS
 }
+V5_STATIC_ENVIRONMENT["SPLASH_FLASH_MTP_DRAFT_DEPTH"] = "15"
 V6_DEPENDENCIES = {
     "SPLASH_FLASH_SHARED_EXPERT_FUSED": ("SPLASH_FLASH_DENSE_CACHE",),
     "SPLASH_FLASH_DENSE_M64_OUT": ("SPLASH_FLASH_DENSE_CACHE",),
@@ -259,7 +273,7 @@ class SavedOperandProfileTests(_SavedArtifactFixture):
                         self.defaults({})
                 path.write_bytes(original)
 
-    def test_historical_v7_review_copy_leaves_active_39_defaults_unchanged(self):
+    def test_historical_v7_review_copy_leaves_active_44_defaults_unchanged(self):
         original = copy.deepcopy(launcher.LOCAL_PROFILE)
         with mock.patch.dict(os.environ, {"TASK_SENTINEL": "keep"}, clear=True):
             candidate = self.candidate({})
@@ -278,9 +292,9 @@ class SavedOperandProfileTests(_SavedArtifactFixture):
             candidate["architecture"] = "changed"
             self.assertEqual(launcher.LOCAL_PROFILE, original)
             self.assertEqual(dict(os.environ), {"TASK_SENTINEL": "keep"})
-        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v10")
+        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v12")
         self.assertEqual(launcher.LOCAL_PROFILE["environment"], EXPECTED_ENVIRONMENT)
-        self.assertEqual(len(launcher.LOCAL_PROFILE["environment"]), 39)
+        self.assertEqual(len(launcher.LOCAL_PROFILE["environment"]), 44)
 
     def test_absent_saved_store_candidate_preserves_direct_a_default(self):
         self.store.rename(self.store.with_name("absent-original"))
@@ -380,8 +394,8 @@ class SavedOperandProfileTests(_SavedArtifactFixture):
             self.assertEqual(second["environment"]["SPLASH_FLASH_MTP"], "1")
             self.assertEqual(launcher.LOCAL_PROFILE, before)
             self.assertEqual(dict(os.environ), {"TASK_SENTINEL": "keep"})
-        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v10")
-        self.assertEqual(len(launcher.LOCAL_PROFILE["environment"]), 39)
+        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v12")
+        self.assertEqual(len(launcher.LOCAL_PROFILE["environment"]), 44)
         historical = launcher._local_profile_v5_candidate(self.package, {STORE_ENV: "0"})
         self.assertEqual(historical["profile"], "m5-ultra-flash-next-v5")
         self.assertEqual(historical["environment"], V5_STATIC_ENVIRONMENT)

@@ -1,0 +1,54 @@
+{
+  "schema": "R5-batch-prefill-routes-literal-source-propagation-proof-v1",
+  "pass": true,
+  "CPU_Source_only": true,
+  "GPU_executed": false,
+  "actual_response_report_or_model_payload_read": false,
+  "source_files": {
+    "runtime/flash/FlashBatchPrefill.cpp": {
+      "parent_sha256": "23f23ae363a5b8b3efbc1e55cae8ae5267e3a588059f9804d02fea69dddfb8b2",
+      "child_sha256": "23f23ae363a5b8b3efbc1e55cae8ae5267e3a588059f9804d02fea69dddfb8b2",
+      "byte_identical": true
+    },
+    "runtime/flash/FlashBatchPrefill.hpp": {
+      "parent_sha256": "71e6166bb8dfc1b7737661a0730ac6bdd706615f0f87d41a743fe81190df0060",
+      "child_sha256": "71e6166bb8dfc1b7737661a0730ac6bdd706615f0f87d41a743fe81190df0060",
+      "byte_identical": true
+    },
+    "runtime/flash/FlashGDNBatchILP.hpp": {
+      "parent_sha256": "aa71b008141d47d42a58daa8990a3738e052237c0ae18d20a93513d7d6756eb4",
+      "child_sha256": "aa71b008141d47d42a58daa8990a3738e052237c0ae18d20a93513d7d6756eb4",
+      "byte_identical": true
+    },
+    "runtime/flash/FlashBatchForward.cpp": {
+      "parent_sha256": "1bac260fa1c409017cde2a30ed986b34ba4cb14d2dd5057e43d524e60574d6ed",
+      "child_sha256": "1bac260fa1c409017cde2a30ed986b34ba4cb14d2dd5057e43d524e60574d6ed",
+      "byte_identical": true
+    },
+    "runtime/flash/FlashBatchVerify.cpp": {
+      "parent_sha256": "709f4415fd62bf19437c4259697013180d28973e93a213c1fa081af806a5314e",
+      "child_sha256": "709f4415fd62bf19437c4259697013180d28973e93a213c1fa081af806a5314e",
+      "byte_identical": true
+    }
+  },
+  "unchanged_objects_sha256": {
+    "host/004-FlashBatchPrefill.o": "2d3afba109d56cb6e85b5975a92ce2af632c82713eab3b98b23b894b75874726",
+    "host/008-FlashBatchForward.o": "39f5923d3ef0296d24b9a2536eeadf6f4555d0a52593a2d08d5f6555ae224b21",
+    "host/010-FlashBatchVerify.o": "19b9fc32018430b1ffc4331cffb63be4328dfb4808ff11b840065e27bdf80b2f"
+  },
+  "getter_literal": "std::string FlashBatchPrefill::kernelRoutes() const {\n  if (!impl_) throw std::logic_error(\"Flash batch prefill is not initialized\");\n  return std::string(kFlashBatchPrefillSemantics) + \":\" + impl_->sourceRoutes +\n      (impl_->batchGDNILP ? kFlashGDNBatchILPRoute : \"\");\n}",
+  "getter_sha256": "869bc146d350079500644fcd8ba0318312b47d8bee3ea9b383066d420b0fb575",
+  "getter_lines": {
+    "constructor_capture": 136,
+    "getter": 252,
+    "source_trunk_unchanged_assertion": 283
+  },
+  "prefix": "native-flash-uniform-real-lane-prefill-shared-source-project-v1:",
+  "optional_ILP_suffix": ";gdn-batch-prefill-uniform-b2to4-r512plus-v32-t32-sg8-f32-separate-states",
+  "R5_marker_prefix": ";private-singleton-main-R5-integer-only-original-M16-sourceSha256=",
+  "R5_source_identity_sha256": "4bb7b637c2b6b60520159ad3724a8d9e3867c7c538dd8d260caa4fc7d184769a",
+  "interpretation": "Batch-prefill getter displays the exact captured Forward route string; the new singleton verification marker propagates through that display getter. Batch execution source and objects are unchanged and have no R5 setup/counter references.",
+  "actual_R5_eligibility": "enabled && verification && singleton && rows==5",
+  "comparison_scope": "Allow removal of exact one authenticated R5 marker from both main and batch-prefill display getters after validating prefix+fullmainroutes+samefixedsuffix relation. Keep all other identity fields; engine_instance_id is the separate known process difference.",
+  "performance_or_semantic_admission_claim": false
+}

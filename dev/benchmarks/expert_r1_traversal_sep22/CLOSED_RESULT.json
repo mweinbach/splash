@@ -1,0 +1,82 @@
+{
+  "schema": "R1-native-axis-traversal-closed-result-v1",
+  "status": "closed-performance-loss",
+  "Root_GPU_job": 80077,
+  "report": {
+    "path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-expert-r1-native-axis-traversal-layer0-ten-expert-v1.json",
+    "sha256": "df3e76b413b71638a4cbf2176e2879b8976444c82321b97b408e08e12d185515",
+    "schema": "expert-r1-traversal-component-v1",
+    "exact_qualification_pass": true
+  },
+  "program": {
+    "build": "/Users/mweinbach/Projects/splash/build/expert-r1-traversal-sep22-component-v1",
+    "source_identity_sha256": "2e8ad1c3bac45c720fdfa48ec97fb02ae3f4e5f70640133eb850a8c681018f38",
+    "CPU_READY_sha256": "5e6d6d05ab2f2c4da8d03aa05863c4c0e182a3a194d1ca20dcf27bb07cd2781a",
+    "original_gathered_AIR_sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+    "component_metallib_sha256": "e6a4a9ad29acffe00e7d3ecb9942b16777ae759b56cfc16ffb510113edab8cdb",
+    "external_registration_sha256": "7bf61ef8144217ee85126a36c4d5959217fa6f3cae8a139e5c1162ba9edaec68"
+  },
+  "fixture": {
+    "layer": 0,
+    "original_expert_base": 0,
+    "original_distinct_experts": 10,
+    "packed_ranks": "0..9",
+    "Root_coefficient_payload_bytes": 49305600,
+    "synthetic_normalized_R1_input": true,
+    "actual_current_causal_capture": false,
+    "hot_primitive_only": true,
+    "warm_GPU_ms_each_variant_each_component_atleast": 150,
+    "balanced_sample_pairs_each_component": 18
+  },
+  "quality": {
+    "all_raw_scaled_F32_BF16_gate_up_SwiGLU_down_exact": true,
+    "GU_completion_cells": 100,
+    "down_completion_cells": 400,
+    "original_numeric_gates_preserved": true,
+    "bounds_diagnostics_canaries_alias_immutability_replay_pass": true
+  },
+  "components": [
+    {
+      "kind": "GU-only",
+      "control_GPU_median_ms": 0.05512498319149017,
+      "candidate_GPU_median_ms": 0.056750024668872356,
+      "control_over_candidate_ratio": 0.9713649203350299,
+      "candidate_time_increase_percent": 2.947921946274712
+    },
+    {
+      "kind": "down-SAME-frozen-activation",
+      "control_GPU_median_ms": 0.016666657757014036,
+      "candidate_GPU_median_ms": 0.018000020645558834,
+      "control_over_candidate_ratio": 0.9259243689326667,
+      "candidate_time_increase_percent": 8.000181607999135
+    },
+    {
+      "kind": "two-dispatch-ownchain",
+      "control_GPU_median_ms": 0.07164583075791597,
+      "candidate_GPU_median_ms": 0.07500004721805453,
+      "control_over_candidate_ratio": 0.9552771420211705,
+      "candidate_time_increase_percent": 4.6816631542345055
+    }
+  ],
+  "allocation": {
+    "planned_bytes": 134217728,
+    "actual_owned_delta_bytes": 55459840,
+    "peak_owned_delta_bytes": 55459840,
+    "current_device_delta_bytes": 55721984,
+    "peak_device_delta_bytes": 55721984,
+    "after_fixture_owned_delta_bytes": 0,
+    "denied_reservations": 0,
+    "host_reserve_bytes": 27487790694,
+    "host_measurement_valid": true,
+    "growth_allowed": true
+  },
+  "backend_stopped_and_destroyed_after_zero_owned_ledger": true,
+  "decision": {
+    "standard_worker_build_admitted": false,
+    "standard_model_timing_admitted": false,
+    "promotion_admitted": false,
+    "repeat_other_layers_or_patterns_without_new_evidence": false,
+    "reason": "All three required hot primitive components regressed; no further axis-permutation qualification or integration is justified."
+  },
+  "agent_GPU_or_model_capture_coefficient_payload_reads": 0
+}

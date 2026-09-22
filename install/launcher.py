@@ -40,7 +40,7 @@ BASE_URL = f"http://127.0.0.1:{PORT}"
 LOCAL_SCHEMA = "splash-local-qwen4-affine-v1"
 LOCAL_PROFILE = {
     "schema_version": 1,
-    "profile": "m5-ultra-flash-next-v10",
+    "profile": "m5-ultra-flash-next-v12",
     "source_identity_sha256": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
     "architecture": "qwen4_exp",
     "cpu_brand": "Apple M5 Ultra",
@@ -51,10 +51,12 @@ LOCAL_PROFILE = {
         "SPLASH_FLASH_FUSE_GDN": "1",
         "SPLASH_FLASH_QSA_F32": "1",
         "SPLASH_FLASH_DENSE_CACHE": "1",
+        "SPLASH_FLASH_PREFILL_DENSE_TILES": "1",
         "SPLASH_FLASH_BLOCKED_MOE": "1",
         "SPLASH_FLASH_PREFILL_ROWS": "2048",
         "SPLASH_FLASH_BATCH": "1",
         "SPLASH_FLASH_MTP": "1",
+        "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY": "1",
         "SPLASH_FLASH_EXPERT_QMV": "1",
         "SPLASH_FLASH_GDN_STAGED": "1",
         "SPLASH_FLASH_QSA_MPP": "1",
@@ -68,13 +70,16 @@ LOCAL_PROFILE = {
         "SPLASH_FLASH_BATCH_PREFILL": "1",
         "SPLASH_FLASH_BATCH_MTP_PREFILL": "1",
         "SPLASH_FLASH_BATCH_PREFILL_ROWS": "2048",
-        "SPLASH_FLASH_MTP_DRAFT_DEPTH": "15",
+        "SPLASH_FLASH_MTP_DRAFT_DEPTH": "3",
         "SPLASH_FLASH_PLE_LOOKUP_FUSED": "1",
         "SPLASH_FLASH_PLE_POST_FUSED": "1",
         "SPLASH_FLASH_GPU_GREEDY": "1",
         "SPLASH_FLASH_INT8_HEAD": "1",
         "SPLASH_FLASH_MOE_DIRECT_A": "1",
         "SPLASH_FLASH_QSA_ROW_TILES": "1",
+        "SPLASH_FLASH_QSA_BULK_PREFILL": "1",
+        "SPLASH_FLASH_QSA_BULK_PREFILL_SG8": "1",
+        "SPLASH_FLASH_QSA_OUT_F32_N32": "1",
         "SPLASH_FLASH_SAVED_OPERANDS_RESIDENT": "1",
         "SPLASH_FLASH_SHARED_EXPERT_FUSED": "1",
         "SPLASH_FLASH_DENSE_M64_OUT": "1",
@@ -87,6 +92,82 @@ LOCAL_PROFILE = {
         "SPLASH_FLASH_PLE_SSD_STREAMING": "1",
     },
 }
+
+# Measured September22 selection. LOCAL_PROFILE remains the historicalv12.
+LOCAL_PROFILE_V13 = {'schema_version': 1,
+ 'profile': 'm5-ultra-flash-next-v13',
+ 'source_identity_sha256': 'ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e',
+ 'architecture': 'qwen4_exp',
+ 'cpu_brand': 'Apple M5 Ultra',
+ 'minimum_physical_ram_bytes': 274877906944,
+ 'environment': {'SPLASH_FLASH_ADAPTIVE_EXPERT_TAIL_SG2K128_SEP21': '1',
+                 'SPLASH_FLASH_ALLROWS_FULL512_TARGET': '1',
+                 'SPLASH_FLASH_ALLROWS_GATHERED_MPP': '1',
+                 'SPLASH_FLASH_ALLROWS_GATHERED_MPP_MAX_ROWS': '4',
+                 'SPLASH_FLASH_BATCH': '1',
+                 'SPLASH_FLASH_BATCH_MTP': '1',
+                 'SPLASH_FLASH_BATCH_MTP_PREFILL': '1',
+                 'SPLASH_FLASH_BATCH_PREFILL': '1',
+                 'SPLASH_FLASH_BATCH_PREFILL_ROWS': '2048',
+                 'SPLASH_FLASH_BLOCKED_MOE': '1',
+                 'SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22': '1',
+                 'SPLASH_FLASH_DENSE_CACHE': '1',
+                 'SPLASH_FLASH_DENSE_M64_OUT': '1',
+                 'SPLASH_FLASH_DENSE_W8A8_PREFILL_SEP21': '1',
+                 'SPLASH_FLASH_EXPERT_QMV': '1',
+                 'SPLASH_FLASH_FLOAT_DENSE_CACHE': '1',
+                 'SPLASH_FLASH_FLOAT_DENSE_SELECTIVE': '1',
+                 'SPLASH_FLASH_FUSE_GDN': '1',
+                 'SPLASH_FLASH_FUSE_HC': '1',
+                 'SPLASH_FLASH_GDN_AB_MERGE_SEP21': '1',
+                 'SPLASH_FLASH_GDN_BATCH_ILP': '1',
+                 'SPLASH_FLASH_GDN_LAZY_ROLLBACK': '1',
+                 'SPLASH_FLASH_GDN_PREFILL_FMA_SEP21': '1',
+                 'SPLASH_FLASH_GDN_STAGED': '1',
+                 'SPLASH_FLASH_GPU_GREEDY': '1',
+                 'SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22': '1',
+                 'SPLASH_FLASH_HC_UP_F32_MPP': '1',
+                 'SPLASH_FLASH_IDLE_RESIDENCY_MAINTENANCE': '0',
+                 'SPLASH_FLASH_INT8_HEAD': '1',
+                 'SPLASH_FLASH_MOE_DIRECT_A': '1',
+                 'SPLASH_FLASH_MOE_M64': '1',
+                 'SPLASH_FLASH_MOE_POINTWISE_SEP21': '1',
+                 'SPLASH_FLASH_MOE_Q4X8': '1',
+                 'SPLASH_FLASH_MTP': '1',
+                 'SPLASH_FLASH_MTP_DRAFT_DEPTH': '4',
+                 'SPLASH_FLASH_MTP_Q8_BF16_REGISTER': '1',
+                 'SPLASH_FLASH_MTP_QMV_F32': '1',
+                 'SPLASH_FLASH_MTP_QSA_F32': '1',
+                 'SPLASH_FLASH_MTP_QSA_MPP': '1',
+                 'SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY': '1',
+                 'SPLASH_FLASH_ORIGINAL_TEXT_RESIDENT': '0',
+                 'SPLASH_FLASH_PLE_LOOKUP_FUSED': '1',
+                 'SPLASH_FLASH_PLE_POST_FUSED': '1',
+                 'SPLASH_FLASH_PLE_SSD_STREAMING': '1',
+                 'SPLASH_FLASH_PREFILL_DENSE_TILES': '1',
+                 'SPLASH_FLASH_PREFILL_HC_INJECT_NORM_SEP21': '1',
+                 'SPLASH_FLASH_PREFILL_MOE_SEP21_VARIANT': '7',
+                 'SPLASH_FLASH_PREFILL_QSA_TWOPASS_SEP21': '1',
+                 'SPLASH_FLASH_PREFILL_ROWS': '2048',
+                 'SPLASH_FLASH_QMV_F32': '1',
+                 'SPLASH_FLASH_QSA_BULK_PREFILL': '1',
+                 'SPLASH_FLASH_QSA_BULK_PREFILL_SG8': '1',
+                 'SPLASH_FLASH_QSA_F32': '1',
+                 'SPLASH_FLASH_QSA_MPP': '1',
+                 'SPLASH_FLASH_QSA_OUT_F32_N32': '1',
+                 'SPLASH_FLASH_QSA_ROW_TILES': '1',
+                 'SPLASH_FLASH_SAVED_OPERANDS_RESIDENT': '1',
+                 'SPLASH_FLASH_SHARED_EXPERT_FUSED': '1',
+                 'SPLASH_FLASH_SINGLETON_TEACHER_BULK2048_SEP21': '1',
+                 'SPLASH_FLASH_TEACHER_BULK_QA_PAUSE_MS': '0',
+                 'SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22': '1',
+                 'SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22': '1',
+                 'SPLASH_FLASH_RAW_Q4_ROWPAIR_VERIFY_SEP22': '1',
+                 'SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22': '1'},
+ 'runtime': {'relative_path': 'build/R5-integer-currentQ4-fixed4-sep22-worker-v2/splash-flash',
+             'executable_sha256': '6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68',
+             'metallib_sha256': 'dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6'},
+ 'serving': {'default_max_context_tokens': 16384}}
 
 # Optional artifacts are selected dynamically after the local profile passes
 # its source/model/hardware gate. Static defaults never force a missing path.
@@ -104,6 +185,14 @@ LOCAL_SAVED_INT8_EXPERT_QUALIFICATION = {
     "selected_experts_per_layer": 64,
     "minimum_physical_ram_bytes": 256 * 1024**3,
 }
+LOCAL_FULL512_EXPERT_QUALIFICATION = {
+    "relative_path": "build/prefill4k-fullcache-artifacts/int8-experts-all512-v1",
+    "manifest_sha256": "ba22514a30a41d5ddc734ad0aea0a67ce527a3a5c22b95031c1c5810972363f1",
+    "plan_sha256": "eb3d74a2d1bc7a356f0ee1e95c3d73186d452b9759501803805f876ea2acf0be",
+    "selected_experts_per_layer": 512,
+    "minimum_physical_ram_bytes": 256 * 1024**3,
+}
+
 _LOCAL_HARDWARE_NOT_PROBED = object()
 
 
@@ -443,8 +532,21 @@ def _apply_local_profile_defaults(environment, defaults):
     dependencies = {
         "SPLASH_FLASH_QSA_MPP": ("SPLASH_FLASH_QSA_F32",),
         "SPLASH_FLASH_QSA_ROW_TILES": ("SPLASH_FLASH_QSA_MPP", "SPLASH_FLASH_QSA_F32"),
+        "SPLASH_FLASH_QSA_BULK_PREFILL": (
+            "SPLASH_FLASH_QSA_F32", "SPLASH_FLASH_QSA_MPP", "SPLASH_FLASH_QSA_ROW_TILES",
+        ),
+        # Merger does not recurse through suppressed defaults, so SG8 lists
+        # the bulk flag and each original explicit prerequisite directly.
+        "SPLASH_FLASH_QSA_BULK_PREFILL_SG8": (
+            "SPLASH_FLASH_QSA_BULK_PREFILL", "SPLASH_FLASH_QSA_F32",
+            "SPLASH_FLASH_QSA_MPP", "SPLASH_FLASH_QSA_ROW_TILES",
+        ),
         "SPLASH_FLASH_MTP_QSA_MPP": ("SPLASH_FLASH_MTP_QSA_F32",),
         "SPLASH_FLASH_FLOAT_DENSE_SELECTIVE": (
+            "SPLASH_FLASH_FLOAT_DENSE_CACHE",
+            "SPLASH_FLASH_QMV_F32",
+        ),
+        "SPLASH_FLASH_QSA_OUT_F32_N32": (
             "SPLASH_FLASH_FLOAT_DENSE_CACHE",
             "SPLASH_FLASH_QMV_F32",
         ),
@@ -455,6 +557,8 @@ def _apply_local_profile_defaults(environment, defaults):
         ),
         "SPLASH_FLASH_SHARED_EXPERT_FUSED": ("SPLASH_FLASH_DENSE_CACHE",),
         "SPLASH_FLASH_DENSE_M64_OUT": ("SPLASH_FLASH_DENSE_CACHE",),
+        "SPLASH_FLASH_PREFILL_DENSE_TILES": ("SPLASH_FLASH_DENSE_CACHE",),
+        "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY": ("SPLASH_FLASH_MTP",),
         "SPLASH_FLASH_GDN_BATCH_ILP": (
             "SPLASH_FLASH_GDN_STAGED",
             "SPLASH_FLASH_BATCH_PREFILL",
@@ -495,12 +599,52 @@ def _apply_local_profile_defaults(environment, defaults):
             environment.get(parent) == "0" for parent in parents
         ):
             adjusted[child] = "0"
+    if "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22" in defaults:
+        _adjust_v13_implied_defaults(environment, adjusted)
     # Path-valued implied defaults are removed when disabled, rather than
     # assigning "0" as a filesystem path. An explicit caller path survives.
     if environment.get("SPLASH_FLASH_BLOCKED_MOE") == "0":
         adjusted.pop("SPLASH_FLASH_INT8_EXPERT_STORE", None)
     for key, value in adjusted.items():
         environment.setdefault(key, value)
+
+
+def _adjust_v13_implied_defaults(environment, adjusted):
+    """Suppress only measured-profile defaults; explicit contradictions survive."""
+    r5 = "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22"
+    teacher = "SPLASH_FLASH_SINGLETON_TEACHER_BULK2048_SEP21"
+    effective = lambda key: environment.get(key, adjusted.get(key))
+    if effective("SPLASH_FLASH_MTP_DRAFT_DEPTH") != "4":
+        adjusted[r5] = "0"
+        adjusted[teacher] = "0"
+    if effective("SPLASH_FLASH_ALLROWS_GATHERED_MPP_MAX_ROWS") != "4":
+        adjusted[r5] = "0"
+    parents = {
+        r5: ("SPLASH_FLASH_MTP", "SPLASH_FLASH_ALLROWS_FULL512_TARGET", "SPLASH_FLASH_BLOCKED_MOE",
+             "SPLASH_FLASH_MOE_DIRECT_A", "SPLASH_FLASH_MOE_Q4X8", "SPLASH_FLASH_ALLROWS_GATHERED_MPP"),
+        teacher: ("SPLASH_FLASH_MTP", "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY", "SPLASH_FLASH_DENSE_CACHE",
+                  "SPLASH_FLASH_MTP_QSA_F32", "SPLASH_FLASH_MTP_QSA_MPP"),
+        "SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22": (
+            "SPLASH_FLASH_ALLROWS_FULL512_TARGET", "SPLASH_FLASH_BLOCKED_MOE", "SPLASH_FLASH_MOE_DIRECT_A",
+            "SPLASH_FLASH_MOE_Q4X8", "SPLASH_FLASH_ALLROWS_GATHERED_MPP"),
+        "SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22": ("SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22",),
+        "SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22": ("SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22",
+            "SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22", "SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22"),
+        "SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22": ("SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22",
+            "SPLASH_FLASH_HC_UP_F32_MPP", "SPLASH_FLASH_FUSE_HC", "SPLASH_FLASH_FLOAT_DENSE_CACHE"),
+        "SPLASH_FLASH_RAW_Q4_ROWPAIR_VERIFY_SEP22": ("SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22",
+            "SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22", "SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22",
+            "SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22", "SPLASH_FLASH_ALLROWS_FULL512_TARGET",
+            "SPLASH_FLASH_QMV_F32", "SPLASH_FLASH_FLOAT_DENSE_CACHE", "SPLASH_FLASH_FLOAT_DENSE_SELECTIVE"),
+    }
+    for _ in range(len(parents)):
+        changed = False
+        for child, prerequisites in parents.items():
+            if child not in environment and adjusted.get(child) != "0" and any(effective(p) == "0" for p in prerequisites):
+                adjusted[child] = "0"
+                changed = True
+        if not changed:
+            break
 
 
 def _saved_operand_metadata(path):
@@ -574,7 +718,7 @@ def _qualified_saved_operand_defaults(package, environment=None):
 
 
 def _qualified_saved_int8_expert_defaults(
-    package, environment=None, *, hardware=_LOCAL_HARDWARE_NOT_PROBED
+    package, environment=None, *, hardware=_LOCAL_HARDWARE_NOT_PROBED, qualification=None
 ):
     """Prepare one optional expert store; never activate it or scan payloads.
 
@@ -588,7 +732,7 @@ def _qualified_saved_int8_expert_defaults(
         "SPLASH_FLASH_BLOCKED_MOE", LOCAL_PROFILE["environment"].get("SPLASH_FLASH_BLOCKED_MOE")
     ) != "1":
         return {}
-    qualification = LOCAL_SAVED_INT8_EXPERT_QUALIFICATION
+    qualification = LOCAL_SAVED_INT8_EXPERT_QUALIFICATION if qualification is None else qualification
     store = ROOT / qualification["relative_path"]
     if not store.exists() and not store.is_symlink():
         return {}
@@ -679,6 +823,7 @@ def _local_profile_v5_candidate(package, environment=None):
         "minimum_physical_ram_bytes": 192 * 1024**3,
         "environment": {
             **LOCAL_PROFILE["environment"],
+            "SPLASH_FLASH_MTP_DRAFT_DEPTH": "15",
             "SPLASH_FLASH_MOE_DIRECT_A": "1",
             "SPLASH_FLASH_QSA_ROW_TILES": "1",
             "SPLASH_FLASH_SAVED_OPERANDS_RESIDENT": "1",
@@ -694,6 +839,11 @@ def _local_profile_v5_candidate(package, environment=None):
         "SPLASH_FLASH_MTP_Q8_BF16_REGISTER",
         "SPLASH_FLASH_IDLE_RESIDENCY_MAINTENANCE",
         "SPLASH_FLASH_PLE_SSD_STREAMING",
+        "SPLASH_FLASH_QSA_OUT_F32_N32",
+        "SPLASH_FLASH_PREFILL_DENSE_TILES",
+        "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY",
+        "SPLASH_FLASH_QSA_BULK_PREFILL",
+        "SPLASH_FLASH_QSA_BULK_PREFILL_SG8",
     ):
         profile["environment"].pop(key, None)
     profile["environment"].update(_qualified_saved_operand_defaults(package, environment))
@@ -748,22 +898,69 @@ def _local_profile_v9_candidate(package, environment=None):
     return profile
 
 
-def _local_profile_v10_candidate(package, environment=None):
-    """Return the SSD-placement review copy without activating defaults."""
+def _local_profile_v10_placement_candidate(package, environment=None):
+    """Retain the original 39-flag SSD-placement snapshot with draft depth 15."""
     profile = _local_profile_v9_candidate(package, environment)
     profile["profile"] = "m5-ultra-flash-next-v10"
     profile["environment"]["SPLASH_FLASH_PLE_SSD_STREAMING"] = "1"
     return profile
 
 
+def _local_profile_v10_candidate(package, environment=None):
+    """Return the preceding accepted 40-flag depth-3/N32 review snapshot."""
+    profile = _local_profile_v10_placement_candidate(package, environment)
+    profile["environment"].update({
+        "SPLASH_FLASH_MTP_DRAFT_DEPTH": "3",
+        "SPLASH_FLASH_QSA_OUT_F32_N32": "1",
+    })
+    return profile
+
+
+def _local_profile_v11_candidate(package, environment=None):
+    """Preserve the preceding accepted42-flag safe-prefill depth3 snapshot."""
+    profile = _local_profile_v10_candidate(package, environment)
+    profile["profile"] = "m5-ultra-flash-next-v11"
+    profile["environment"].update({
+        "SPLASH_FLASH_MTP_TEACHER_CACHE_ONLY": "1",
+        "SPLASH_FLASH_PREFILL_DENSE_TILES": "1",
+    })
+    return profile
+
+
+class _QualifiedLocalDefaults(dict):
+    def __init__(self, environment, profile):
+        super().__init__(environment)
+        self.profile = profile
+
+
+def _qualified_v13_runtime(profile):
+    """Use the measured existing pair; never build it from production source."""
+    runtime = profile["runtime"]
+    binary = ROOT / runtime["relative_path"]
+    for artifact, expected in ((binary, runtime["executable_sha256"]),
+                               (binary.with_name("splash.metallib"), runtime["metallib_sha256"])):
+        if artifact.is_symlink() or not artifact.is_file() or hashlib.sha256(artifact.read_bytes()).hexdigest() != expected:
+            raise LauncherError(f"selected v13 runtime is missing or changed: {artifact}; restore the qualified pair")
+    if not paths.PYTHON.is_file():
+        raise LauncherError("selected v13 runtime requires the installed Python environment")
+    return binary
+
+
 def _local_profile_defaults(package):
     """Apply only the known, measured local profile; no remote model roster."""
     try:
         profile = model_artifacts.read_json(ROOT / ".splash-local-profile.json")
+    except (model_artifacts.ModelError, OSError, ValueError):
+        return {}
+    if not isinstance(profile, dict) or not isinstance(profile.get("profile"), str):
+        return {}
+    if profile["profile"].startswith(LOCAL_PROFILE_V13["profile"]) and profile != LOCAL_PROFILE_V13:
+        raise LauncherError("selected v13 profile differs from the measured configuration")
+    try:
         if (
             type(profile.get("schema_version")) is not int
             or type(profile.get("minimum_physical_ram_bytes")) is not int
-            or profile != LOCAL_PROFILE
+            or profile not in (LOCAL_PROFILE, LOCAL_PROFILE_V13)
         ):
             return {}
         manifest = local_bundle_manifest(package)
@@ -796,8 +993,16 @@ def _local_profile_defaults(package):
     # explicit caller choices and use the same source/layout witness; malformed
     # present artifacts propagate an error rather than silently losing defaults.
     defaults.update(_qualified_saved_operand_defaults(package, os.environ))
-    defaults.update(_qualified_saved_int8_expert_defaults(package, os.environ, hardware=hardware))
-    return defaults
+    if profile == LOCAL_PROFILE_V13:
+        defaults.update(_qualified_saved_int8_expert_defaults(
+            package, os.environ, hardware=hardware, qualification=LOCAL_FULL512_EXPERT_QUALIFICATION))
+        if "SPLASH_FLASH_INT8_EXPERT_STORE" not in os.environ and os.environ.get("SPLASH_FLASH_BLOCKED_MOE") != "0" and "SPLASH_FLASH_INT8_EXPERT_STORE" not in defaults:
+            raise LauncherError("selected v13 requires its qualified Full512 expert store")
+        if "SPLASH_FLASH_OPERAND_STORE" not in os.environ and "SPLASH_FLASH_OPERAND_STORE" not in defaults:
+            raise LauncherError("selected v13 requires its qualified saved operand store")
+    else:
+        defaults.update(_qualified_saved_int8_expert_defaults(package, os.environ, hardware=hardware))
+    return _QualifiedLocalDefaults(defaults, profile)
 
 
 def _serve_lock_owner(lock):
@@ -854,13 +1059,16 @@ def serve(args):
                 ) from None
         local = args.local_model is not None or args.local_package is not None
         if local:
-            binary = ROOT / (
+            root = _ensure_local_installed(args.local_model, args.local_package)
+            defaults = _local_profile_defaults(root)
+            selected_profile = getattr(defaults, "profile", None)
+            binary = _qualified_v13_runtime(selected_profile) if selected_profile == LOCAL_PROFILE_V13 else ROOT / (
                 "engine/splash-flash"
                 if paths.PACKAGED
                 else "build/flash-next/splash-flash"
             )
-            _ensure_local_runtime(binary)
-            root = _ensure_local_installed(args.local_model, args.local_package)
+            if selected_profile != LOCAL_PROFILE_V13:
+                _ensure_local_runtime(binary)
             model_arguments = ["--local-package", str(root), "--tokenizer", str(root)]
         else:
             _ensure_installed(args.model)
@@ -886,7 +1094,9 @@ def serve(args):
             "--max-memory",
             "auto" if args.max_memory is None else str(args.max_memory),
             "--max-context",
-            "auto" if args.max_context is None else str(args.max_context),
+            str(selected_profile["serving"]["default_max_context_tokens"])
+            if local and selected_profile == LOCAL_PROFILE_V13 and args.max_context is None
+            else "auto" if args.max_context is None else str(args.max_context),
         ]
         if args.max_image_pixels is not None:
             command.extend(["--max-image-pixels", str(args.max_image_pixels)])
@@ -898,7 +1108,6 @@ def serve(args):
             os.environ, PYTHONUNBUFFERED="1", TRANSFORMERS_VERBOSITY="error"
         )
         if local:
-            defaults = _local_profile_defaults(root)
             _apply_local_profile_defaults(environment, defaults)
             # Explicit placement choices override the qualified local profile.
             if args.ple_ssd_streaming is not None:
@@ -914,7 +1123,7 @@ def serve(args):
                     )
                 environment["SPLASH_FLASH_PLE_SSD_CACHE_MB"] = str(args.ple_ssd_cache_mb)
             if defaults:
-                print(f"Local runtime profile · {LOCAL_PROFILE['profile']}", flush=True)
+                print(f"Local runtime profile · {(selected_profile or LOCAL_PROFILE)['profile']}", flush=True)
         if args.api_key is not None:
             environment["SPLASH_API_KEY"] = args.api_key
         # Detached, because execve replaces this process a line later and a

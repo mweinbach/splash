@@ -17,6 +17,7 @@ FLASH_CPP_SOURCES := runtime/flash/FlashAffine.cpp runtime/flash/FlashHC.cpp \
 	runtime/flash/FlashMoEBlocked.cpp runtime/flash/FlashQSAFast.cpp \
 	runtime/flash/FlashGDNSeparate.cpp runtime/flash/FlashMTPDepth.cpp \
 	runtime/flash/FlashQSAMPP.cpp runtime/flash/FlashDenseSmallRows.cpp \
+	runtime/flash/FlashQSABulk.cpp runtime/flash/FlashQSABulkPrepare.cpp \
 	runtime/flash/FlashBatchVerify.cpp runtime/flash/FlashBatchVerifyGDN.cpp \
 	runtime/flash/FlashBatchMTPForward.cpp runtime/flash/FlashGDNStaged.cpp \
 	runtime/flash/FlashExpertDenseCache.cpp runtime/flash/FlashFloatDenseCache.cpp \

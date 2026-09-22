@@ -1,0 +1,25 @@
+# Independent occupancy/bank-stride build. Never creates or executes a GPU.
+GDN_OCC_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
+GDN_OCC_SOURCE := $(GDN_OCC_ROOT)/dev/benchmarks/gdn_chunk_sep21
+GDN_OCC_BUILD ?= $(GDN_OCC_ROOT)/build/gdn-occupancy-sep21
+GDN_OCC_CXX := xcrun -sdk macosx clang++
+GDN_OCC_FLAGS := -std=c++20 -O3 -ffp-contract=off -fno-fast-math -Wall -Wextra -Werror -Wno-deprecated-declarations -I$(GDN_OCC_ROOT)/runtime -mmacosx-version-min=27.0
+GDN_OCC_METALFLAGS := -std=metal4.1 -O3 -Wall -Wextra -Werror -I$(GDN_OCC_ROOT)/runtime -mmacosx-version-min=27.0
+.PHONY: all
+all: $(GDN_OCC_BUILD)/metal-oracle-occupancy $(GDN_OCC_BUILD)/metal-oracle-prepared-occupancy $(GDN_OCC_BUILD)/gdn-occupancy.metallib $(GDN_OCC_BUILD)/gdn-prepared-occupancy.metallib
+$(GDN_OCC_BUILD):
+	mkdir -p $@
+$(GDN_OCC_BUILD)/cpu-oracle.o: $(GDN_OCC_SOURCE)/cpu_oracle.cpp $(GDN_OCC_SOURCE)/cpu_oracle.hpp | $(GDN_OCC_BUILD)
+	$(GDN_OCC_CXX) $(GDN_OCC_FLAGS) -DGDN_CPU_ORACLE_NO_MAIN -c $< -o $@
+$(GDN_OCC_BUILD)/metal-oracle-occupancy: $(GDN_OCC_SOURCE)/metal_oracle_occupancy.mm $(GDN_OCC_SOURCE)/cpu_oracle.hpp $(GDN_OCC_BUILD)/cpu-oracle.o
+	$(GDN_OCC_CXX) $(GDN_OCC_FLAGS) -fobjc-arc $< $(GDN_OCC_BUILD)/cpu-oracle.o -framework Foundation -framework Metal -o $@
+$(GDN_OCC_BUILD)/metal-oracle-prepared-occupancy: $(GDN_OCC_SOURCE)/metal_oracle_prepared_occupancy.mm $(GDN_OCC_SOURCE)/cpu_oracle.hpp $(GDN_OCC_BUILD)/cpu-oracle.o
+	$(GDN_OCC_CXX) $(GDN_OCC_FLAGS) -fobjc-arc $< $(GDN_OCC_BUILD)/cpu-oracle.o -framework Foundation -framework Metal -o $@
+$(GDN_OCC_BUILD)/%.air: $(GDN_OCC_SOURCE)/%.metal $(GDN_OCC_ROOT)/runtime/metal/abi/FlashGDN.h | $(GDN_OCC_BUILD)
+	xcrun -sdk macosx metal $(GDN_OCC_METALFLAGS) -c $< -o $@
+$(GDN_OCC_BUILD)/canonical.air: $(GDN_OCC_ROOT)/runtime/metal/kernels/shared/flash_gdn_staged.metal $(GDN_OCC_ROOT)/runtime/metal/abi/FlashGDN.h | $(GDN_OCC_BUILD)
+	xcrun -sdk macosx metal $(GDN_OCC_METALFLAGS) -c $< -o $@
+$(GDN_OCC_BUILD)/gdn-occupancy.metallib: $(GDN_OCC_BUILD)/occupancy.air $(GDN_OCC_BUILD)/canonical.air
+	xcrun -sdk macosx metallib $^ -o $@
+$(GDN_OCC_BUILD)/gdn-prepared-occupancy.metallib: $(GDN_OCC_BUILD)/prepared_occupancy.air $(GDN_OCC_BUILD)/canonical.air
+	xcrun -sdk macosx metallib $^ -o $@

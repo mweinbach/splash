@@ -1,0 +1,29 @@
+{
+  "schema": "original-online-packedV-host-source-ready-v1",
+  "source_ready": true,
+  "compiled": false,
+  "GPU_work": false,
+  "model_tensor_capture_payload_reads": 0,
+  "authorized_capture_metadata_only_read": true,
+  "capture_manifest_sha256": "135a73ac1edef19dabae195e09fed6d099c58def2bff06affc51f546f4183225",
+  "sources": [
+    {
+      "path": "dev/benchmarks/qsa_online_packed_v_sep22/host/ABI.hpp",
+      "sha256": "106bdd8b0b961e266c94ffe7683575d2737a03684cdf4f0219931491ead8eac6"
+    },
+    {
+      "path": "dev/benchmarks/qsa_online_packed_v_sep22/host/PLAN.md",
+      "sha256": "681b4817ec112629a1998148ca504aef5680de58929b31503cdc134948bf0bc3"
+    },
+    {
+      "path": "dev/benchmarks/qsa_online_packed_v_sep22/host/oracle.mm",
+      "sha256": "2e894e3672e602402d4db73936b75b999d1abb456992b3ce141fe9718065e423"
+    }
+  ],
+  "required_Root_gpu_gate_pending": true,
+  "old_online3_vs_pack_plus3_only": true,
+  "planned_Governor_bytes": 1073741824,
+  "enumerated_charged_bytes_capacity4096": 885112832,
+  "enumerated_charged_bytes_capacity16384": 945078272,
+  "source_abi_review_precedes_any_compile": true
+}

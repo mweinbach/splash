@@ -1,0 +1,29 @@
+{
+  "schema": "splash-source-only-compact-native-m16-r4-sep22",
+  "kernel_built": false,
+  "gpu_work": false,
+  "model_payload_reads": false,
+  "capture_payload_reads": false,
+  "model_or_capture_hashes": false,
+  "first_candidate_dispatches_per_layer": 6,
+  "old_native_dispatches_per_layer": 10,
+  "current_direct_gather_dispatches_per_layer": 2,
+  "native_job_rows": 16,
+  "native_job_capacity_r4": 514,
+  "old_setup_ctas": 1132,
+  "new_setup_ctas": 104,
+  "setup_ctas_removed_all48": 49344,
+  "dispatches_removed_all48": 192,
+  "producer_ctas_per_layer_unchanged": 2000,
+  "packed_hidden_initialized_bytes": 527360,
+  "prepared_activation_initialized_bytes": 131840,
+  "new_weights_or_sidecars": false,
+  "dot_association_changed": false,
+  "other_dispatch_options": [
+    5,
+    4,
+    3
+  ],
+  "three_stage_requires_store_or_wrapper_changes": true,
+  "rank_filtering_in_metadata_prohibited_to_preserve_native_map": true
+}

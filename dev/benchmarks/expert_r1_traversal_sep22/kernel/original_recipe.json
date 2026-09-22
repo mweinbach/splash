@@ -1,0 +1,174 @@
+{
+  "schema": "expert-r1-native-traversal-original-recipe-proof-sep22-v1",
+  "scope": "Code metadata, source, ABI and immutable AIR provenance only",
+  "builds_executed": false,
+  "gpu_executed": false,
+  "model_or_activation_payloads_read": false,
+  "qualified_teacher": "build/mtp-teacher-bulk-ab-qsa-sep21-worker-v5",
+  "teacher_source_manifest": {
+    "path": "build/mtp-teacher-bulk-ab-qsa-sep21-worker-v5/overlay-manifest.json",
+    "sha256": "fe362f3cc3c50485c51c01f661946f38b49eb9d5db5be06824b0be5222988599"
+  },
+  "teacher_compiled_seal": {
+    "path": "build/mtp-teacher-bulk-ab-qsa-sep21-worker-v5/compiled-cpu-seal.json",
+    "sha256": "152bed6b59d3c864de6060cfc3576204fe82c7f7a71c6aa74882873742b7dc5c"
+  },
+  "immutable_performance_control": {
+    "path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/flash_gathered_mpp.air",
+    "bytes": 26608,
+    "sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+    "teacher_parent_input_seal_path": "/Users/mweinbach/Projects/splash/build/gdn-ab-merge-qsa-sep21-worker-v1/reused/115-flash_gathered_mpp.air",
+    "authenticated_identical_copies": [
+      "build/gdn-ab-merge-qsa-sep21-worker-v1/reused/115-flash_gathered_mpp.air",
+      "build/expert-rhs-tile64-sep22-component-v4/original-gathered.air"
+    ],
+    "rebuild_for_performance_control": false,
+    "private_native_wrappers_are_untimed_self_controls": true,
+    "component_v3_gathered_air_is_not_this_control": {
+      "path": "build/prefill4k-allrows-gathered-mpp-component-v3/gathered.air",
+      "bytes": 26624,
+      "sha256": "d2e4b98f6c1b94b40562979837e2e2a8e7a4c3046d058f62cb8ecfa07ad426f3"
+    }
+  },
+  "authenticated_original_sources": [
+    {
+      "path": "build/mtp-teacher-bulk-ab-qsa-sep21-worker-v5/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+      "program_path": "runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+      "bytes": 7519,
+      "sha256": "f63efa224f63a3c807fafd699742716d9ff1bac2b2ec08e21cbb13540bc01245",
+      "matches_teacher_source_seal": true,
+      "identical_producer_snapshot_path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal"
+    },
+    {
+      "path": "build/mtp-teacher-bulk-ab-qsa-sep21-worker-v5/source/runtime/flash/FlashGatheredMPP.hpp",
+      "program_path": "runtime/flash/FlashGatheredMPP.hpp",
+      "bytes": 2109,
+      "sha256": "2053df6d4e91a0e2a4f73114a1cfef04cbad321c2426ee200e4427dd8747143f",
+      "matches_teacher_source_seal": true,
+      "identical_producer_snapshot_path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime/flash/FlashGatheredMPP.hpp",
+      "component_v3_header_is_not_this_header": {
+        "path": "build/prefill4k-allrows-gathered-mpp-component-v3/source/runtime/flash/FlashGatheredMPP.hpp",
+        "bytes": 1477,
+        "sha256": "af302e1d1c42fcac1644f372616992ef039160dbb56e77087ddc1e612c05a1c9"
+      }
+    }
+  ],
+  "source_owned_include": "flash/FlashGatheredMPP.hpp",
+  "implicit_toolchain_and_sdk_includes": [
+    "metal_stdlib",
+    "metal_tensor",
+    "MetalPerformancePrimitives/MetalPerformancePrimitives.h"
+  ],
+  "abi_declaration": {
+    "type": "FlashGatheredMPPParams",
+    "fields": ["uint32_t rows", "uint32_t selections", "uint32_t experts", "uint32_t reserved"],
+    "derived_bytes": 16,
+    "derived_alignment": 4,
+    "derived_field_offsets": [0, 4, 8, 12],
+    "layout_build_executed_by_this_audit": false,
+    "gate_up_buffer_indices": {"input": 0, "gate_codes": 1, "gate_scales": 2, "up_codes": 3, "up_scales": 4, "ranks": 5, "ids": 6, "output": 7, "diagnostics": 8, "params": 9},
+    "down_buffer_indices": {"input": 0, "codes": 1, "scales": 2, "ranks": 3, "ids": 4, "output": 5, "diagnostics": 6, "params": 7}
+  },
+  "original_native_policy": {
+    "descriptor": "M16/N64/dynamic-K; transpose-left=false, transpose-right=true, relaxed-precision=false; multiply",
+    "simdgroups": 4,
+    "threads": [128, 1, 1],
+    "gate_up_r1_grid": [10, 1, 10],
+    "down_r1_grid": [40, 1, 10],
+    "finite_a": "original device BF16 tensor with one valid row",
+    "nonfinite_a": "original threadgroup BF16 sanitization fallback",
+    "source_pragma_sequence": "safe support helpers; fast sigmoid with clang contract(off) and reassociate(off); safe rank/scan/execute",
+    "boundaries": "F32 dot, late F32 row scale, BF16 projection, original BF16 sigmoid/SwiGLU and canonical down output"
+  },
+  "authorized_component_axis_swap": {
+    "scope": "R1 component only",
+    "logical_group": "uint3(physical_group.z, physical_group.y, physical_group.x)",
+    "gate_up_physical_grid": [10, 1, 10],
+    "down_physical_grid": [10, 1, 40],
+    "threads": [128, 1, 1],
+    "slot_is_not_actual_expert_id": true,
+    "supersedes_previous_preserved_down_grid_flattening_proposal": true
+  },
+  "producer_recipe_rules": [
+    {"path": "Makefile", "sha256": "d4f3cedf4bef216a814673ea5098e122b556585f2ee524c91954be9a20675b54", "role": "compiler tools, resolved hybrid production flags and CONFIG_DIGEST algorithm"},
+    {"path": "dev/benchmarks/prefill4k_wide.mk", "sha256": "cd1638bd316f0407a57af03fbb2895f3bca6c0d475f3fd33507d6b6e3b3b40db", "role": "prepend frozen source/runtime include and compile native shader pattern rule"},
+    {"path": "dev/benchmarks/prefill4k_attention/bulk_runtime.mk", "sha256": "68b933723eef3b303b5ca2e2eba05f7093b499f150767f57b2e08d91bc3af200", "role": "append frozen prefill4k_attention include and qsa-bulk-sg8-v1 config suffix"}
+  ],
+  "resolved_original_argv_from_declared_rules": [
+    "xcrun", "-sdk", "macosx", "metal",
+    "-Ibuild/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime",
+    "-Ibuild/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/dev/benchmarks/prefill4k_attention",
+    "-std=metal4.1", "-O3", "-Wall", "-Wextra", "-Werror", "-Iruntime",
+    "-mmacosx-version-min=27.0", "-DSPLASH_INT8_EXPERIMENT=1", "-c",
+    "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+    "-o", "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/flash_gathered_mpp.air"
+  ],
+  "historical_full_argv_log_found": false,
+  "argv_status": "Resolved producer-rule argv, not a saved exact original invocation log. Base compiler/tool flag strings are authenticated by the stored CONFIG_DIGEST proof below.",
+  "stored_air_configuration": {
+    "path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/flash_gathered_mpp.air.config",
+    "bytes": 59,
+    "sha256": "15300a76968f1912c0f919e5be7e25fbc6a701dc06e3a075858d46d02ab53208",
+    "text": "26ff33bbeeaa8d04-private-wide-fullcache-v1-qsa-bulk-sg8-v1\n"
+  },
+  "configuration_digest_reproduction": {
+    "rules_inputs_in_order": [
+      {"path": "Makefile", "bytes": 13626, "sha256": "d4f3cedf4bef216a814673ea5098e122b556585f2ee524c91954be9a20675b54"},
+      {"path": "dev/native.mk", "bytes": 33615, "sha256": "c24b87f47f350530354f03c62758b3e1d982d69bbbb05cfd8a1d330e08609252"},
+      {"path": "dev/tools/build_config.py", "bytes": 2145, "sha256": "b1a4f302d6d5ffd661cc4bfba56fc2db751c9b56311e6730144be4eece034a11"}
+    ],
+    "rules_hash_preimage_utf8": "d4f3cedf4bef216a814673ea5098e122b556585f2ee524c91954be9a20675b54  Makefile\nc24b87f47f350530354f03c62758b3e1d982d69bbbb05cfd8a1d330e08609252  dev/native.mk\nb1a4f302d6d5ffd661cc4bfba56fc2db751c9b56311e6730144be4eece034a11  dev/tools/build_config.py\n",
+    "rules_algorithm": "SHA256 of UTF8 concatenated shasum -a 256 lines, each lowercase hex SHA, two spaces, relative path, newline; take first 16 hex characters",
+    "rules_full_sha256": "85e8ddc4269df922e532591e7a0409ffe5dc82fdc2c9412aea87f90c76dffe05",
+    "rules_digest": "85e8ddc4269df922",
+    "config_input_strings_in_order": [
+      "85e8ddc4269df922",
+      "xcrun -sdk macosx clang++",
+      "-std=c++20 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1",
+      "-std=c++20 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1 -fobjc-arc",
+      "-MMD -MP",
+      "-framework Foundation -framework Metal -framework IOKit",
+      "xcrun -sdk macosx ar",
+      "xcrun -sdk macosx metal",
+      "-std=metal4.1 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1",
+      "xcrun -sdk macosx metallib"
+    ],
+    "config_algorithm": "SHA256 of each UTF8 input string in order followed by one NUL byte, including the final string; take first 16 hex characters",
+    "config_full_sha256": "26ff33bbeeaa8d04068578a33614cc67a63e23703409a274d96cdd89080dd813",
+    "config_digest": "26ff33bbeeaa8d04",
+    "matches_stored_original_air_base_configuration": true,
+    "reproduction_method": "pure Python hashlib over code metadata and resolved literal flag strings; no make or compiler build executed"
+  },
+  "compiler_profile": {
+    "historical_original_air_review": {
+      "path": "build/expert-rhs-tile64-sep22-component-v4/source/dev/benchmarks/expert_rhs_tile64_sep22/AIR_REVIEW.json",
+      "sha256": "9f884bfedf7408e8a5f474546db11d7ceec85aa94ed030b143cd02ac86ad4b57",
+      "original_air_sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+      "metal_language": "4.1.0",
+      "air_version": "2.9.0",
+      "compiler": "Apple metal 32023.921 (metalfe-32023.921.6)",
+      "sdk": "27.0",
+      "math_options": ["air.compile.denorms_disable", "air.compile.fast_math_enable", "air.compile.framebuffer_fetch_enable"]
+    },
+    "original_air_embedded_source_path": "/Users/mweinbach/Projects/splash/build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+    "original_air_embedded_target": "air64_v29-apple-macosx27.0.0",
+    "current_readonly_version_probe": {
+      "command": ["xcrun", "-sdk", "macosx", "metal", "--version"],
+      "compiler": "Apple metal version 32023.921 (metalfe-32023.921.6)",
+      "target": "air64-apple-darwin27.0.0",
+      "installed_dir": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.aZ9Bb7/Metal.xctoolchain/usr/metal/current/bin"
+    },
+    "current_readonly_sdk_probe": {
+      "command": ["xcrun", "-sdk", "macosx", "--show-sdk-path"],
+      "path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+    },
+    "current_compiler_and_sdk_version_match_original_profile": true,
+    "add_fno_fast_math_or_change_denorm_policy": false
+  },
+  "limitations": [
+    "The successful-output .config sidecar records a configuration digest, not the full original argv. No full original a0cd invocation log was found in the scoped saved logs.",
+    "The root Makefile CONFIG_DIGEST authenticates production compiler/tool flag strings; frozen include additions are resolved separately from the declared wide and bulk producer rules.",
+    "TeacherV5 seals project source and ABI bytes. Historical SDK/toolchain header byte hashes are not in that source seal; the original AIR review records compiler and SDK versions.",
+    "Matching source, compiler profile and opaque MPP call signatures is not a numerical equality certificate. The immutable original AIR remains the performance control; private self-controls and production-register taps require Root qualification."
+  ]
+}

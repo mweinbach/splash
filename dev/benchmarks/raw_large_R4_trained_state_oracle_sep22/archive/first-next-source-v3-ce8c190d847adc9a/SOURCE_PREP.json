@@ -1,0 +1,176 @@
+{
+  "schema": "genuine-trained-R4-control-readonly-source-preparation-v1",
+  "source_inverse_pass": true,
+  "SourceCPP_math_and_state_operations_unchanged": true,
+  "new_MTP_header_friend_tokens": 0,
+  "new_privateForward_friend_only": true,
+  "head_five_planes_existing_state_friend": true,
+  "new_backend_owner_bytes": 0,
+  "input_copy_dispatches": 0,
+  "fullsource_beforehostallocation_actualbeforefirstreadexport_preflight": true,
+  "journal": [
+    {
+      "path": "runtime/flash/FlashForward.hpp",
+      "literal_parent_inverse_exact": true,
+      "edits": [
+        {
+          "old_start": 177,
+          "old_end": 177,
+          "new_start": 177,
+          "new_end": 178,
+          "old_lines": [],
+          "new_lines": [
+            "  friend class FlashDeepPrefixOracle; // PRIVATE trained state oracle only\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "runtime/flash/FlashForward.cpp",
+      "literal_parent_inverse_exact": true,
+      "edits": [
+        {
+          "old_start": 0,
+          "old_end": 0,
+          "new_start": 0,
+          "new_end": 1,
+          "old_lines": [],
+          "new_lines": [
+            "#include \"dev/benchmarks/raw_large_R4_trained_state_oracle_sep22/inspect.hpp\"\n"
+          ]
+        },
+        {
+          "old_start": 1557,
+          "old_end": 1557,
+          "new_start": 1558,
+          "new_end": 1598,
+          "old_lines": [],
+          "new_lines": [
+            "\n",
+            "// Oracle-clone-only READONLY access. Existing worker methods/bodies are intact.\n",
+            "namespace splash::flash {\n",
+            "std::vector<FlashDeepPrefixOracle::Plane> FlashDeepPrefixOracle::tapePlanes(const FlashForward &target){\n",
+            "  if(!target.impl_||!target.impl_->lazyGDN)throw std::logic_error(\"full tape inspection requires lazy GDN\");\n",
+            "  auto &s=*target.impl_;std::lock_guard lock(s.mutex);std::vector<Plane> out;\n",
+            "  const std::array<Type,6> types{Type::F32,Type::BF16,Type::BF16,Type::BF16,Type::F32,Type::BF16};\n",
+            "  const std::array<const char *,6> names{\"initial_state\",\"initial_history\",\"raw_qkv\",\"mixed\",\"decay\",\"beta\"};\n",
+            "  for(uint32_t layer=0;layer<48;++layer)if(s.lazyGDNRecords[layer]){\n",
+            "    auto &r=*s.lazyGDNRecords[layer];const auto arenas=r.arenaBuffers();\n",
+            "    if(r.maximumRows()!=4||r.maximumLanes()!=1||arenas.size()!=6)throw std::logic_error(\"tape arena shape differs\");\n",
+            "    for(uint32_t i=0;i<6;++i)out.push_back({\"gdn.\"+std::to_string(layer)+\".\"+names[i],types[i],arenas[i],arenas[i].sizeBytes()});\n",
+            "  }\n",
+            "  if(out.size()!=216)throw std::logic_error(\"tape inventory differs\");\n",
+            "  out.push_back({\"ple.initial_history.defined\",Type::I64,s.backend.view(s.beforePLEHistory,0,16),16});\n",
+            "  out.push_back({\"ple.initial_convolution.defined\",Type::BF16,s.backend.view(s.beforePLEConvolution,0,9ULL*10240*2),9ULL*10240*2});\n",
+            "  return out;\n",
+            "}\n",
+            "std::vector<FlashDeepPrefixOracle::Undefined> FlashDeepPrefixOracle::tapeUndefined(const FlashForward &target){\n",
+            "  if(!target.impl_)throw std::logic_error(\"tape target unavailable\");auto &s=*target.impl_;std::lock_guard lock(s.mutex);\n",
+            "  return {{\"ple.initial_history.inactive\",s.beforePLEHistory,16},{\"ple.initial_convolution.inactive\",s.beforePLEConvolution,9ULL*10240*2},{\"retained_count.inactive\",s.retainedCount,0}};\n",
+            "}\n",
+            "std::string FlashDeepPrefixOracle::tapeMetadata(const FlashForward &target){\n",
+            "  if(!target.impl_)throw std::logic_error(\"tape target unavailable\");auto &s=*target.impl_;std::lock_guard lock(s.mutex);\n",
+            "  std::ostringstream out;out<<\"{\\\"lazy\\\":\"<<(s.lazyGDN?\"true\":\"false\")<<\",\\\"maximum_verify_rows\\\":\"<<s.maximumVerifyRows<<\",\\\"pending_rows\\\":\"<<s.pendingRows<<\",\\\"pending_begin\\\":\"<<s.pendingBegin<<\",\\\"active_records\\\":\";\n",
+            "  uint32_t active=0;for(const auto &r:s.lazyGDNRecords)if(r&&r->pending())++active;\n",
+            "  out<<active<<\",\\\"cross_process_scope\\\":\\\"all216 known physical lazy arenas including inactive/padding; PLE defined ranges; undefined PLE/count tails checked unchanged locally\\\"}\";return out.str();\n",
+            "}\n",
+            "bool FlashDeepPrefixOracle::tapeCanaries(const FlashForward &target){\n",
+            "  if(!target.impl_)return false;auto &s=*target.impl_;std::lock_guard lock(s.mutex);\n",
+            "  for(const auto &r:s.lazyGDNRecords)if(r&&!r->canariesIntact())return false;return true;\n",
+            "}\n",
+            "uint32_t FlashDeepPrefixOracle::retainedValue(const FlashForward &target){\n",
+            "  if(!target.impl_||!target.impl_->retainedCount.contents())throw std::logic_error(\"retained buffer unavailable\");uint32_t value=0;std::memcpy(&value,target.impl_->retainedCount.contents(),4);return value;\n",
+            "}\n",
+            "bool FlashDeepPrefixOracle::rawOwns(const FlashForward &target,const FlashRequestState &request){return target.impl_&&request.impl_&&request.impl_->owner==target.impl_->owner&&request.impl_->capacity==target.impl_->capacity;}\n",
+            "std::array<uint64_t,3> FlashDeepPrefixOracle::tapeStatus(const FlashForward &target){\n",
+            "  if(!target.impl_)throw std::logic_error(\"tape target unavailable\");auto &s=*target.impl_;std::lock_guard lock(s.mutex);uint64_t active=0;for(const auto &r:s.lazyGDNRecords)if(r&&r->pending())++active;return{s.pendingRows,s.pendingBegin,active};\n",
+            "}\n",
+            "}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "runtime/flash/FlashWorker.mm",
+      "literal_parent_inverse_exact": true,
+      "edits": [
+        {
+          "old_start": 0,
+          "old_end": 0,
+          "new_start": 0,
+          "new_end": 1,
+          "old_lines": [],
+          "new_lines": [
+            "#include \"dev/benchmarks/raw_large_R4_trained_state_oracle_sep22/recorder.hpp\"\n"
+          ]
+        },
+        {
+          "old_start": 1431,
+          "old_end": 1432,
+          "new_start": 1432,
+          "new_end": 1439,
+          "old_lines": [
+            "        words_((weights.descriptor().vocabularySize + 31) / 32) {}\n"
+          ],
+          "new_lines": [
+            "        words_((weights.descriptor().vocabularySize + 31) / 32) {\n",
+            "    if(raw_large_r4_trained_state_oracle_sep22::enabled()){\n",
+            "      raw_large_r4_trained_state_oracle_sep22::check(head_&&singletonMTP_.maximumDepth==3&&!batch_&&!jointVerify_&&!jointHead_&&!batchPrefill_,\"genuine singleton trained fixed3 oracle required\");\n",
+            "      const auto wholePlan=raw_large_r4_trained_state_oracle_sep22::Recorder::sourcePlan(capacity_);\n",
+            "      trainedStateOracle_=std::make_unique<raw_large_r4_trained_state_oracle_sep22::Recorder>(backend_,governor_,forward_,*head_,wholePlan,raw_large_r4_trained_state_oracle_sep22::PolicyBinding::currentEnvironment());\n",
+            "    }\n",
+            "  }\n"
+          ]
+        },
+        {
+          "old_start": 2068,
+          "old_end": 2068,
+          "new_start": 2075,
+          "new_end": 2076,
+          "old_lines": [],
+          "new_lines": [
+            "  std::unique_ptr<raw_large_r4_trained_state_oracle_sep22::Recorder> trainedStateOracle_;\n"
+          ]
+        },
+        {
+          "old_start": 2726,
+          "old_end": 2726,
+          "new_start": 2734,
+          "new_end": 2738,
+          "old_lines": [],
+          "new_lines": [
+            "  const raw_large_r4_trained_state_oracle_sep22::Cookie proofCookie{id,generation,0,targetBegin,depth,static_cast<uint32_t>(inputs.size())};\n",
+            "  const auto proofCarry=[&](uint32_t kept){return raw_large_r4_trained_state_oracle_sep22::WorkerCarry{targetBegin,foldedLength,request.mtpState->logicalLength(),request.emitted,kept,request.pendingToken,inputs,request.mtpFoldTokens,request.mtpFoldHidden};};\n",
+            "  std::optional<raw_large_r4_trained_state_oracle_sep22::TypedTargetScope> proofScope;\n",
+            "  if(trainedStateOracle_)proofScope.emplace(*trainedStateOracle_,proofCookie);\n"
+          ]
+        },
+        {
+          "old_start": 2728,
+          "old_end": 2728,
+          "new_start": 2740,
+          "new_end": 2742,
+          "old_lines": [],
+          "new_lines": [
+            "  if(proofScope)proofScope->completeSuccessfulSynchronousTarget(*request.state,verified);\n",
+            "  if(trainedStateOracle_)trainedStateOracle_->pending(proofCookie,*request.state,*request.mtpState,verified,proofCarry(0));\n"
+          ]
+        },
+        {
+          "old_start": 2768,
+          "old_end": 2768,
+          "new_start": 2782,
+          "new_end": 2783,
+          "old_lines": [],
+          "new_lines": [
+            "  if(trainedStateOracle_)trainedStateOracle_->resolved(proofCookie,*request.state,*request.mtpState,proofCarry(retained));\n"
+          ]
+        }
+      ]
+    }
+  ],
+  "model_token_capture_profile_actual_report_reads_or_hashes": 0,
+  "compiler_invocations_by_preparation": 0,
+  "GPU_work": false,
+  "candidate_and_policy_binding_pending": true
+}

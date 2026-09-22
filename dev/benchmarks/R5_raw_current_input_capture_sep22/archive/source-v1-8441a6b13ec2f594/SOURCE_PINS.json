@@ -1,0 +1,31 @@
+{
+  "schema": "current-real-R5-raw-capture-SOURCE-quiescent-pins-v1",
+  "source_only": true,
+  "source_preparation_pass": true,
+  "source_files_sha256": {
+    "contracts.hpp": "83592e7272e7440176ca48bba556c2de0ff250a08f4d62e36af291e28a930b9d",
+    "bridge.hpp": "984f70f9411c164508720fb1877c435c4c2454b9ffe7de98520835846ad7c959",
+    "inspect.hpp": "80e598a379ff93069a342624d5106e98c968cdf682d15d085413c887f6be5d3c",
+    "inspection.cpp.inc": "0d4e793de39fdbdcb21e348c0dfe0d1a04d020c8d7476b0e22c5b40c4fd42969",
+    "proof.hpp": "637db3a9520b88338508f70ffe68a1495fa5ffa0df7b8c9dbab38d8f922ea600",
+    "overlay.py": "09ce10680cf575adb551b1a43246168540c57ebdb8ca92d57a06added2e55ca3",
+    "prepare_source.py": "4a97eebbb1f9563812614265155b218225fda2b1a834562d4c34706e6863897e",
+    "run_root.py": "cff02c29db444fae2e4fef613b04347e7b316ae951fe4c8952a75c07736938e2",
+    "commands.py": "000ea030f6fa3d31025669ea2381433958ab0846ef719235ed5d951e0bc855fb",
+    "PLAN.md": "50c15d866338a0e886a4d313087f1a534c0e57f8b50a7e5fc5c3be2555cf532c",
+    "SOURCE_PREP.json": "ff3ed6d7051963f0b4913015c3615d61dd93512b1b35aaf73c7682ad03b65ce3"
+  },
+  "current_parent": "build/R5-integer-currentQ4-fixed4-sep22-worker-v2",
+  "current_parent_source_identity_sha256": "4bb7b637c2b6b60520159ad3724a8d9e3867c7c538dd8d260caa4fc7d184769a",
+  "current_parent_exe_sha256_static": "6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68",
+  "current_library_sha256_static": "dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6",
+  "static_Root_token_file_sha256": "72e5a23f0504ba862d43c22e01e820fc4007b3b939ec4cbc8518aaee499832fb",
+  "static_Root_token_u32le_sha256": "55cf1a355b4a2c97012c752b87955198ef3bb1f1b992b3fb48d35ff7659f3795",
+  "model_tensor_token_full_profile_actual_report_payload_reads_or_hashes": 0,
+  "allowed_small_shape_metadata_reads": 2,
+  "GPU_work": false,
+  "compiler_invocations": 0,
+  "public_production_frozen_history_edits": false,
+  "Source_review_before_any_future_compile_required": true,
+  "native_correctness_or_capture_QA_or_performance_qualified": false
+}

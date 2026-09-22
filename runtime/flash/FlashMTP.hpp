@@ -15,6 +15,8 @@ namespace splash::flash {
 
 inline constexpr const char *kFlashMTPSemantics =
     "qwen4-lightning-head-global-hidden-rms-bf16-fuse-qsa-hc-moe-v1";
+inline constexpr const char *kFlashMTPTeacherCacheSemantics =
+    "mtp-teacher-cache-only-original-preparation-pooling-no-attention-or-mlp-v1";
 
 enum class FlashMTPLogits : uint8_t { None, Last, All };
 
@@ -45,6 +47,7 @@ private:
   std::unique_ptr<Impl> impl_;
   friend class FlashMTPForward;
   friend class FlashBatchMTPForward;
+  friend struct FlashMTPTeacherPrimeOracleAccess;
 };
 
 struct FlashMTPResult final {
@@ -81,6 +84,11 @@ public:
   forward(FlashMTPState &state, metal::MetalBuffer previousHiddenBF16,
           std::span<const uint32_t> nextTokens,
           FlashMTPLogits logits = FlashMTPLogits::Last);
+  // Teacher pairs provide independent target features. Only the QSA cache
+  // survives priming; this operation returns no borrowed head features.
+  [[nodiscard]] metal::CommandTiming
+  primeTeacherCache(FlashMTPState &state, metal::MetalBuffer previousHiddenBF16,
+                    std::span<const uint32_t> nextTokens);
   // QSA rollback restores the logical offset. A future append replaces its
   // stale token rows and every newly completed compression block.
   void truncate(FlashMTPState &state, uint64_t retainedLength);
@@ -99,6 +107,10 @@ public:
 
 private:
   friend class FlashBatchMTPForward;
+  [[nodiscard]] FlashMTPResult
+  forwardImpl(FlashMTPState &state, metal::MetalBuffer previousHiddenBF16,
+              std::span<const uint32_t> nextTokens, FlashMTPLogits logits,
+              bool teacherCacheOnly);
   [[nodiscard]] metal::MetalBackend &batchBackend() const;
   [[nodiscard]] const FlashWeights &batchWeights() const;
   [[nodiscard]] uint32_t batchCapacity() const;

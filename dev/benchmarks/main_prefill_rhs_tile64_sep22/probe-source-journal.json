@@ -1,0 +1,296 @@
+{
+  "schema": "main-prefill-rhs-tile64-sep22-literal-source-journal-v1",
+  "scope": "source-only standalone current SG2K128 M32 jobs and M16 adaptive tails; no integration",
+  "compiled": false,
+  "GPU_executed": false,
+  "model_fixture_capture_operand_report_payload_read_or_hashed": false,
+  "current_source_path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/adaptive_expert_tail_sep21/combined/adaptive.metal",
+  "current_source_sha256": "3c850954855425980ce47904481996b617044d15d593496be051e2055b7ee636",
+  "current_source_helper_region_sha256": "f59e47d56309f748c18894832f6bd0562e1867e972abf5ae2b2a1d8d459ff744",
+  "current_source_prelude_sigmoid_job_validator_sha256": "45cacd64b0e4ef9aa7483d20bb32aaa60d0bbd19d882136c160036b82ffa3165",
+  "observed_baseline_helper_region_sha256": "2fea601df8758a33a06c13ad8c9b828c0f9a8b922a6fed766351f8ccc4db78bb",
+  "candidate_helper_region_sha256": "de36735f20e5cea9d0573590eab8ac10018b123d04516baf25b708663c584cc3",
+  "candidate_metal_sha256": "01e81d9130474eb48fb08d8618fb78799d7819e6f744dcf06aef9a63dbcfb99d",
+  "abi_hpp_sha256": "da658186938b96d7abcd582289a35d9d5e4b9cd3e6c52fa744414386bfd9dc7f",
+  "checks": {
+    "baseline_after_erasing_optional_taps_byte_identical_to_current_helpers": true,
+    "reverse_complete_allowed_rhs_diff_byte_identical_to_observed_baseline": true,
+    "current_sigmoid_and_original_job_validator_byte_identical": true,
+    "A_tensors_slices_and_pointer_expressions_unchanged": true,
+    "all_arithmetic_scales_bf16_sigmoid_swiglu_and_normal_output_stores_unchanged": true,
+    "original_M32_native_jobs_validator_and_M16_tail_selection_unchanged": true,
+    "separate_probe_outputs_use_literal_current_F32_and_BF16_values": true,
+    "raw_taps_before_scale_and_BF16_taps_before_swiglu": true,
+    "private_entry_symbols_only": true,
+    "entry_count": 8,
+    "synthetic_boundary_index_cases": 150
+  },
+  "baseline_layout": "I8[rank,N,K]",
+  "candidate_layout": "I8[rank,N/64,K,64]",
+  "candidate_tile_base": "(rank*N+column)*K; column is tile*64",
+  "candidate_element_index": "rank*N*K+(n/64)*K*64+k*64+n%64",
+  "candidate_right_tensor_axes": "{64,K}",
+  "candidate_right_tensor_strides": "{1,64}",
+  "candidate_right_transpose": false,
+  "relaxed_precision": false,
+  "matrix_destination": "F32",
+  "dispatch": {
+    "GU_x": 10,
+    "down_x": 40,
+    "y": "unchanged original M32 job_capacity=ceil(rows*selections/32)+511",
+    "z": 1,
+    "threads": [
+      64,
+      1,
+      1
+    ]
+  },
+  "GU_probe_buffers": {
+    "rawG": 12,
+    "rawU": 13,
+    "post_scale_BF16_G": 14,
+    "post_scale_BF16_U": 15
+  },
+  "down_probe_buffers": {
+    "raw_unscaled_F32_dot": 11,
+    "post_scale_BF16_projection": 12
+  },
+  "capture_extents": {
+    "GU": "each raw F32 buffer routes*640*4; each BF16 boundary buffer routes*640*2; live packed rows only",
+    "down": "raw F32 routes*2560*4; BF16 boundary routes*2560*2; live canonical routes only"
+  },
+  "pipeline_inventory": [
+    {
+      "name": "main_prefill_rhs_tile64_sep22_baseline_gate_up_m16_tail",
+      "role": "baseline",
+      "phase": "gate_up",
+      "probe": false,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 20,
+      "parameter_binding": 11
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_baseline_gate_up_m16_tail_probe",
+      "role": "baseline",
+      "phase": "gate_up",
+      "probe": true,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 20,
+      "parameter_binding": 11
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_baseline_down_scatter_m16_tail",
+      "role": "baseline",
+      "phase": "down_scatter",
+      "probe": false,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 5,
+      "parameter_binding": 10
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_baseline_down_scatter_m16_tail_probe",
+      "role": "baseline",
+      "phase": "down_scatter",
+      "probe": true,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 5,
+      "parameter_binding": 10
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_candidate_gate_up_m16_tail",
+      "role": "candidate",
+      "phase": "gate_up",
+      "probe": false,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 20,
+      "parameter_binding": 11
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_candidate_gate_up_m16_tail_probe",
+      "role": "candidate",
+      "phase": "gate_up",
+      "probe": true,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 20,
+      "parameter_binding": 11
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_candidate_down_scatter_m16_tail",
+      "role": "candidate",
+      "phase": "down_scatter",
+      "probe": false,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 5,
+      "parameter_binding": 10
+    },
+    {
+      "name": "main_prefill_rhs_tile64_sep22_candidate_down_scatter_m16_tail_probe",
+      "role": "candidate",
+      "phase": "down_scatter",
+      "probe": true,
+      "original_native_job_tile_rows": 32,
+      "tail_descriptor_rows": 16,
+      "threads": 64,
+      "simdgroups": 2,
+      "k_step": 128,
+      "k_steps": 5,
+      "parameter_binding": 10
+    }
+  ],
+  "allowed_rhs_changes": [
+    {
+      "before": "      dextents<int, 2>{2560, N}, array<int, 2>{1, 2560});",
+      "after": "      dextents<int, 2>{N, 2560}, array<int, 2>{1, N});",
+      "expected_count": 2
+    },
+    {
+      "before": "      dextents<int, 2>{640, N}, array<int, 2>{1, 640});",
+      "after": "      dextents<int, 2>{N, 640}, array<int, 2>{1, N});",
+      "expected_count": 1
+    },
+    {
+      "before": "      false, true, false, K ? matmul2d_descriptor::mode::multiply_accumulate : matmul2d_descriptor::mode::multiply);",
+      "after": "      false, false, false, K ? matmul2d_descriptor::mode::multiply_accumulate : matmul2d_descriptor::mode::multiply);",
+      "expected_count": 2
+    },
+    {
+      "before": "gate + (ulong(rank) * 640 + column) * 2560 + k, extents<int, K, N>{}, array<int, 2>{1, 2560}",
+      "after": "gate + (ulong(rank) * 640 + column) * 2560 + ulong(k) * N, extents<int, N, K>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    },
+    {
+      "before": "up + (ulong(rank) * 640 + column) * 2560 + k, extents<int, K, N>{}, array<int, 2>{1, 2560}",
+      "after": "up + (ulong(rank) * 640 + column) * 2560 + ulong(k) * N, extents<int, N, K>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    },
+    {
+      "before": "weights + (ulong(rank) * 2560 + column) * 640 + k, extents<int, K, N>{}, array<int, 2>{1, 640}",
+      "after": "weights + (ulong(rank) * 2560 + column) * 640 + ulong(k) * N, extents<int, N, K>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    },
+    {
+      "before": "g.slice(k, 0)",
+      "after": "g.slice(0, k)",
+      "expected_count": 2
+    },
+    {
+      "before": "u.slice(k, 0)",
+      "after": "u.slice(0, k)",
+      "expected_count": 2
+    },
+    {
+      "before": "b.slice(k, 0)",
+      "after": "b.slice(0, k)",
+      "expected_count": 2
+    },
+    {
+      "before": "gate + (ulong(rank) * 640 + column) * 2560, extents<int, 2560, N>{}, array<int, 2>{1, 2560}",
+      "after": "gate + (ulong(rank) * 640 + column) * 2560, extents<int, N, 2560>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    },
+    {
+      "before": "up + (ulong(rank) * 640 + column) * 2560, extents<int, 2560, N>{}, array<int, 2>{1, 2560}",
+      "after": "up + (ulong(rank) * 640 + column) * 2560, extents<int, N, 2560>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    },
+    {
+      "before": "weights + (ulong(rank) * 2560 + column) * 640, extents<int, 640, N>{}, array<int, 2>{1, 640}",
+      "after": "weights + (ulong(rank) * 2560 + column) * 640, extents<int, N, 640>{}, array<int, 2>{1, N}",
+      "expected_count": 1
+    }
+  ],
+  "unchanged_anchors": [
+    {
+      "literal": "constexpr ushort SG = 2, K = 128;",
+      "baseline_count": 2,
+      "candidate_count": 2
+    },
+    {
+      "literal": "constexpr bool Static = true;",
+      "baseline_count": 2,
+      "candidate_count": 2
+    },
+    {
+      "literal": "for (uint k = 0; k < 2560; k += K)",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "for (uint k = 0; k < 640; k += K)",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const float gf = gd[i] * gs, uf = ud[i] * us;",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const bfloat gv = bfloat(gf), uv = bfloat(uf);",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const bfloat silu = gv * prefill_moe_sep21_memory_sigmoid(gv);",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const bfloat value = silu * uv;",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const float result = dot[i] * scale;",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "const bfloat value = bfloat(result);",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "output[ulong(begin + index[1]) * 640 + n] = value;",
+      "baseline_count": 1,
+      "candidate_count": 1
+    },
+    {
+      "literal": "output[ulong(route) * 2560 + n] = value;",
+      "baseline_count": 1,
+      "candidate_count": 1
+    }
+  ],
+  "source_only_arithmetic_exactness": "intended; different MPP NN/NT lowering must pass Root rawF32/BF16/full-chain qualification before timing",
+  "normal_vs_probe_coupling": "normal and probe instantiate the same math helper with Probe=false/true; Root must compare actual coupled output bytes",
+  "raw_capture_is_F64_surrogate": false,
+  "existing_ctor_routejobs_inverse_prep_poison_combine_or_sources_modified": false
+}

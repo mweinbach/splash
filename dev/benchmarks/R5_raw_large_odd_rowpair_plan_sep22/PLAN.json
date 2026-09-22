@@ -1,0 +1,88 @@
+{
+  "schema": "current-trained-R5-large-raw-odd-rowpair-source-cost-plan-v1",
+  "created_utc": "2026-09-22T15:06:40.677098+00:00",
+  "status": "SOURCE PLAN ONLY; no kernel/worker build authorized",
+  "current_baseline": {
+    "source": "4bb7b637c2b6b60520159ad3724a8d9e3867c7c538dd8d260caa4fc7d184769a",
+    "exe": "6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68",
+    "library": "dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6"
+  },
+  "authorized_evidence": {
+    "small_metadata_budget": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-current-trained-R5-stage-pipeline-budget-v1.json",
+    "sha256": "2fa5a13cfd60b38f992e4e7a8b30650b5b41d712a1517517b9d198335664232a",
+    "one_actual_third_trained_R5_profile": true,
+    "dispatches": 1555,
+    "instrumented_total_stage_GPU_ms": 42.982110000000006,
+    "normal_verify_GPU_ms": 39.841528479367085,
+    "encoder_boundary_perturbation": true,
+    "canonical_family_timing": false,
+    "physical_DRAM_measured": false
+  },
+  "observed_budgets_ms": {
+    "cachedF32_multiply": 4.9037500000000005,
+    "cachedF32_pad": 0.559376,
+    "raw_F32XSUM_all": 7.145923000000001,
+    "expert_GU_down": 9.274211,
+    "raw_HC_down": 5.099627000000002
+  },
+  "HALF_decision": "Do not build modelwideHALF. Even eliminating cachedmultiply4.904+padding0.559ms isbelow8.741ms neededfor20pctTPS atsameacceptance; actualrole wins andnumericfidelityunknown. ExistingHALFsourceplan retainedasclosedbudget hypothesis, notpromoted.",
+  "concrete_new_change": {
+    "scope": "Onlygenuine singletonmain physicalVerifyR5 currentlyselectedlarge rawQ4/Q5/Q6 F32XSUM; no HC/head/vocab/batch/pref/AR/coeffcache/FPprecision change.",
+    "inventory": "Rootstated107largeRAWroles/13role-shape-quantcombinations; deriveandfreezeconstructorinventorybeforecomponent. WholeF32XSUMfamilyhas199dispatches, so7.146ms isanupperbudget, not107-onlybudget.",
+    "algorithm": "One dispatch, gridY3 insteadold5: y0rows0/1; y1rows2/3 shareONLYpackedintegercode/masks andsameimmutable scale/bias loads; y2 invokesLITERALold project_math onceforroute4. Each rowkeeps old load_vector sum,chunk additions,qdot expressionparentheses,simd_sum order,F32/scaled/BF16/diagnostic boundary.",
+    "tail_critical": "Do NOTcall old project() usinggroup.y2\u2014itwouldselectrow2. Call literalproject_math withinput+4*K,route4,expert0,andunchangedout_row/lane. No nonexistentrow5input/FPwork, noextra dispatch or scratch.",
+    "old_formats": {
+      "Q4_G64": {
+        "FastValues": 16,
+        "BlockK": 512,
+        "qdot": "fourparenthesized4-value additions per16"
+      },
+      "Q5_G64_G128": {
+        "FastValues": 16,
+        "BlockK": 512,
+        "qdot": "twelve sequential crossbyte terms per8; originalpointermutations"
+      },
+      "Q6_G64": {
+        "FastValues": 8,
+        "BlockK": 256,
+        "qdot": "sixsequentialcrossbyte terms per4; originalpointermutations"
+      }
+    },
+    "geometry": "Original2SIMD/64threads perCTA,4outputcolumns perSIMD=>8/CTA; x=N/8 unchanged, y=ceil(5/2)=3. Hostrejectpartialgrid; originalNmask ifeverneededretained. NOforcedValues16forQ6.",
+    "selection": "ExistingF32cache membership andselectiveNULLtileRAW decision first; constructorbound canonicalmainroles/quantdtype/strides. Oneprivate precomputedrole enum/table lookup, nosourcehash/extra immutableguardloop percall. Excluderoleswhosecurrentpipelineisnot4qualifiedF32XSUMformats.",
+    "no_FPclaim": "Source-preservingintent isNOTaCPUproofofGPUrawparity. ActualAIR FP/load/dependency/attrs+fullrawtap bitchecks required; no producer association or masks folded into dequantizedcoefficients."
+  },
+  "conditional_cost": {
+    "allfamily7ms_single_profile_upper_budget": 7.145923000000001,
+    "example25pct_family_saved_ms": 1.7864807500000002,
+    "example_native_rate_same_acceptance_tokens_s": 63.714558398585595,
+    "example_native_rate_gain_pct": 3.5263379348361212,
+    "not_a_forecast": true,
+    "packed_code_ideal_reads": "5independentrows ->2pairedloads+1literaltailload =3/5,40pctpackedwordloadreduction. FPworkperrowunchanged; registers/occupancy/tail/hostoverhead mayeraseit.",
+    "candidate_array_registers": "K-independent; Q4/Q5 twoValues16+tworesults4; Q6twoValues8+tworesults4. Compiler spill/register pressuremustbe measured.",
+    "old_evidence_not_inherited": "R4Q4actualprimitive1.386x andwhole+1.17pct; singleR4Q5component1.124x butwhole-0.91pctclosed. NewR5odd13format screenmustnotrepeatonlythatleaf orclaimmodelwinfromratios.",
+    "realistic_scale": "1.75ms conditional~3.5pctwhole ismodest andnotpeak/20pctclaim; deeperexactfamiliesstillneeded."
+  },
+  "qualification_before_integration": [
+    "Authenticate ORIGINALcurrentcontrolAIR source/Metal4.1 recipeandmathattrs; no safe/fastpragma drift. Untappedshipping control remainsbaseline.",
+    "CPU address/rowmap proof for all5rows,allN/K/quantgroupcases+strideextents/alignment/disjointness/immutable/completegrid/partialhostrefusal.",
+    "Generatedliteralinverse independentlyrestoresoldF32helpers; strictactualSSA/load/pointer/FPdependency/attributes audit performat; no blanketDAG oropcode-only normalization.",
+    "Root-only bounded sequentialone-matrix actualcoefficient and CURRENTtrainedVerify5 input perall13formats. Fullold/new rawF32,scaledF32/BF16 shippingtap match, originalFP64/perroute/global thresholds, NaN/Inf/stickies/canaries/poison/recovery; finalrow4 comparedseparately.",
+    ">=150msGPUwarmEACHwholeprojection/chain,18balancedreadfreepairpositions,coefficientborrowreadimmutability,matchedshippinglasttap; truthfulnormalGov/device/owner/destruction.",
+    "Onlywinning EXACTformats eligibleforfreshoneprivatecurrentworker overlay; nopublicdtype/cacheweights/backing change. Originalnulltile/cache membership, pref/R1/R4/head/batch unchanged. Freshwhole134state+tapes/future+headscope/original22/currentcaps4+pref/decode proof; quantifyhostselectorcost."
+  ],
+  "program_source_bindings": {
+    "runtime/metal/kernels/shared/flash_affine_qmv_f32.metal": "4c271477b47d037cbe4018f73e6ba8f1a27dbfca4c9a0e98a6fce93b0155e73a",
+    "dev/benchmarks/raw_q4_rowpair_sep22/pair.metalh": "6b982d607cf07df189b956a3e4dd3ca2a79801989356fd098ab2c5793b714b10",
+    "dev/benchmarks/raw_q5_rowpair_sep22/pair.metalh": "760939b191da28f26d1f313f3f0ab03a1618d4100d97b4172799c45831ce16af",
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashAffine.cpp": "da4e1f22f6ef600f35f5125bbb7aecb2414383f9c7d7a7afa8bbb8d104495c42"
+  },
+  "source_binding_scope": "publicMSL isreferenceonlyuntiloriginalcurrentAIR source/recipe lineageauthenticated; privateRowpairfiles are priorliteralqualifiedsource references, notrecompiledcurrentcontrols",
+  "agent_actions": {
+    "GPU_work": false,
+    "full_actual_profile_or_generated_report_model_tensor_or_token_payload_reads_or_hashes": 0,
+    "authorized_small_metadata_budget_reads": 1,
+    "code_CPP_shader_kernel_edits": 0,
+    "builds": 0
+  }
+}

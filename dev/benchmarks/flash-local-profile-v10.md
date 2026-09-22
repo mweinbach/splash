@@ -1,5 +1,23 @@
 # Local Flash-Next profile v10
 
+This is historical documentation. Current defaults use
+[V11](flash-local-profile-v11.md), with42 flags/depth3. The accepted V10
+snapshot described first below has40 flags/depth3/N32 on; the original
+placement-only39-flag/depth15 snapshot and its measurements are retained
+separately below.
+
+This preceding accepted V10 snapshot defaults to MTP draft depth 3 (changed September
+21). Historical qualification results below used depth 15. Explicit
+`SPLASH_FLASH_MTP_DRAFT_DEPTH` environment overrides still take precedence.
+
+The same update enables `SPLASH_FLASH_QSA_OUT_F32_N32=1` for the already
+source-qualified Q5/Q6/G64 main QSA output projections at 4–16 rows. The preceding accepted
+profile has 40 static flags. The exact output projection route and cached
+CPU status percentiles passed matched model-output and service checks; observed
+full-request decoding gains were under 1%. Historical results below used the
+original 39-flag profile. Dense traversal remains opt-in, and split-K and draft
+chaining remain isolated experiments. See [results](ultra-locality-results.md).
+
 The qualified M5 Ultra /256 GiB local profile now uses SSD streaming for the
 PLE n-gram table. The sole static change from v9 is
 `SPLASH_FLASH_PLE_SSD_STREAMING=1`, bringing the profile to39 flags. All kernel

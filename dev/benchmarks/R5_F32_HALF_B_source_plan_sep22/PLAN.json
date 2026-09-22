@@ -1,0 +1,96 @@
+{
+  "schema": "current-R5-cached-F32-HALF-B-explicit-numeric-source-plan-v1",
+  "created_utc": "2026-09-22T14:06:19.877320+00:00",
+  "status": "PLAN ONLY; attribution before component build; no public or whole-worker sidecar",
+  "current_runtime": {
+    "build": "/Users/mweinbach/Projects/splash/build/R5-integer-currentQ4-fixed4-sep22-worker-v2",
+    "source_identity_sha256": "4bb7b637c2b6b60520159ad3724a8d9e3867c7c538dd8d260caa4fc7d184769a",
+    "exe_sha256": "6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68",
+    "library_sha256": "dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6"
+  },
+  "Root_provided_observations": {
+    "useful_tokens": 255,
+    "cycles": 79,
+    "E_tokens_per_cycle": 3.2278481012658227,
+    "equivalent_cycle_host_ms": 52.447557,
+    "native_rate_tokens_s": 61.544,
+    "verifier_GPU_ms_per_cycle": 39.8415285,
+    "head_GPU_ms_per_cycle": 7.07674,
+    "head_host_ms_per_cycle": 8.180686,
+    "verify_host_ms_per_cycle": 42.9341466,
+    "restore_GPU_host_ms": [
+      0.418,
+      0.671
+    ],
+    "actual_depth_histogram_0to4": [
+      12,
+      17,
+      16,
+      9,
+      25
+    ],
+    "note": "Aggregate mixed-depth cycle averages. H4/physicalR5 only25of79; no current verifier family attribution provided."
+  },
+  "concrete_change": {
+    "scope": "Initial standalone one current main QSA output role, physicalR5; not trained head/vocab/prefill/batch",
+    "control": "Exact current cachedF32 BF16A/F32B whole-K QSAo M8N32 SG4 producer and original pad/store",
+    "candidate": "Same BF16A bits, old positive-zero padding, M8N32/SG4/dynamicwholeK descriptor, logical output/order/diagnostics; coefficient B changed toIEEEHALF RNE from originalexactF32 coefficients",
+    "numerical_identity": "EXPLICIT NEW numerical alternative; opaqueMPP raw accumulator/reduction and coefficient precision may differ. Never claim old bit-order parity from source.",
+    "no_input_conversion": true,
+    "first_matrix_geometry": {
+      "K": 6144,
+      "N": 2560,
+      "rows": 5,
+      "padded_rows": 8,
+      "CTA_count": 80,
+      "threads": 128
+    },
+    "first_F32_coefficient_bytes": 62914560,
+    "first_HALF_coefficient_bytes": 31457280,
+    "FlashDType_has_F16": false,
+    "implementation_if_approved": "Private primitive typedhalf MetalBuffer only; no public dtype/API edits. No all-role or31GBmodelsidecar."
+  },
+  "distinctness": {
+    "closed_prefill_HALF": "dense_final_sep21 uses BF16coefficients convertedtoHALF and M128/256 prefill plusBF16input converter; different source/control/shape.",
+    "closed_BF16_dense": "Rejected R4 BF16coeff narrow geometry is not reused. Current proposal retains N32/N64 wholeK geometry and tests HALF fromexactF32 withunchangedBF16A.",
+    "not_a_tile_search": true
+  },
+  "primary_local_ABI": {
+    "path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/MetalPerformancePrimitives.framework/Versions/A/Headers/MPPTensorOpsMatMul2d.h",
+    "sha256": "2f572492dbdd7328799522fb4dd00094f8d6c59537ed4b7a5734b6725303f1b0",
+    "fact": "InstalledSDK operand table includes bfloat/half/float exactly; no hardware throughput claim.",
+    "throughput_claim": "NONE. Supportdoesnotprove fasterhardware lowering."
+  },
+  "budget_and_decision": {
+    "first_required_probe": "Source-derived role/pipeline/geometry attribution on REAL current fixed4 MTP target proposals. Separate H4physical5 fromH3physical4/shorter, cachedF32body/HCup/rawquant/MoE/GDN/QSA/vocab. OldR4 ordinaryVerify profile is hypothesis evidence only.",
+    "current_exact_padding_opportunity": "Small dispatch savings; cannot be presented as20percentwhole.",
+    "20pct_rate_fixed_acceptance_requires_saved_cycle_ms": 8.7412595,
+    "family_ms_required_if_actual2x_speedup": 17.482519,
+    "family_ms_required_if_actual3x_speedup": 13.11188925,
+    "formula": "saving=B*(1-1/s); newTPS=1000*E/(C-saving); ifnewpolicy changesacceptance, mustmeasureE too.",
+    "cap": "A family withB<8.741ms cannot deliver20percentwhole even eliminated. A2x family needsB>=17.483ms; no existingR5family data establishes this.",
+    "stop_rule": "If current cachedF32+HCup budget smallorprimitive failsoriginalnumeric/quality gates, close withoutwholecache/integration.",
+    "performance_promises": false
+  },
+  "qualification_if_attribution_justifies_build": {
+    "Root_only_payload_scope": "One original matrix/controlcachedF32 span+actualMTPVerify5 input; Rootonlymodel/capture/coeffread. Boundedprimitive reservation derived before read, notmodelwide.",
+    "coefficient_conversion": "Full exactF32-toHALF reference census, conversionbits/overflow/underflow/subnormal/signedzero/nonfinite/maxabs; overflow/nonfinite reject alternative, oldroute retained. Optional half-exact property mustcheckEVERY coefficient, notinfer fromQ4/BF16params.",
+    "numerical": "Shippinguntapped old/new output+fullrawF32tap, fullBF16 output, originalperroute/global thresholds, sampledandwhere neededfulloriginalF32-coefficient FP64 reference and explicit\u03b4W bound. Reportdifferences; no thresholdrelaxation orcandidate-only HALFreference.",
+    "guards": "Originalparameter/source-shape/stride/alignment/alias/immutable/bufferextent/partialhostgrid/thread/NaNInf/diagnostic/canary guards; input BF16 unchanged.",
+    "timing": "All numerical/guard gates before warm; >=150ms EACHinclusivecontrol/candidate,18balancedposition pairs, noCPUbufferaccess firstwarmthroughfinal; finalshipping/tap coupling and measuredgovernor/owner/backend teardown.",
+    "promotion": "Fresh explicitnumericpolicy all134state+prefix/future+head scopeasneeded, original22 body/grader taskquality and realdecode/prefill. Componentwin alone cannotpromote."
+  },
+  "program_bindings": {
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashForward.cpp": "a0640aa3a3c356c76f1b62e57d7adfc44f53e291a43f0130e2f75745d76faa97",
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashFloatDenseCache.cpp": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024",
+    "runtime/metal/kernels/shared/flash_float_dense_cache.metal": "0a765a84628aef5c95d4641331aa80d0e5a957fe17178169eb0ea4eb434e86a3",
+    "dev/benchmarks/dense_final_sep21/README.md": "604413495a586823112624f050aacec4ef6171cb78b3e5fbab667a8d118afba7"
+  },
+  "agent_actions": {
+    "GPU_work": false,
+    "model_operand_capture_actual_report_or_plan_payload_reads_or_hashes": 0,
+    "source_or_CPP_or_shader_or_runtime_edits": 0,
+    "component_or_worker_builds": 0
+  },
+  "program_binding_scope": "Frozen current Forward/FlashFloatDenseCache CPP bindings are actual worker sources. Public flash_float_dense_cache.metal is reference-only because the frozen worker source snapshot omits that original shader TU; any approved primitive must authenticate actual current AIR/source/recipe lineage before comparing controls."
+}

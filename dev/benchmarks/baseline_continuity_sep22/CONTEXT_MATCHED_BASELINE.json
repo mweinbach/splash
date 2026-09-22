@@ -1,0 +1,69 @@
+{
+  "schema": "Root-initial-context-matched-baseline-continuity-v1",
+  "evidence": "Root supplied scalar metadata; agents did not read original report generation/token/tensor payloads",
+  "context_confound": "settled by same older binary and flags at16384 capacity",
+  "old_original_report": {
+    "path": "build/release/flash/sep21-gathered-standard-mtp3-batch-matrix-v1.json",
+    "native_exact_B1_MTP3_decode_median_tokens_per_second": 68.36750725633954,
+    "prefill_median_tokens_per_second": 3148.31496426062,
+    "maximum_context": 8192
+  },
+  "old_context_matched_Root_control": {
+    "job": 69706,
+    "command_path": "build/initial3148-continuity-Root-sep22-v1/root-command.json",
+    "command_sha256": "5277ae1a2e1f446c9b28b9adca90afdc360a9b27c7656d5fa8619f04caf125b2",
+    "same_original_binary_and_library": true,
+    "original_flags_exact_count": 50,
+    "maximum_context": 16384,
+    "prompt_tokens": 2048,
+    "output_budget_tokens": 256,
+    "http_width": 1,
+    "mtp_depth": 3,
+    "warmups": 1,
+    "trials": 3,
+    "cache_tokens": 0,
+    "temperature": 0,
+    "reasoning": "none",
+    "prefill_median_tokens_per_second": 3164.48321,
+    "native_exact_decode_median_tokens_per_second": 68.4340727612531,
+    "verification_cycles": 80,
+    "accepted_committed_drafts": 175,
+    "committed_prefix_per_cycle": 3.1875,
+    "all3trials_valid": true,
+    "completed_unloaded_RC0": true
+  },
+  "shared_control_binding": {
+    "model_package_source_id_prefix": "ca9",
+    "layout_id_prefix": "edc",
+    "frontend_prompt_u32le_sha256_prefix": "55cf",
+    "frontend_prompt_count": 2048
+  },
+  "current_qualified_fixed4_Root_summary": {
+    "maximum_context": 16384,
+    "prompt_tokens": 2048,
+    "output_budget_tokens": 256,
+    "http_width": 1,
+    "warmups": 1,
+    "trials": 3,
+    "cache_tokens": 0,
+    "mtp_depth": 4,
+    "prefill_median_tokens_per_second": 4006.925,
+    "native_exact_decode_median_tokens_per_second": 61.544,
+    "numerical_prefill_and_decode_policies_differ": true
+  },
+  "comparison": {
+    "prefill_rate_change_percent": 26.621781001644184,
+    "native_decode_rate_change_percent": -10.068190425098035,
+    "current_prefill_wall_ms_from_rate": 511.11513192784986,
+    "old_prefill_wall_ms_from_rate": 647.1830830159469,
+    "exact_old_state_preserving_saving_needed_ms_to4000": 135.18308301594686,
+    "initial_user_decode_objective_met": false,
+    "local_fixed3_to_fixed4_gain_is_not_initial_baseline_gain": true
+  },
+  "next_Root_diagnostic": {
+    "job": 51947,
+    "scope": "current Q4 fixed3 with four numerical prefill switches disabled",
+    "status": "active per Root message; no result inferred"
+  },
+  "agents_GPU_or_original_payload_reads": 0
+}

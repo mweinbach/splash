@@ -1,0 +1,226 @@
+{
+  "schema": "singleton-deep-MTP-R5-R7-integer-planner-source-PLAN-v1",
+  "PLAN_only": true,
+  "build_or_GPU_work": false,
+  "existing_pinned_normal_files_changed": false,
+  "model_operand_token_capture_response_payload_reads": 0,
+  "current_qualified_worker_exe_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+  "current_qualified_library_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+  "current_actual_reference": {
+    "Root_supplied_fixed3_prefix_histogram": [
+      38,
+      16,
+      19,
+      32
+    ],
+    "mean_retained_outputs_per_cycle": 2.4285714285714284,
+    "equivalent_cycle_ms": 45.62756190476191,
+    "actual_decode_median_tps": 53.225974108381436
+  },
+  "existing_fixed_depth_support": {
+    "environment": "SPLASH_FLASH_MTP_DRAFT_DEPTH=4 or6, canonicaldecimal; explicitoverride disablesadaptive",
+    "singleton_supported_depth_range": [
+      1,
+      15
+    ],
+    "requested_full_verify_rows": [
+      5,
+      7
+    ],
+    "quota_cap": "min(remaining-1,configuredDepth)",
+    "peer_cap": 3,
+    "draft_EOS": "push proposedstop token then break; actual row count may be shorter than requested",
+    "committed_fold_maximum_raw_chunk_rows": 8,
+    "R5_R7_maximum_retained_fold_rows": [
+      5,
+      7
+    ],
+    "head_extra_chain_calls_vs3_on_nonEOS_full_draft": [
+      1,
+      3
+    ],
+    "true_batch_joint_policy_remains_fixedcap3": true,
+    "larger_verification_tapes_and_head_feature_ownership_need_fresh_admission": true
+  },
+  "unchanged_current_R5_R7_dense_policy": {
+    "F32_cache_membership_and_selected_tiles": "same rows<8/four-column policy asR4; original full cache/backing retained",
+    "raw_GDN_Q4_26_rowpair": "excluded because exactrows4 only; genuineoriginalraw per-row kernel",
+    "HC_fast_pad_97": "excluded because exactrows4; originalfuseddown +explicitpad +M8N32SG4cachedUp",
+    "QSA_out_N32": "originalqualifiedcachedgeometryrows4..16 remainseligible",
+    "singleton_W8_prefill": "exactfresh2048nonverify unchanged",
+    "I8_head_projection": "originalmultirowprojection rows2..16"
+  },
+  "current_MoE_branch": {
+    "gatheredMPP_cap": 4,
+    "compact_R4_selector": "exactrows4 verification; unchanged",
+    "R5_R7": "Full512blocked/nativeM16/N64/SG4, original10-stagechain",
+    "old_setup_stage_order": [
+      "histogram",
+      "prefix",
+      "stable_map",
+      "direct_a_pack",
+      "job_prefix",
+      "jobs"
+    ],
+    "old_prefix_algorithms": "originalsingle-thread512expert loops for route/job prefixes",
+    "old_suffix_stage_order": [
+      "native_gate_up",
+      "poison_down",
+      "prepare_down",
+      "native_down_scatter"
+    ],
+    "new_stage_order": [
+      "new_fixed_integer_plan",
+      "literal_original_direct_a_pack",
+      "literal_original_native_gate_up",
+      "literal_original_poison_down",
+      "literal_original_prepare_down",
+      "literal_original_native_down_scatter"
+    ],
+    "dispatches_per_layer": [
+      10,
+      6
+    ],
+    "dispatches_saved_per_48_layer_cycle": 192,
+    "metadata_CTAs_saved_per_48_layer_cycle": 49344,
+    "count_savings_are_not_timing_measurements": true
+  },
+  "geometry": [
+    {
+      "rows": 5,
+      "routes": 50,
+      "native_job_capacity": 515,
+      "minimal_M8_job_backing_capacity": 518,
+      "pack_and_prepare_grid": [
+        113,
+        1,
+        1
+      ],
+      "gate_grid": [
+        10,
+        50,
+        1
+      ],
+      "down_grid": [
+        40,
+        50,
+        1
+      ],
+      "native_float_threads": [
+        128,
+        1,
+        1
+      ],
+      "integer_plan_grid": [
+        1,
+        1,
+        1
+      ],
+      "integer_plan_threads": [
+        256,
+        1,
+        1
+      ],
+      "integer_plan_TG_bytes": 2512,
+      "active_job_tail_only": "clear only native_job_capacity; backing/currentfullForwardlarger inactive tail untouched"
+    },
+    {
+      "rows": 7,
+      "routes": 70,
+      "native_job_capacity": 516,
+      "minimal_M8_job_backing_capacity": 520,
+      "pack_and_prepare_grid": [
+        133,
+        1,
+        1
+      ],
+      "gate_grid": [
+        10,
+        70,
+        1
+      ],
+      "down_grid": [
+        40,
+        70,
+        1
+      ],
+      "native_float_threads": [
+        128,
+        1,
+        1
+      ],
+      "integer_plan_grid": [
+        1,
+        1,
+        1
+      ],
+      "integer_plan_threads": [
+        256,
+        1,
+        1
+      ],
+      "integer_plan_TG_bytes": 2672,
+      "active_job_tail_only": "clear only native_job_capacity; backing/currentfullForwardlarger inactive tail untouched"
+    }
+  ],
+  "minimal_private_integration_PLAN": {
+    "recommend_first_geometry": "R5/depth4; smallernewshape, oneextraheadchain, existingnormaldriveralreadyaccepts4",
+    "route": "Forward verification+singleton-main only, actualrows5or7; freshdefault0privateflag; exactFull512/blocked/directA/Q4x8/uncangedgathercap4/M16 dependencies",
+    "host_validation": "BuildoriginaladdMoEBlockedPack inlocalCommandGraph; it does metadata checks/graphconstruction only, noGPUallocation/submit/payloadread. Authenticateall6originaldescriptors, names/order/bufferindices/views/32Bparams/grids/256threads before changingcallergraph. Appendnew fixedplan +copiedliteraloriginaldirect_a_pack index3. Call unchanged publicStore.addGateUp/addDownScatter fororiginal4suffix stages.",
+    "no_public_header_or_Store_method_widening": true,
+    "no_existing_R4_C1_HC_rawQ4_scope_or_counter_changes": true,
+    "no_initial_collapsed_CPU_preflight_widening": true,
+    "compiler": "newINTEGERplannerAIR only; originalorderedfloatingAIR tuple untouched",
+    "fallback": "EVERYotheractualshape literaloldbranch; actual4 keepsqualifiedR4composite. Actual6/quota/EOS shapes fallbackoldblocked asappropriate.",
+    "floating_recipe": "samecode/tensors/wholeK/nativeMPPdescriptor/bf16cast/Silu/latefloat scales/rankloads/route order. No weight layout, quantization or matmul math change."
+  },
+  "integer_parity_and_failclosed_obligations": [
+    "ExactexpertIDthenoriginalcanonical-route stableorder; bothmaps; counts512/offsets513/joboffsets513/jobcount; STEP16jobslots/sentinels.",
+    "DuplicateswithinS10row setoriginalsticky1 andremainmapped; negative/outofrangeIDs originalsticky1/excluded maps. No filteringbyrank: rankholes/outofrange remainoriginalnativeconsumer decisions.",
+    "Allactive native515/516 jobrecords reset; wholebacking/fullsourceinactivecapacity untouched. Dynamicbadp.job_capacity never usedaswriteextent.",
+    "Newfixedspecialization grid/threads/full32Bpacket mustallvalidate beforeinputread; badgeometry group000/thread0 boundedreset exactlycompiledsourcecapacity +diag2.",
+    "Originalpublicpack andGU/down guards/sourcealiases completed andretained; allnewselector envvalues exact0/1 frozen, disabledliteraloriginalfallback.",
+    "CPU stablemetadata reference +freshRootactualGPU allintegerplanes/fullFP32/BF16/diagnostics/tails parity vsoldR5/R7 before anytiming.",
+    "Fresh whole-state retainedprefix0..5or7, GDNlazyrollback/convolution/PLE/QSAallplanes, futureAR/correction/EOS/quota/droppedowner/cancel/deadline/featurealias/sourceGov/destructor. No older R4state/taskscore inheritance."
+  ],
+  "conditional_break_even": {
+    "scope": "Sensitivity only: first3fixed3prefixes heldidentical. Unseenq4/q5/q6 unknown; deeperFP/shape canchangeearlierlogitsandacceptance. No acceptance forecast or performanceclaim.",
+    "S3": 0.3047619047619048,
+    "additional_cost_budget_coefficient_ms": 5.72581169000934,
+    "E4": "E3 + S3*q4",
+    "E6": "E3 + S3*(q4+q4*q5+q4*q5*q6)",
+    "depth4_improves_if": "C4-C3 < coefficient*q4",
+    "depth6_improves_if": "C6-C3 < coefficient*(q4+q4*q5+q4*q5*q6)",
+    "illustrative_all_continuations_half": {
+      "C4_less_than_ms": 48.49046774976658,
+      "C6_less_than_ms": 50.63764713352008
+    },
+    "mathematical_upper_bound_all_unseen_continuations_one_NOTobserved": {
+      "C4_less_than_ms": 51.35337359477125,
+      "C6_less_than_ms": 62.80499697478993
+    },
+    "actual_cost_needed": "fullnative wall-cycle, additionalheadchains, targetroutingunion/rows/commit/copy, restoredsetupdispatchsavings andlostR4leaf savings. Notpreparedpredictiontps."
+  },
+  "future_harness_scope_if_Root_chooses": {
+    "no_harness_changes_now": true,
+    "fixed4_normal_driver": "existingparseraccepts4 butOriginal22currentprivatepolicyhelpercap3 rejects4",
+    "fixed6_normal_driver": "Workergenuine6 supported, normaldriverallowlist lacks6; explicitnewprivateallowlistedmode needed",
+    "Original22": "same22 bodies/budgets/context/sampling/grader. OwnRuntimeexactDdeclaredcaps/fold/tapes/profile, source-boundR5/R7counters fromactualhist[4]/hist[6], R4 countersfromactualhist[3]. Originalcomparatorintendedsingletonmaximumdifferenceonly; no unknownfielddriftremoved. Newfulltaskgradesseparatefromoldfixed3actualreference.",
+    "prefill": "canonicalfresh2K256 remainsunchanged; >4K needsactualsamecandidateverification, not inheritedmean"
+  },
+  "not_reopened": "closedadaptive52.110TPSmedian(-2.096%)/full22unqualified, Q5tiny leaf losers; no rerun/build authorizedbythisPLAN",
+  "source_sha256": {
+    "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashForward.cpp": "6579501de097188f9eff3eadddb057d9ab3ecd312bfad7b8873f99b223c5c9f0",
+    "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashWorker.mm": "895fd5f5727983f2783591ef7a884dfca6a40d4c441411d46ca602866d92b34a",
+    "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashInt8ExpertStore.mm": "5bca0c070172bae7f83278a9780f978cb0fbbdd336430a708fdcfd118da3dec6",
+    "runtime/flash/FlashMTPWindow.hpp": "1bc6ac729dc1a456093c5c0b3e4e40a08c81b44d86241c09feb2209dc973de05",
+    "runtime/flash/FlashFloatDenseCache.cpp": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024",
+    "runtime/flash/FlashHCFused.cpp": "c3d2820e8530e4fe3d863ca8636485e804984a66a2491461aaf2feccd1e85a1d",
+    "runtime/flash/FlashMoEBlocked.cpp": "db3d2d3c15aad3bd6198f11acbb88a7cb24187713adb850019e0decfedc410b3",
+    "runtime/flash/FlashMoEBuckets.cpp": "ebb55c7c0d61665c206e7cc7b2f9a7275e6530b0fb955e93c9bf91da8d0b963e",
+    "runtime/metal/kernels/shared/flash_moe_buckets.metal": "06b3ddbac051e70f9e27e97ea4f092ce5593534b2a4fba3157f60855f723d541",
+    "runtime/metal/kernels/shared/flash_int8_expert_store.metal": "54b5bd2a791ce08896cb2de27669797565acf6fc7fd1dd643ca8ff02fe635309",
+    "dev/benchmarks/expert_batch_compact_native_sep22/plan.metal": "76a04b9ceb3e46811f7343a403bea0ca8179307338b98c1c6c4cc17a267db995",
+    "dev/benchmarks/expert_batch_compact_native_sep22/abi.hpp": "6d5ea7b59fe127b899708d1a8c9e37697ba509f05f23f2efeb8c73284fba5a75"
+  }
+}

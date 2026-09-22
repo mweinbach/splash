@@ -1,0 +1,46 @@
+from pathlib import Path
+import argparse
+
+def replacement(text,before,after,count=1):
+    if text.count(before) !=count: raise RuntimeError(f"BF16 primitive source drift: {before!r}")
+    return text.replace(before,after)
+
+def generate(destination):
+    destination.mkdir(parents=True,exist_ok=True)
+    shader = Path("runtime/metal/kernels/shared/flash_int8_expert_store.metal").read_text()
+    shader = replacement(shader,"device int8_t *","device bfloat *",6)
+    shader = replacement(shader,"    const float gs = gate_scale[ulong(rank) * 640 + n];\n    const float us = up_scale[ulong(rank) * 640 + n];\n    const float gf = gd[i] * gs, uf = ud[i] * us;\n    const bfloat gv = bfloat(gf), uv = bfloat(uf);", "    const bfloat gv = bfloat(gd[i]), uv = bfloat(ud[i]);")
+    shader = replacement(shader,"    if (!(gs > 0.0f) || !(us > 0.0f) || !flash_mpp_finite(gs) ||\n        !flash_mpp_finite(us) || !flash_mpp_finite(gf) || !flash_mpp_finite(uf) ||\n        !flash_mpp_finite(value)) flash_mpp_error(diag, 4u);", "    if (!flash_mpp_finite(gd[i]) || !flash_mpp_finite(ud[i]) || !flash_mpp_finite(value)) flash_mpp_error(diag,4u);")
+    shader = replacement(shader,"    const float scale = scales[ulong(rank) * 2560 + n];\n    const float result = dot[i] * scale;\n    const bfloat value = bfloat(result);\n    if (!(scale > 0.0f) || !flash_mpp_finite(scale) || !flash_mpp_finite(result) ||\n        !flash_mpp_finite(value)) flash_mpp_error(diag, 4u);", "    const bfloat value = bfloat(dot[i]);\n    if (!flash_mpp_finite(dot[i]) || !flash_mpp_finite(value)) flash_mpp_error(diag,4u);")
+    shader = replacement(shader,"  if (group.x >= 10) { if (!tid) flash_mpp_error(diag, 2u); return; }", "  (void)gate_scale; (void)up_scale;\n  if (group.x >=10) { if (!tid) flash_mpp_error(diag,2u); return; }")
+    shader = replacement(shader,"  if (group.x >= 40) { if (!tid) flash_mpp_error(diag, 2u); return; }", "  (void)scales;\n  if (group.x >=40) { if (!tid) flash_mpp_error(diag,2u); return; }")
+    shader = shader.replace("flash_int8_expert_store_","prefill4k_bf16cache_")
+    (destination /"candidate.metal").write_text(shader)
+    oracle = Path("dev/benchmarks/flash_expert_dense_cache_oracle.mm").read_text()
+    oracle = replacement(oracle,'#include "flash/FlashExpertDenseCache.hpp"','#include "flash/FlashExpertDenseCache.hpp"\n#include "dev/benchmarks/prefill4k_bf16cache/bridge.hpp"')
+    oracle = replacement(oracle,'#include "../tests/flash/FlashMoEBucketsReference.hpp"','#include "dev/benchmarks/flash_expert_int8_bucket_reference.hpp"')
+    oracle = replacement(oracle,"namespace ref = splash::flash::bucket_reference;","namespace ref = splash::flash::int8_bucket_reference;")
+    oracle = replacement(oracle,"    scratch[i].packedActivated = guarded(backend, uint64_t{rows} * kSelections * 640 * 2, guards);", "    scratch[i].packedActivated = guarded(backend, uint64_t(rows * kSelections +63) *640 *2, guards);")
+    oracle = replacement(oracle,'d.pipelineName.starts_with("flash_moe_q4x8_gate_up_") ||\n                 d.pipelineName.starts_with("flash_moe_q4x8_down_scatter_")', 'd.pipelineName.starts_with("flash_moe_direct_a_gate_up_") ||\n                 d.pipelineName.starts_with("flash_moe_direct_a_down_scatter_")')
+    oracle = replacement(oracle,"      cache.addGateUp(graphs[i], scratch[i], diagnostic, rows, tile);\n      cache.addDownScatter(graphs[i], scratch[i], diagnostic, rows, tile);", "      prefill4k_bf16::addGate(graphs[i],cache,gate,up,scratch[i],diagnostic,rows,tile);\n      prefill4k_bf16::addDown(graphs[i],cache,down,scratch[i],diagnostic,rows,tile);")
+    oracle = replacement(oracle,"std::string pipelineMetadata(const char *path) {","std::string pipelineMetadata(const char *path) {")
+    oracle = replacement(oracle,'  for (uint32_t m : {8u, 16u, 32u})\n    for (const char *phase : {"gate_up_hit", "gate_up_miss", "down_hit", "down_miss"})\n      names.push_back(std::string("flash_expert_cache_") + phase + "_m" + std::to_string(m) + "_n64");', '  for (uint32_t m : {16u,32u,64u})\n    for (const char *phase : {"gate_up","gate_up_miss_direct","down_scatter","down_miss_direct"})\n      names.push_back(prefill4k_bf16::pipeline(phase,static_cast<FlashMoEBlockedTile>(m)));')
+    oracle = replacement(oracle,'const uint32_t requested = name == "flash_expert_cache_convert_q4x8" ? 256 : 128;', 'const uint32_t requested = name =="flash_expert_cache_convert_q4x8" || name.ends_with("_sg8") ? 256 :128;')
+    oracle = replacement(oracle,'const uint32_t rows = envNumber("FLASH_EXPERT_CACHE_ROWS", 2048, 2048);','const uint32_t rows = envNumber("FLASH_EXPERT_CACHE_ROWS",2048,8192);')
+    oracle = replacement(oracle,'const uint32_t m = envNumber("FLASH_EXPERT_CACHE_TILE", 32, 32);\n      require(m == 8 || m == 16 || m == 32, "tile must be8/16/32");', 'const uint32_t m = envNumber("FLASH_EXPERT_CACHE_TILE",32,64);\n      require(m ==16 || m ==32 || m ==64,"tile must be16/32/64");')
+    oracle = replacement(oracle,'      require(setenv("SPLASH_FLASH_MOE_Q4X8", "1", 1) == 0, "cannot force Q4x8 control policy");', '      require(setenv("SPLASH_FLASH_MOE_Q4X8","1",1) ==0 && setenv("SPLASH_FLASH_MOE_DIRECT_A","1",1) ==0 && setenv("SPLASH_FLASH_MOE_M64","1",1) ==0,"cannot force current Direct-A control policy");')
+    oracle = replacement(oracle,'        const auto hashes = exactCoefficients(weights, prefix, cache);', '        const auto hashes = exactCoefficients(weights,prefix,cache);')
+    oracle = replacement(oracle,'          if (!firstCase) out << \',\'; firstCase = false;', '          if (const char *selectedPattern = std::getenv("FLASH_EXPERT_CACHE_PATTERN"); selectedPattern && std::string_view(selectedPattern) !=pattern) continue;\n          if (!firstCase) out << \',\'; firstCase = false;')
+    oracle = replacement(oracle,'  if (!wholeKJobs) require(!activation.mismatches && !downComparison.mismatches && !combined.mismatches,', '  if (!wholeKJobs || std::getenv("FLASH_EXPERT_CACHE_REQUIRE_EXACT")) require(!activation.mismatches && !downComparison.mismatches && !combined.mismatches,')
+    oracle = replacement(oracle,'  uint32_t wholeKJobs = 0;', '  uint32_t wholeKJobs =0, wholeKRoutes =0;')
+    oracle = replacement(oracle,'    if (std::binary_search(hot.begin(), hot.end(), job.expert) && packed.offsets[job.expert + 1] - job.rowBegin >= m)\n      ++wholeKJobs;', '    if (std::binary_search(hot.begin(),hot.end(),job.expert)) {\n      ++wholeKJobs; wholeKRoutes +=std::min(m,packed.offsets[job.expert +1] -job.rowBegin);\n    }')
+    oracle = replacement(oracle,'<< wholeKJobs * m', '<< wholeKRoutes')
+    oracle = replacement(oracle,'double(wholeKJobs * m)', 'double(wholeKRoutes)')
+    oracle = replacement(oracle,'  (void)compareNumerical(output[0], output[1], uint64_t{rows} * 2560);', '  if (std::getenv("FLASH_EXPERT_CACHE_REQUIRE_EXACT")) {\n    require(compareNumerical(scratch[0].packedActivated,scratch[1].packedActivated,uint64_t(rows) *10 *640).mismatches ==0 &&\n        compareNumerical(scratch[0].scatteredDown,scratch[1].scatteredDown,uint64_t(rows) *10 *2560).mismatches ==0 &&\n        compareNumerical(output[0],output[1],uint64_t(rows) *2560).mismatches ==0,"timed source BF16 chain lost strict equality");\n  } else (void)compareNumerical(output[0],output[1],uint64_t(rows) *2560);')
+    oracle = oracle.replace('control must use the qualified current Q4x8 producer','control must use the qualified current Direct-A producer')
+    oracle = oracle.replace("flash-sparse-expert-cache-oracle-v1","prefill4k-lossless-bf16-cache-current-direct-a-oracle-v1")
+    oracle = oracle.replace('splash::json::quote(kFlashExpertDenseCacheSemantics)', 'splash::json::quote("private-source-bf16-coefficients-whole-k-all-valid-jobs-current-direct-a-misses-v1")')
+    (destination /"oracle.mm").write_text(oracle)
+
+if __name__ =="__main__":
+    p = argparse.ArgumentParser(); p.add_argument("destination",type=Path); generate(p.parse_args().destination)

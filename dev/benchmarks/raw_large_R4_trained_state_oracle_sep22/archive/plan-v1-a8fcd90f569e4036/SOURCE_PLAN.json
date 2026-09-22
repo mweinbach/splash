@@ -1,0 +1,40 @@
+{
+  "schema": "raw-large-R4-genuine-trained-three-boundary-SOURCE-plan-v1",
+  "source_plan_only": true,
+  "files": {
+    "contracts.hpp": "453832554af55ae0d59e953e2f404cecb94bbaee082aa10d5597723c45faff47",
+    "interfaces.hpp": "e03c0956d6555c510a306f2d3cd4db76499d39222d73b26e6c1ac0c53ae835d1",
+    "PLAN.md": "bae90decdf93ff66e291dc389fa95795fbcf8f9ed3b417bb5e0fc0a0cf66a690",
+    "prepare_plan.py": "1a72ae1fa06fd2f2723913172ab7eca9bbb97ecccf074ea01b9d3d14bba990a9"
+  },
+  "control_source": "162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a",
+  "candidate_ready_required_before_clone": true,
+  "Root_scope_review_required_before_compile": true,
+  "native_cookie": {
+    "request": 1,
+    "generation": 1,
+    "depth": 3,
+    "physical_rows": 4,
+    "ordinal": 3,
+    "prior_successful_R4_calls": 2
+  },
+  "snapshot_boundaries": [
+    "third_pending_verify4",
+    "third_commit_head_truncate_fold_resolved",
+    "next_actual_target_window"
+  ],
+  "main_physical_planes": 134,
+  "initialized_physical_lazy_arenas": 216,
+  "trained_head_physical_planes": 5,
+  "worker_owned_carry_and_offsets_included": true,
+  "new_backend_owners": 0,
+  "input_copy_dispatches": 0,
+  "raw_input_exports": 0,
+  "whole_source_and_actual_preflight_before_first_payload_read_or_export": true,
+  "policy_binding_pending_Root_measured_winner": true,
+  "no_old_W8_on_profile_binding": true,
+  "GPU_work": false,
+  "compiler_invocations": 0,
+  "model_token_tensor_capture_profile_actual_report_reads_or_hashes": 0,
+  "ordinary26frame_or_full_task_or_performance_qualification_claimed": false
+}

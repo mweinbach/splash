@@ -1,0 +1,20 @@
+{
+  "schema": "current-standard-AR1-worker-only-stage-diagnostic-source-plan-v1",
+  "scope": "Root authorized diagnostic; private Worker only, genuine ordinary AR1",
+  "parent": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2",
+  "parent_executable_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+  "parent_library_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+  "parent_source_identity_sha256": "162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a",
+  "request": {"id": 1, "generation": 1, "prompt_tokens": 2048, "maximum_output_tokens": 64, "max_context": 16384, "greedy": true, "prefix_cache": "MISS matched0"},
+  "canonical_root_token_file_sha256": "72e5a23f0504ba862d43c22e01e820fc4007b3b939ec4cbc8518aaee499832fb",
+  "canonical_root_tokens_u32le_sha256": "55cf1a355b4a2c97012c752b87955198ef3bb1f1b992b3fb48d35ff7659f3795",
+  "selected_call": {"ordinary_AR1_ordinal": 3, "prior_unprofiled_target_calls": 2, "no_MTP_state": true, "begin": 2050, "returned_length": 2051, "rows": 1, "logit_rows": 1},
+  "profiling": {"mode": "StagePerDispatch", "exact_complete_profiles": 1, "reservation_bytes_before_activation": 67108864, "maximum_dispatches": 4096, "maximum_bindings": 32, "no_dropped_or_truncated_metadata": true, "all_timestamps_valid": true, "Off_before_following_commands": true},
+  "metadata": "Core authentic pipeline/grid/threads/binding-index/extent/inline-vs-buffer; no Forward snapshot hook; absent numeric ABI values remain unknown",
+  "rebuild": {"actual_MM_census": 50, "new_private_header_consumer": "FlashWorker only", "host_rebuilds": 1, "authenticated_host_imports": 49, "current_Core_imports": 4, "ordered_authentic_754_library_reconstructed": true, "new_shader_or_FP_compiles": 0, "public_header_or_Forward_or_Graph_changes": 0},
+  "GPU_executed_by_agent": false,
+  "model_tensor_token_file_payload_reads_by_agent": 0,
+  "canonical_throughput_claim": false,
+  "SourceWorld_qualification_claim": false,
+  "baseline_rerun_requested": false
+}

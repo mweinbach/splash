@@ -1,0 +1,111 @@
+{
+  "schema": "current-R4-raw-large-guard-pair-source-plan-v1",
+  "scope": "SOURCE PLAN ONLY; no shader/worker/oracle compile or GPU work authorized by this artifact",
+  "parent": {
+    "build": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2",
+    "worker_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+    "library_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+    "source_identity": "162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a",
+    "existing_qualified_GDN26_Q4_AIR_sha256": "4a671caf5641a451f5d60d5d2295b9064e4d78bf23effa74c5b86eaeeaec1003"
+  },
+  "root_measured_reference": {
+    "policy": "FMA+HCnorm ON, W8/QSA2pass OFF, fixed depth3; exact Root env retained",
+    "native_TPS": 70.7648683232306,
+    "prefill_median": 3535.487368142115,
+    "scope": "Root-provided performance diagnostic; full Original22 under these new flags not inherited"
+  },
+  "primitive_adaptation": {
+    "source": "dev/benchmarks/R5_raw_guard_specialized_rowpair_sep22/kernel",
+    "actual_passed_R5_library_sha256": "658408cc3240d245d7678e673996219600aafaa80d7a2311fff09f8644bd48de",
+    "physical_rows": 4,
+    "grid_y": 2,
+    "threads": 64,
+    "simd_width": 32,
+    "row_pairs": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "R5_tail_driver": "excluded only because rows4; no tail/reassociation in any per-row dot",
+    "same_integer_masks_and_per_row_load_vector_qdot_XSUM_chunk_add_simd_BF16_diag": true,
+    "same_exact7_stride_thresholds_and_generic_fallback": true,
+    "new_R4_shipping_and_control_candidate_taps_required": true,
+    "original_native_AIR_efec83_immutable": true,
+    "all7_natural_shapes_and13_patterns_R4_bit_timing_before_worker": true,
+    "new_numerical_policy": false
+  },
+  "worker_selection": {
+    "hook": "existing singleton-main verification floatDenseCache.contains + selective NULLtile RAW branch in Forward::Impl::project",
+    "required_context": {
+      "verification": true,
+      "singleton_main": true,
+      "rows": 4,
+      "experts": 1,
+      "selections": 1,
+      "original_flags": 0,
+      "N_min": 2048
+    },
+    "preserve_existing_GDN26_Q4_selection_precedence": true,
+    "expected_all_large_inventory": 113,
+    "expected_new_calls_per_full_H3": 87,
+    "inventory_basis": "current observed R5 seven natural geometry signatures and physical4 uses same entry.four cache selector for rows4..7; constructor still must prove exact current role inventory and NULL policy, no timing count inheritance",
+    "PLE_first_key": "one explicit authenticated main PLE key role is included only if exact projection/source/cache NULL proves it; otherwise refuse inventory mismatch, do not assume mainGDN26 scope covers PLE",
+    "exclude": "prefill/AR/physical1..3/R5/head/batch/selected F32 tile/small N/other roles",
+    "default_flag": 0,
+    "newflag_requires": "existing RAWQ4=1+C1+bundle+HC fast registered flags; freeze/recheck before model paths",
+    "hot_selection": "constructor-qualified immutable role table; no added repeated regex or broad guard scans"
+  },
+  "CPU_closure": {
+    "normal_worker_changed_TUs": [
+      "FlashForward",
+      "FlashWorker"
+    ],
+    "public_headers_changed": false,
+    "actual50_TU_census_required": true,
+    "other48_host_plus_Core4_exact": true,
+    "library_relink": "first originalParent754 AIR tuple must reproduce754 exactly, then append only new R4 AIR; retainold4a67 and do not append probes inshipping",
+    "weights_caches_geometry_or_resources_changed": false
+  },
+  "qualification_path": {
+    "before_performance": "fresh actual-trained R4 off/on state proof and fresh new Source/semantic admission",
+    "trained_input": "exact Root HTTP2048 token55cf/72e5 external pins, Native cookie1/gen1, fixed3, third physicalR4 aftertwo unprofiled genuine completed MTP cycles",
+    "avoid_new_input_capture_GPU": "reuse capture source inspector/snapshot machinery only as readonly whole-state oracle; no113 input-copy owners or packets needed",
+    "comparison": "two separate processes one model/backend each, controlold663 vsnewworker under exact samegood-pref flags; three resolved streaming checkpoints: provisional thirdR4 outputs/tapes/state, actual thirdcommit state, next actual target window; root owns bytes",
+    "scope": "all134 main planes+216 known initialized arenas/full hidden/logits/greedy/metadata/owners/localundefined-tail invariants; include existing all5 trained-head planes/offset at completed boundary if deriving trajectory equality beyond exact trunk outputs",
+    "stream_budget": "before owner or export, actual/source-derived full3frames <4GiB; hostbuffer+spill admission explicit, six ledger guards+honest sampled resource/process teardown",
+    "counters": "newRaw87*actualH3 and oldRaw26*actualH3, excluded contexts0; source-qualified role/cache inventory must be runtime exact",
+    "semantic": "strict child helper chains immutable parent663 helper, newSource/library/flag/counters/proof admission mandatory; Original22 bodies/budgets/graders unchanged",
+    "whole_measure": "Root canonical1warm3 trials2048/256/B1/depth3/context16K/cache0 +Original22 at samegood-pref baseline; qualitybaseline requires its own runtime profile, no forcingnewflag ontoParent"
+  },
+  "ROI": {
+    "R5_profile_weighted_all7_ms": 1.0771313325880028,
+    "legacy26_Q4_savings_cannot_be_counted_again": true,
+    "R4_actual_role_budget_missing": true,
+    "R5_to_R4_timing_ratios_not_inherited": true,
+    "baseline_absolute_shift_2x_on_some_shapes_requires_caution": true,
+    "no_whole_rate_or_peak_promise": true,
+    "conservative_R5_profile_weighted_remainder_ms_excluding_entire27_Q4_family": 0.7593350190592939
+  },
+  "evidence": [
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-R5-guard-specialized-synthetic-component-small-results-v1.json",
+      "sha256": "87748d965fd930e941981aba708da4ef64fda7bbb9d2703ba245939dbd786a2a",
+      "scope": "program Source or explicitly Root-authorized small scalar metadata only"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashForward.cpp",
+      "sha256": "6579501de097188f9eff3eadddb057d9ab3ecd312bfad7b8873f99b223c5c9f0",
+      "scope": "program Source or explicitly Root-authorized small scalar metadata only"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/flash/FlashFloatDenseCache.cpp",
+      "sha256": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024",
+      "scope": "program Source or explicitly Root-authorized small scalar metadata only"
+    }
+  ]
+}

@@ -9,6 +9,7 @@
 
 using namespace metal;
 using namespace mpp::tensor_ops;
+#include "metal/kernels/common/flash_dense_traversal.h"
 
 // One-time source-layout conversion. Affine coefficients stay signed, F32
 // reconstruction precedes the single BF16 cast, and the original buffers are
@@ -50,7 +51,7 @@ kernel void flash_dense_cache_expand_bf16(
   output[index] = converted;
 }
 
-template <ushort M, ushort N>
+template <ushort M, ushort N, bool Traversal = false>
 inline void flash_dense_cache_tile(
     device bfloat *input, device bfloat *weights, device bfloat *output,
     device uint *diagnostics, constant FlashDenseCacheParams &p,
@@ -59,13 +60,18 @@ inline void flash_dense_cache_tile(
       p.input_size > 32768 || p.input_size % 32 || !p.output_size ||
       !p.output_count || p.output_count % N || p.output_begin > p.output_size ||
       p.output_count > p.output_size - p.output_begin ||
-      p.tile_rows != M || p.tile_outputs != N || p.reserved || group.z ||
-      group.x >= p.output_count / N || group.y >= p.rows / M ||
+      p.tile_rows != M || p.tile_outputs != N ||
+      (Traversal ? p.reserved > 4 : p.reserved != 0) || group.z ||
+      (Traversal ? !flash_dense_traversal_group_valid(group.xy, p.rows / M,
+                           p.output_count / N, p.reserved)
+                 : group.x >= p.output_count / N || group.y >= p.rows / M) ||
       threads.x != 128 || threads.y != 1 || threads.z != 1) {
     if (tid == 0) flash_mpp_error(diagnostics, 2u);
     return;
   }
-  const uint row = group.y * M, column = p.output_begin + group.x * N;
+  const uint2 tile = Traversal ? flash_dense_traversal_tile(group.xy, p.reserved) : group.xy;
+  if (Traversal && (tile.x >= p.output_count / N || tile.y >= p.rows / M)) return;
+  const uint row = tile.y * M, column = p.output_begin + tile.x * N;
   const int k = int(p.input_size);
   auto a = tensor(input + ulong(row) * p.input_size,
                   dextents<int, 2>{k, M}, array<int, 2>{1, k});
@@ -89,7 +95,7 @@ inline void flash_dense_cache_tile(
   }
 }
 
-#define FLASH_DENSE_CACHE_ENTRY(Name, M, N)                                  \
+#define FLASH_DENSE_CACHE_ENTRY(Name, M, N, Traversal)                       \
   kernel void Name(device bfloat *input [[buffer(0)]],                      \
       device bfloat *weights [[buffer(1)]], device bfloat *output [[buffer(2)]], \
       device uint *diagnostics [[buffer(3)]],                               \
@@ -97,15 +103,20 @@ inline void flash_dense_cache_tile(
       uint3 group [[threadgroup_position_in_grid]],                         \
       uint3 threads [[threads_per_threadgroup]],                           \
       uint tid [[thread_index_in_threadgroup]]) {                          \
-    flash_dense_cache_tile<M, N>(input, weights, output, diagnostics,       \
+    flash_dense_cache_tile<M, N, Traversal>(input, weights, output, diagnostics, \
                                  params, group, threads, tid);             \
   }
 
-FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m8_n64, 8, 64)
-FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n64, 16, 64)
-FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n128, 16, 128)
-FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n64, 32, 64)
-FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n128, 32, 128)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m8_n64, 8, 64, false)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n64, 16, 64, false)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n128, 16, 128, false)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n64, 32, 64, false)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n128, 32, 128, false)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m8_n64_traversal, 8, 64, true)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n64_traversal, 16, 64, true)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m16_n128_traversal, 16, 128, true)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n64_traversal, 32, 64, true)
+FLASH_DENSE_CACHE_ENTRY(flash_dense_cache_m32_n128_traversal, 32, 128, true)
 
 #undef FLASH_DENSE_CACHE_ENTRY
 

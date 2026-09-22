@@ -1,0 +1,131 @@
+{
+  "schema": "fixed5-R6-current-fixed4-source-cost-PLAN-v1",
+  "PLAN_only": true,
+  "no_build_or_GPU_work": true,
+  "pinned_sources_unchanged": true,
+  "model_operand_token_capture_actual_report_payload_reads": 0,
+  "Root_actual_qualified_fixed4_performance_sha256": "95f92b3b31a011e2edb2f6b2f55ee009a40392fdd8b1b884b333aa1af4546210",
+  "reference": {
+    "actual_emitted_median_tps": 61.544298499984436,
+    "Root_actual_retained_histogram": [
+      12,
+      17,
+      16,
+      9,
+      25
+    ],
+    "cycles": 79,
+    "H4_cycles": 78,
+    "H1_quota_tail_cycles": 1,
+    "retained_outputs": 255,
+    "accepted_committed_drafts": 176,
+    "E4": 3.2278481012658227,
+    "equivalent_full_cycle_ms": 52.44755696202531
+  },
+  "conditional_break_even": {
+    "scope": "Counterfactual first4 outcomes remain identical. q5 is unknown, not inferred from lower positions. Quota/EOS and actual deeper shapes can change earlier outcomes and cycle counts.",
+    "S4": 0.31645569620253167,
+    "E5": "E4 + S4*q5",
+    "wins_if": "C5-C4 < 5.1419173492181685*q5 ms",
+    "additional_cost_coefficient_ms": 5.1419173492181685,
+    "maximum_same_cost_gain_percent_if_unobserved_q5_equals1": 9.803921568627452,
+    "illustrative_scenarios": [
+      {
+        "q5": 0.25,
+        "C5_break_even_ms": 53.733036299329854,
+        "additional_full_cycle_budget_ms": 1.2854793373045421
+      },
+      {
+        "q5": 0.5,
+        "C5_break_even_ms": 55.01851563663439,
+        "additional_full_cycle_budget_ms": 2.5709586746090842
+      },
+      {
+        "q5": 0.75,
+        "C5_break_even_ms": 56.303994973938934,
+        "additional_full_cycle_budget_ms": 3.8564380119136263
+      }
+    ],
+    "unobserved_upper_bound_q5_equals1_ms": 57.58947431124348
+  },
+  "Root_actual_fixed4_stage_metadata_per_cycle": {
+    "head_GPU_ms": 7.07674,
+    "head_host_ms": 8.180686,
+    "verify_GPU_ms": 39.8415285,
+    "verify_host_ms": 42.9341466,
+    "restore_GPU_ms": 0.4180037,
+    "restore_host_ms": 0.6708312,
+    "scope": "Head includes committed folds and all chains; these are aggregate observed stage costs, not isolated marginal head calls."
+  },
+  "marginal_cost_source": {
+    "extra_head_chain": 1,
+    "full_nonEOS_command_count_current_reference": 313,
+    "head_commands_per_cycle_reference": 3.962025316455696,
+    "observed_average_head_GPU_per_command_PROXY_ms": 1.7861420447284346,
+    "observed_average_head_host_per_command_PROXY_ms": 2.064773782747604,
+    "average_NOT_measured_marginal": true,
+    "verify_20percent_linear_scenario_GPU_ms": 7.9683057,
+    "linear_scenario_NOT_forecast": "Extra row does not necessarily scale all verifier work linearly: native M16 compute and expert union/cache reuse matter. No current R6 timing or routing union is known.",
+    "no_incremental_R4_leaf_loss": "Both R5/R6 exclude R4 raw-row pairing/HC pad; rows5/6 share selective F32 four-column policy (<8), QSA output and M8 vocabulary thresholds unchanged.",
+    "additional_costs_unknown": "Unpaired raw QMV and HCDown scale with real rows; QSA cache/attention, native expert union/jobs, rollback and copies can grow. Raw+HC source estimate is not a measurement."
+  },
+  "geometry": {
+    "actual_rows": 6,
+    "routes": 60,
+    "native_jobs": 515,
+    "minimal_M8_backing_jobs": 519,
+    "extra_backing_jobs_untouched": 4,
+    "operand_rows": 123,
+    "planner_TG_bytes": 2592,
+    "planner_grid": [
+      1,
+      1,
+      1
+    ],
+    "planner_threads": [
+      256,
+      1,
+      1
+    ],
+    "native_GU_grid": [
+      10,
+      60,
+      1
+    ],
+    "native_down_grid": [
+      40,
+      60,
+      1
+    ],
+    "native_float_threads": [
+      128,
+      1,
+      1
+    ],
+    "pack_prepare_grid": [
+      123,
+      1,
+      1
+    ],
+    "original_ABI_params_bytes": 32,
+    "original_ABI_jobs_bytes": 8
+  },
+  "scope_of_possible_future_specialization": {
+    "new_private_integer_only_R6": "Same qualified parallel integer algorithm with fixed60 route loops and bounded515 sentinel jobs; fresh pure INTEGER AIR identity. No changing native M16 FP/coefficients/bf16/Silu/scales/public headers.",
+    "preserve_qualified_R5": "Actual shortened H4/R5 windows retain the existing R5 integer emitter/500029 and counters. No disabling R5 during fixed5.",
+    "constructor_admission": "Current R5 guards require depth4/tape5 and reject env5. A fresh composite admission must strictly bind explicitdepth5/tape6 while keeping the R5 emitter body literal; current fixed4 worker/proofs remain unchanged.",
+    "counters": "R5 calls48*H4 and rows5*calls; new R6 calls48*H5 and rows6*calls; lower windows keep old fallbacks and R4 counters onH3.",
+    "head": "Retained fold<=6 fits raw chunk<=8; true joint batches stillfixedcap3.",
+    "future_QA": "Fresh R6 metadata/bit/packet/backing guard proof, composite main-state six-row tape/retain0..6/null/abort/future/lifecycle, fresh fixed5 original22 own-runtime grades and actual canonical uncached2K256. No score or allocation measurement inheritance.",
+    "existing_driver": "Worker supports1..15, but canonical normal allowlist lacks5 and fixed4 adapter rejects5; no adapter changes made."
+  },
+  "decision": "Small conditional upside (at most9.8percent before cost under first4 outcome assumption). Do not launch blind depth sweeps. Proceed only after Source budget makes a plausible C5 below its acceptance-dependent threshold; no build authorized by this plan.",
+  "source_sha256": {
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/dev/benchmarks/expert_r5_verify_worker_sep22/policy.hpp": "a283f5dad5c833165626423c5a9b348b200c03cdfbb376af29159ba1f7f58ae8",
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashForward.cpp": "a0640aa3a3c356c76f1b62e57d7adfc44f53e291a43f0130e2f75745d76faa97",
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashWorker.mm": "4041bb41b7d565734013dd3d0d529d2097b4fcb0df161bc30d0c974d428b0140",
+    "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/source/runtime/flash/FlashFloatDenseCache.cpp": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024",
+    "build/expert-r5-compact-native-sep22-component-v4/source/dev/benchmarks/expert_r5_compact_native_sep22/abi.hpp": "75d73d0336073e9684adc0c6054bb2fca4c3e5220fdda931533ecc3e5120895f",
+    "build/expert-r5-compact-native-sep22-component-v4/source/dev/benchmarks/expert_r5_compact_native_sep22/plan.metal": "e4ce24a4f17c0771c29b2172a77a205b21624da1304adc149de974e6a243706a"
+  }
+}

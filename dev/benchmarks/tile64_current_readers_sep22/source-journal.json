@@ -1,0 +1,394 @@
+{
+  "schema": "tile64-current-native-and-gathered-readers-literal-source-v1",
+  "source_only": true,
+  "compiled": false,
+  "GPU_executed": false,
+  "payload_reads_or_hashes": false,
+  "parent_worker_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+  "parent_metallib_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+  "parent_source_identity_sha256": "162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a",
+  "source_files": [
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/kernels/shared/flash_int8_expert_store.metal",
+      "sha256": "6ae72ad99e613ab1cfa1dc9aeff2bcb2556122953d118a6b546c83136cca637a"
+    },
+    {
+      "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+      "sha256": "f63efa224f63a3c807fafd699742716d9ff1bac2b2ec08e21cbb13540bc01245"
+    }
+  ],
+  "native_original_helper_sha256": "cfcb5eb2cbbd3c12ed7cbde312078630865acbce28b6fe804eec67f0607f77df",
+  "gathered_original_helper_sha256": "d018106e5fc66937452aece0921fad05d34165e0cf78a0c2dec4af071dbd1dce",
+  "native_shared_sigmoid_validator_sha256": "77f55c38a62fc8e3aa085864453e0bf0c6601f7c604f6f9d254493923a48b1eb",
+  "gathered_shared_scan_rank_sigmoid_sha256": "45b1bbceb3a39ffe88e19f94ff868ce80a357900a88e9bd4b9f5b41a2186d25d",
+  "native_baseline_observed_helper_sha256": "26a5cf8d3c4468f64b99a651a763433303d8d191c20654940c27aeee18fbd56f",
+  "gathered_baseline_observed_helper_sha256": "6a1ee5aed7f9106c47ea0647a64faeedbacb921d5027c3a545debe4ccbc47e4f",
+  "native_candidate_helper_sha256": "867b608550038c6fd95ef1c09a23d3bbd69a42ab7e78f7cc278c0ab1d9870e3b",
+  "gathered_candidate_helper_sha256": "ff5522c87924f75032588f2431b0c0a0645f7d78b9f359ee617ca8a03887f8f4",
+  "candidate_metal_sha256": "0196e87b32e0c846dbe01a87f4aea37b8cf80cb3eee511f5d3265563599e9d4a",
+  "abi_hpp_sha256": "ed26c86941d54f907eb251fae2263ead55e3c2333b0bf963261fceb59f23ab4f",
+  "CPU_source_checks": {
+    "tap_and_signature_erasure_recovers_both_exact_current_helpers": true,
+    "reverse_complete_rhs_changes_recovers_observed_baselines": true,
+    "entry_count": 16,
+    "all_entry_binding_sequences_exact": true,
+    "all_normal_entries_taps_null_and_Probe_false": true,
+    "all_probe_entries_emit_normal_outputs_from_same_math": true,
+    "native_job_validator_and_original_dynamic_row_bounds_unchanged": true,
+    "gathered_directA_safeTGA_nonfinite_and_rank_branches_unchanged": true,
+    "original_M16_wholeK_SG4_multiply_F32_not_I32": true,
+    "no_M32_or_K128_accumulation_route_added": true,
+    "all_raw_taps_literal_live_unscaled_F32": true,
+    "scaled_taps_literal_live_BF16_projection_values": true
+  },
+  "allowed_native_rhs_changes": [
+    {
+      "before": "dextents<int, 2>{2560, N}, array<int, 2>{1, 2560}",
+      "after": "dextents<int, 2>{N, 2560}, array<int, 2>{1, N}",
+      "count": 2
+    },
+    {
+      "before": "dextents<int, 2>{640, N}, array<int, 2>{1, 640}",
+      "after": "dextents<int, 2>{N, 640}, array<int, 2>{1, N}",
+      "count": 1
+    },
+    {
+      "before": "false, true, false, matmul2d_descriptor::mode::multiply",
+      "after": "false, false, false, matmul2d_descriptor::mode::multiply",
+      "count": 2
+    }
+  ],
+  "allowed_gathered_rhs_changes": [
+    {
+      "before": "dextents<int, 2>{K, N}, array<int, 2>{1, K}",
+      "after": "dextents<int, 2>{N, K}, array<int, 2>{1, N}",
+      "count": 2
+    },
+    {
+      "before": "false, true, false, matmul2d_descriptor::mode::multiply",
+      "after": "false, false, false, matmul2d_descriptor::mode::multiply",
+      "count": 1
+    }
+  ],
+  "baseline_layout": "I8[rank,N,K]",
+  "candidate_layout": "I8[rank,N/64,K,64]",
+  "logical_coefficient_index": "rank*N*K+(n/64)*K*64+k*64+n%64",
+  "right_candidate_axes": [
+    64,
+    "K"
+  ],
+  "right_candidate_strides": [
+    1,
+    64
+  ],
+  "right_candidate_transpose": false,
+  "late_scales_unchanged": "F32[rank*N+n], after wholeK dot, before BF16 projection",
+  "gathered_U_BF16_tap_position": "after original combined uv/silu declaration, before value=silu*uv; declaration is not split or rewritten",
+  "probe_extents": {
+    "native_GU": "rawG/rawU validRoutes*640 F32 and scaledG/scaledU validRoutes*640 BF16, packed order",
+    "native_down": "raw routes*2560 F32 and scaled routes*2560 BF16, canonical routeMap order",
+    "gathered": "raw/scaled routes*N; Gate=640,Down=2560; canonical R*10 order; invalid routes leave tap sentinels untouched"
+  },
+  "dispatch": {
+    "native": "GU{10,min(job_capacity,route_capacity),1};down{40,min(job_capacity,route_capacity),1}, original M16 jobs",
+    "gathered": "GU{10,rows,10};down{40,rows,10}, original rows1..16 geometry; root initial scope AR1/R4",
+    "threads": [
+      128,
+      1,
+      1
+    ]
+  },
+  "pipeline_inventory": [
+    {
+      "name": "tile64_current_readers_sep22_baseline_native_gate_up_m16_sg4",
+      "family": "native",
+      "role": "baseline",
+      "probe": false,
+      "phase": "gate_up",
+      "params_binding": 11,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_native_gate_up_m16_sg4_probe",
+      "family": "native",
+      "role": "baseline",
+      "probe": true,
+      "phase": "gate_up",
+      "params_binding": 11,
+      "tap_bindings": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_native_down_m16_sg4",
+      "family": "native",
+      "role": "baseline",
+      "probe": false,
+      "phase": "down",
+      "params_binding": 10,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_native_down_m16_sg4_probe",
+      "family": "native",
+      "role": "baseline",
+      "probe": true,
+      "phase": "down",
+      "params_binding": 10,
+      "tap_bindings": [
+        11,
+        12
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_gathered_gate_up_m16_sg4",
+      "family": "gathered",
+      "role": "baseline",
+      "probe": false,
+      "phase": "gate_up",
+      "params_binding": 9,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_gathered_gate_up_m16_sg4_probe",
+      "family": "gathered",
+      "role": "baseline",
+      "probe": true,
+      "phase": "gate_up",
+      "params_binding": 9,
+      "tap_bindings": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_gathered_down_m16_sg4",
+      "family": "gathered",
+      "role": "baseline",
+      "probe": false,
+      "phase": "down",
+      "params_binding": 7,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_baseline_gathered_down_m16_sg4_probe",
+      "family": "gathered",
+      "role": "baseline",
+      "probe": true,
+      "phase": "down",
+      "params_binding": 7,
+      "tap_bindings": [
+        8,
+        9
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_native_gate_up_m16_sg4",
+      "family": "native",
+      "role": "candidate",
+      "probe": false,
+      "phase": "gate_up",
+      "params_binding": 11,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_native_gate_up_m16_sg4_probe",
+      "family": "native",
+      "role": "candidate",
+      "probe": true,
+      "phase": "gate_up",
+      "params_binding": 11,
+      "tap_bindings": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_native_down_m16_sg4",
+      "family": "native",
+      "role": "candidate",
+      "probe": false,
+      "phase": "down",
+      "params_binding": 10,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_native_down_m16_sg4_probe",
+      "family": "native",
+      "role": "candidate",
+      "probe": true,
+      "phase": "down",
+      "params_binding": 10,
+      "tap_bindings": [
+        11,
+        12
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_gathered_gate_up_m16_sg4",
+      "family": "gathered",
+      "role": "candidate",
+      "probe": false,
+      "phase": "gate_up",
+      "params_binding": 9,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_gathered_gate_up_m16_sg4_probe",
+      "family": "gathered",
+      "role": "candidate",
+      "probe": true,
+      "phase": "gate_up",
+      "params_binding": 9,
+      "tap_bindings": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_gathered_down_m16_sg4",
+      "family": "gathered",
+      "role": "candidate",
+      "probe": false,
+      "phase": "down",
+      "params_binding": 7,
+      "tap_bindings": [],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    },
+    {
+      "name": "tile64_current_readers_sep22_candidate_gathered_down_m16_sg4_probe",
+      "family": "gathered",
+      "role": "candidate",
+      "probe": true,
+      "phase": "down",
+      "params_binding": 7,
+      "tap_bindings": [
+        8,
+        9
+      ],
+      "threads": 128,
+      "M": 16,
+      "N": 64,
+      "SG": 4,
+      "K": "whole dynamic extent",
+      "mode": "multiply",
+      "destination": "F32"
+    }
+  ],
+  "normal_probe_byte_coupling": "Root must check actual normal output against probe output before and after balanced timing",
+  "opaque_MPP_association_bit_equivalence_claimed": false,
+  "required_qualification": "fresh native C1R4 and gatheredAR1 rawF32/BF16/fullchain/malformed/scales/guards before timing; mainSG2K128 synthetic proof is not inherited"
+}

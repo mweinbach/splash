@@ -1,0 +1,66 @@
+{
+  "schema": "R1-duplicate-tid0-closed-result-v1",
+  "status": "closed-performance-loss",
+  "Root_GPU_job": 99532,
+  "Root_report_metadata_only": {
+    "path": "build/release/flash/sep22-expert-r1-duplicate-tid0-layer0-ten-expert-v1.json",
+    "sha256": "e696b15a7139b253784652f95d64976bdfd825f258669258a22bbce9b86c3d80",
+    "pass": true,
+    "checks": 413,
+    "guard_cases": 51
+  },
+  "program": {
+    "build": "/Users/mweinbach/Projects/splash/build/expert-r1-duplicate-tid0-sep22-component-v1",
+    "source_identity_sha256": "4a286b2980ea26bd5ad58418efba0c3588d9cc3ffe08756ffb3e958c8a67bc61",
+    "CPU_READY_sha256": "9afb5ab4eb5c758137b690643195567a470c799b381b30dacfc219743b672274",
+    "original_gathered_AIR_sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+    "component_metallib_sha256": "945999145af8d39569b5d8907c46d5401e07d257284decf042434b78fb910713",
+    "registration_sha256": "cd5fa0e97afa119c9a3bea462bdde116e7e5d6e6e45ba65630e0004986621951",
+    "HOST_TRANSFORM_sha256": "25af0aa75dca98ca321ec8f6c8a6063c624b2962e871685be6640a0e8c8a063c"
+  },
+  "fixture": {
+    "layer": 0,
+    "original_expert_base": 0,
+    "original_distinct_experts": 10,
+    "Root_coefficient_payload_bytes": 49305600,
+    "synthetic_normalized_R1_input": true,
+    "hot_primitive_only": true,
+    "actual_current_causal_capture": false,
+    "original_dispatches": 2,
+    "candidate_dispatches": 2,
+    "warm_GPU_ms_each_atleast": 150,
+    "balanced_sample_pairs": 18
+  },
+  "quality": {
+    "all_raw_scaled_F32_BF16_GU_SwiGLU_down_exact": true,
+    "all10_perroute_frozen_gates_pass": true,
+    "ownchain_and_actual_completion100GU400Down_pass": true,
+    "fault_diagnostics_canaries_immutability_recovery_pass": true,
+    "normal_Governor_denials": 0,
+    "actual_owned_bytes": 55410688,
+    "after_owned_release_bytes": 0,
+    "backend_destroyed": true
+  },
+  "timing": {
+    "control_GPU_median_ms": 0.07129163714125752,
+    "candidate_GPU_median_ms": 0.07250002818182111,
+    "control_over_candidate_ratio": 0.9833325438504232,
+    "candidate_time_increase_percent": 1.694996901486867,
+    "control_wall_median_ms": 0.2394785,
+    "candidate_wall_median_ms": 0.26475
+  },
+  "source_count_not_runtime_claim": {
+    "old_logical_duplicate_lane_evaluations": 576000,
+    "candidate_logical_duplicate_lane_evaluations": 4500,
+    "physical_memory_traffic_unmeasured": true,
+    "measured_gain": false
+  },
+  "decision": {
+    "worker_build_admitted": false,
+    "standard_model_timing_admitted": false,
+    "promotion_admitted": false,
+    "repeat_other_layers_patterns_or_profile_without_new_reason": false,
+    "reason": "Exact metadata elision regressed inclusive GPU and wall timing; no worker integration is justified."
+  },
+  "agent_GPU_or_model_capture_coefficient_payload_reads": 0
+}

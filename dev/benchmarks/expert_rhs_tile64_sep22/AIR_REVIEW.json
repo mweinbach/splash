@@ -1,0 +1,127 @@
+{
+  "schema": "expert-rhs-tile64-independent-air-review-v1",
+  "created_at_utc": "2026-09-22T09:06:05.654967+00:00",
+  "pass": true,
+  "scope": "source/compiler/scalar-operation/profile readiness only",
+  "component": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2",
+  "gpu_executed": false,
+  "model_payload_bytes_read": 0,
+  "captured_or_exported_input_payloads_read_or_hashed": false,
+  "production_sources_changed": false,
+  "candidate_sources_changed_during_audit": false,
+  "artifacts_and_sources": {
+    "original_control_air": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/original-gathered.air",
+      "sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+      "bytes": 26608
+    },
+    "candidate_air": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/candidate.air",
+      "sha256": "a2fd62cea025a374284dbe2ffe7cd561d5f1b2eb4103730ec335c5902dce647e",
+      "bytes": 44176
+    },
+    "original_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/source/runtime/metal/kernels/shared/flash_gathered_mpp.metal",
+      "sha256": "f63efa224f63a3c807fafd699742716d9ff1bac2b2ec08e21cbb13540bc01245",
+      "bytes": 7519
+    },
+    "original_abi_header": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/source/runtime/flash/FlashGatheredMPP.hpp",
+      "sha256": "2053df6d4e91a0e2a4f73114a1cfef04cbad321c2426ee200e4427dd8747143f",
+      "bytes": 2109
+    },
+    "candidate_source": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/source/dev/benchmarks/expert_rhs_tile64_sep22/candidate.metal",
+      "sha256": "26835106b4d1c0a88df1e9d182a86900058d152cda952c269490727cf48c09fb",
+      "bytes": 12284
+    },
+    "candidate_abi": {
+      "path": "/Users/mweinbach/Projects/splash/build/expert-rhs-tile64-sep22-component-v2/source/dev/benchmarks/expert_rhs_tile64_sep22/abi.hpp",
+      "sha256": "9278f646f981da1e697201046bb54cd80d79af1190add7be64819209ea5d5c72",
+      "bytes": 1664
+    }
+  },
+  "compiler_profile": {
+    "metal_language": "4.1.0",
+    "air_version": "2.9.0",
+    "compiler": "Apple metal 32023.921 (metalfe-32023.921.6)",
+    "sdk": "27.0",
+    "recipe": "-std=metal4.1 -O3 -mmacosx-version-min=27.0; default-fast; no fno-fast-math",
+    "math_options": [
+      "air.compile.denorms_disable",
+      "air.compile.fast_math_enable",
+      "air.compile.framebuffer_fetch_enable"
+    ],
+    "original_candidate_metadata_equal": true,
+    "source_pragma_sequence": "safe support helpers; fast sigmoid with contract/reassociate off; safe rank/scan/execute",
+    "source_pragma_sequence_preserved": true
+  },
+  "scalar_operation_and_typed_call_profiles": {
+    "normalization": [
+      "private helper symbol aliases",
+      "SSA register names",
+      "attribute table IDs resolved to complete attribute sets",
+      "metadata reference numbering",
+      "nonsemantic LLVM predecessor comments"
+    ],
+    "gate_up_operation_count": 19,
+    "down_operation_count": 5,
+    "shipping_matches_original": true,
+    "reference_probe_matches_original": true,
+    "candidate_probe_matches_original": true,
+    "shipping_matches_candidate_probe": true,
+    "floating_intrinsics_flags_and_function_call_attributes_preserved": true,
+    "added_tap_stores_do_not_add_floating_arithmetic": true,
+    "note": "Signature sequence excludes tap IO and does not establish GPU reduction order or operand numerical values"
+  },
+  "finite_and_malformed_input_scan": {
+    "K2560_original_private_optimized_bodies_atomic_and_barrier_attrs_equal": true,
+    "K640_original_private_optimized_bodies_atomic_and_barrier_attrs_equal": true,
+    "finite_deviceA_nonfinite_threadgroup_safeA_policy_preserved": true,
+    "source_mutation_added": false
+  },
+  "symbols": {
+    "original_gathered_mpp_helper_definitions_in_candidate_air": 0,
+    "private_shipping_kernel_count": 2,
+    "private_probe_kernel_count": 4,
+    "user_defined_private_helpers_prefixed": true,
+    "untapped_control": "immutable original-gathered.air; not a rebuilt reference"
+  },
+  "opaque_mpp_calls": {
+    "descriptor": "M16N64 dynamicK; false,true,false; multiply; execution_simdgroups4",
+    "original_private_core_run_destination_capacity_validity_coordinate_signature_and_attrs_equal": true,
+    "gate_up_core_call_count": 13,
+    "down_core_call_count": 11,
+    "gate_up_element_pointer_getters": {
+      "original": 2,
+      "shipping": 2,
+      "reference_probe": 4,
+      "candidate_probe": 4
+    },
+    "down_element_pointer_getters": {
+      "original": 1,
+      "shipping": 1,
+      "reference_probe": 2,
+      "candidate_probe": 2
+    },
+    "probe_extra_element_pointer_getters": "raw diagnostic dot reads; no scalar arithmetic additions",
+    "intentional_change": "B tensor runtime strides 1,K to64,1; extents and panel base unchanged",
+    "opaque_caveat": "MPP backend lowering may choose a different reduction association from changed physical RHS strides. Matching descriptor/signatures/scalar profile is not numerical equality."
+  },
+  "source_policy": {
+    "gate_invalid_rank_sticky_bit": 1,
+    "down_invalid_rank_sticky_bits": 5,
+    "duplicate_ID_and_rank_LUT_policy_preserved": true,
+    "per_group_partial_geometry_guards_original": true,
+    "omitted_total_groups": "host oracle must reject; shader cannot detect underlaunch"
+  },
+  "root_gpu_qualification_required": [
+    "original-control versus reference-probe outputs/diagnostics",
+    "shipping versus candidate-probe outputs/diagnostics",
+    "pair every active raw gd/ud/down F32 dot and scaled F32 value",
+    "pair every G/U BF16, SiLu, activation and down stage",
+    "exact NaN/diagnostic/guard behavior before any timing or shipping"
+  ],
+  "numerical_exactness_certified": false,
+  "performance_certified": false
+}

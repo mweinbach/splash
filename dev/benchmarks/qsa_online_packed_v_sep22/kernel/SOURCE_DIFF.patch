@@ -1,0 +1,29 @@
+--- authoritative-online.metal
++++ packed-V-address-only.metal
+@@ -176,7 +176,7 @@
+           if (token >= p.capacity || token > p.begin + row)
+             bulk_qsa_mpp_failure(diagnostics, 1u << 9);
+           else
+-            value = values[(ulong(token) * 2 + kv) * 256 + dimension + d];
++            value = values[(ulong(kv) * 256 + dimension + d) * 2048 + token];
+         }
+         bv[i] = value;
+       }
+@@ -358,7 +358,7 @@
+       for (uint i = tid; i < 64 * 64; i += 128) {
+         const uint token = tokenBegin + i % 64;
+         kvMemory[i] = token < commonStop
+-            ? values[(ulong(token) * 2 + kv) * 256 + chunk * 64 + i / 64] : bfloat(0.0f);
++            ? values[(ulong(kv) * 256 + chunk * 64 + i / 64) * 2048 + token] : bfloat(0.0f);
+       }
+       threadgroup_barrier(mem_flags::mem_threadgroup);
+       auto partial = operation.template get_destination_cooperative_tensor<decltype(prob), decltype(v), float>();
+@@ -630,7 +630,7 @@
+       for (uint i = tid; i < 64 * 64; i += 256) {
+         const uint token = tokenBegin + i % 64;
+         kvMemory[i] = token < commonStop
+-            ? values[(ulong(token) * 2 + kv) * 256 + chunk * 64 + i / 64] : bfloat(0.0f);
++            ? values[(ulong(kv) * 256 + chunk * 64 + i / 64) * 2048 + token] : bfloat(0.0f);
+       }
+       threadgroup_barrier(mem_flags::mem_threadgroup);
+       auto partial = operation.template get_destination_cooperative_tensor<decltype(prob), decltype(v), float>();

@@ -1,0 +1,48 @@
+{
+  "schema": "qualified-Q4-existing-adaptive-depth-closed-performance-v1",
+  "closed": true,
+  "performance_improvement": false,
+  "promotion_allowed": false,
+  "actual_GPU_run_by_Root": true,
+  "actual_native_session_id": 97585,
+  "actual_reports_preserved": true,
+  "original_command_sha256": "15f14d0c052ed843faff18f83711dd165d13aa815dde27a47704c0a1c6e3083c",
+  "old_V3_executed_helper_archive": "/Users/mweinbach/Projects/splash/build/mtp-adaptive-Q4-sep22-root-v3/source-at-run",
+  "old_V3_helpers_verified_against_actual_command_pins_before_archival": true,
+  "native_report_path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-Q4-existing-adaptive-2K256-original22-v1.json",
+  "semantic_report_path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-Q4-existing-adaptive-2K256-original22-v1-adaptive.semantic.json",
+  "evidence_origin": "Root-supplied actual terminal/native report summary; this CPU agent did not read response/model/token/plan payloads",
+  "Root_supplied_native_observations": {
+    "normal_measured_waves": 3,
+    "normal_measured_waves_valid": true,
+    "actual_emitted_decode_median_tps": 52.110218629954915,
+    "qualified_fixed3_decode_median_tps": 53.225974108381436,
+    "observed_decode_change_percent": -2.096261265514021,
+    "prefill_median_tps": 4000.4561066898955,
+    "prefill_mean_tps": 4010.442,
+    "at_least_one_prefill_trial_below4K": true,
+    "process_unloaded": true,
+    "return_code": 0
+  },
+  "original22_qualified": false,
+  "original22_saved_cases": 0,
+  "semantic_failure": "ModuleNotFoundError: No module named dev.benchmarks.flash_http_performance",
+  "semantic_failure_scope": "Harness dependency resolution failed before first saved task; no original22 task outcome or regression conclusion is supported.",
+  "performance_caveat": "Three valid native adaptive trials were variable and median slower than the existing qualified fixed3 reference; no contemporaneous fixed3 rerun was performed. No favorable peak trial is selected.",
+  "post_terminal_reusable_harness_fix": {
+    "qualified_for_actual_inference": false,
+    "fix": "Resolve/hash exact ROOT native policy file, spec-load privately after old runner establishes frozen dev namespace, capture function before coverage instead of late from-dev import.",
+    "source_files": {
+      "policy_quality.py": "7dfbd860e98c1cbc00f6495c3f9b7017da30f3d19e6bc6bd0f469c0f1868acf5",
+      "test_adapter.py": "dcb69db175bd5e150fc3797fd5448062b87abb631d272c7ec74b70eaa5ed0c23"
+    },
+    "CPU_tests_passed": 17,
+    "clean_subprocess_regression": "Python -I -B fresh processes with cwd outside workspace reproduce archived V3 failure and prove patched private capture succeeds with frozen original dependency paths.",
+    "runtime_kernel_or_library_changes": false,
+    "original_graders_budgets_context_changed": false,
+    "GPU_work_by_agent": false,
+    "new_whole_adaptive_repeat_prepared_or_launched": false,
+    "independent_fix_review_pending": true
+  },
+  "per_depth_native_metadata": "Root may extract actual saved histogram deltas and cost counters from retained report; no shallow/adaptive acceptance or per-depth timing is invented here."
+}

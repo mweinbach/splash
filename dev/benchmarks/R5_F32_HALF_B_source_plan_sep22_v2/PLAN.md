@@ -1,0 +1,7 @@
+The open hypothesis is changing cached F32 coefficient B to HALF while retaining the current BF16 input, whole-K M8/N32 or N64/SG4 geometry and BF16 store. It is an explicit numerical alternative, with no hardware speed promise. No build or model-wide sidecar is authorized.
+
+Correction: the current79 cycles contain78 depth-4 proposals (physicalR5 verification) andone depth-1 proposal (physicalR2). The values12/17/16/9/25 count accepted retained prefixes1..5; they are not proposed depths. All five target rows were computed even when fewer rows were retained. The normal run’s3,744 R5 layer calls equal48×78. The39.84 ms verifier average is therefore dominated byphysicalR5. The original sealed plan remains unchanged and is superseded bythis V2.
+
+Profile the real current target families before building. A20% native-rate gain at unchanged acceptance still needs8.741 ms saved from the52.448 ms equivalent cycle; a2× family must cost at least17.483 ms. Current family attribution remains unknown.
+
+If attribution warrants a primitive, start withone QSA output K6144/N2560 physicalR5 matrix:62.91 MB F32 control versus31.46 MB HALF, preserving80 CTAs/N32. Root owns coefficients and actual-proposal inputs. Require full conversion census, original-coefficient FP64/error and unchanged numerical/guard gates before balanced read-free timing. Reject overflow/nonfinite conversion. Full state/future and original22 model quality remain separate promotion requirements.

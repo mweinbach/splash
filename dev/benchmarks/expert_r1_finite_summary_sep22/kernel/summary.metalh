@@ -1,0 +1,111 @@
+// Flag-only summaries. No BF16 copy, arithmetic, rank diagnostics, or bit4.
+#include "abi.hpp"
+
+inline bool r1_finite_summary_invocation_valid(constant R1FiniteSummaryInvocation &v, uint role) {
+  return v.epoch != 0 && v.role == role && !v.reserved0 && !v.reserved1;
+}
+inline bool r1_finite_summary_packet_valid(device const uint *packet,
+    constant R1FiniteSummaryInvocation &v, uint role, uint k) {
+  if (!r1_finite_summary_invocation_valid(v, role) ||
+      packet[10] != kR1FiniteSummaryMagic || packet[11] != v.epoch || packet[12] != role ||
+      packet[13] != 1 || packet[14] != k || packet[15]) return false;
+  for (uint slot = 0; slot < 10; ++slot) {
+    if (packet[slot] > 1) return false;
+    if (role == kR1FiniteSummaryGURole && slot && packet[slot]) return false;
+  }
+  return true;
+}
+inline bool r1_finite_summary_needs_scan(device const uint *packet,
+    constant R1FiniteSummaryInvocation &v, uint role, uint k, uint route) {
+  // Unknown/stale/corrupt metadata disables the skip; it never authenticates
+  // input content and never adds a diagnostic on an otherwise valid producer.
+  return !r1_finite_summary_packet_valid(packet, v, role, k) || packet[route] != 0;
+}
+inline void r1_finite_summary_reset(device uint *packet, uint lane) {
+  if (!lane) for (uint word = 0; word < 16; ++word) packet[word] = 0;
+  simdgroup_barrier(mem_flags::mem_device);
+}
+inline void r1_finite_summary_publish(device uint *packet,
+    constant R1FiniteSummaryInvocation &v, uint role, uint k, uint lane) {
+  simdgroup_barrier(mem_flags::mem_device);
+  if (!lane) {
+    packet[11] = v.epoch; packet[12] = role; packet[13] = 1; packet[14] = k;
+    packet[15] = 0;
+  }
+  simdgroup_barrier(mem_flags::mem_device);
+  if (!lane) packet[10] = kR1FiniteSummaryMagic;
+  simdgroup_barrier(mem_flags::mem_device);
+}
+inline bool r1_finite_summary_shape(constant FlashGatheredMPPParams &p,
+    constant R1FiniteSummaryInvocation &v, uint role, uint3 group, uint3 total, uint3 threads) {
+  return p.rows == 1 && p.selections == 10 && p.experts == 512 && !p.reserved &&
+      r1_finite_summary_invocation_valid(v, role) &&
+      group.x == 0 && group.y == 0 && group.z == 0 &&
+      total.x == 1 && total.y == 1 && total.z == 1 &&
+      threads.x == 32 && threads.y == 1 && threads.z == 1;
+}
+
+#ifndef R1_FINITE_SUMMARY_PROTOCOL_ONLY
+kernel void r1_finite_summary_gu_flags(
+    device const bfloat *input [[buffer(0)]], device uint *packet [[buffer(1)]],
+    constant FlashGatheredMPPParams &p [[buffer(2)]],
+    constant R1FiniteSummaryInvocation &v [[buffer(3)]], device uint *diag [[buffer(4)]],
+    uint3 group [[threadgroup_position_in_grid]], uint3 total [[threadgroups_per_grid]],
+    uint3 threads [[threads_per_threadgroup]], uint lane [[thread_index_in_threadgroup]],
+    ushort simd_width [[threads_per_simdgroup]]) {
+  // Host refuses invalid topology before submission. Shape-error GPU tests
+  // retain one full SIMD group; no partial-SIMD collective is admitted.
+  if (group.x || group.y || group.z || total.x != 1 || total.y != 1 || total.z != 1 ||
+      threads.x != 32 || threads.y != 1 || threads.z != 1 || simd_width != 32) {
+    if (!group.x && !group.y && !group.z && !lane)
+      for (uint word = 0; word < 16; ++word) packet[word] = 0;
+    if (!lane) gathered_mpp_error(diag,2u); return;
+  }
+  r1_finite_summary_reset(packet, lane);
+  if (!r1_finite_summary_shape(p,v,kR1FiniteSummaryGURole,group,total,threads)) {
+    if (!lane) gathered_mpp_error(diag,2u); return;
+  }
+  const device ushort *bits = reinterpret_cast<const device ushort *>(input);
+  bool local_bad = false;
+  for (uint k = lane; k < 2560; k += 32)
+    local_bad |= (bits[k] & 0x7f80u) == 0x7f80u;
+  const bool bad = simd_any(local_bad);
+  if (!lane) packet[0] = uint(bad);
+  r1_finite_summary_publish(packet,v,kR1FiniteSummaryGURole,2560,lane);
+}
+
+kernel void r1_finite_summary_down_flags(
+    device const bfloat *input [[buffer(0)]], device const long *ids [[buffer(1)]],
+    device const uint *ranks [[buffer(2)]], device uint *packet [[buffer(3)]],
+    constant FlashGatheredMPPParams &p [[buffer(4)]],
+    constant R1FiniteSummaryInvocation &v [[buffer(5)]], device uint *diag [[buffer(6)]],
+    uint3 group [[threadgroup_position_in_grid]], uint3 total [[threadgroups_per_grid]],
+    uint3 threads [[threads_per_threadgroup]], uint lane [[thread_index_in_threadgroup]],
+    ushort simd_width [[threads_per_simdgroup]]) {
+  if (group.x || group.y || group.z || total.x != 1 || total.y != 1 || total.z != 1 ||
+      threads.x != 32 || threads.y != 1 || threads.z != 1 || simd_width != 32) {
+    if (!group.x && !group.y && !group.z && !lane)
+      for (uint word = 0; word < 16; ++word) packet[word] = 0;
+    if (!lane) gathered_mpp_error(diag,2u); return;
+  }
+  r1_finite_summary_reset(packet, lane);
+  if (!r1_finite_summary_shape(p,v,kR1FiniteSummaryDownRole,group,total,threads)) {
+    if (!lane) gathered_mpp_error(diag,2u); return;
+  }
+  for (uint route = 0; route < 10; ++route) {
+    const long id = ids[route];
+    const bool eligible = id >= 0 && id < 512 && ranks[uint(id)] < 512;
+    bool local_bad = false;
+    // Excluded down routes retain the native no-input-read contract. Their
+    // zero flag cannot be used: native rank validation precedes this predicate.
+    if (eligible) {
+      const device ushort *bits = reinterpret_cast<const device ushort *>(input + ulong(route) * 640);
+      for (uint k = lane; k < 640; k += 32)
+        local_bad |= (bits[k] & 0x7f80u) == 0x7f80u;
+    }
+    const bool bad = simd_any(local_bad);
+    if (!lane) packet[route] = uint(bad);
+  }
+  r1_finite_summary_publish(packet,v,kR1FiniteSummaryDownRole,640,lane);
+}
+#endif

@@ -1,0 +1,92 @@
+{
+  "schema": "sep21-prefill-originalq4-decode-composition-source-plan-v1",
+  "gpu_executed": false,
+  "model_payload_bytes_read": 0,
+  "model_payload_hashed": false,
+  "binary_built": false,
+  "production_sources_modified": false,
+  "roots": {
+    "prefill": "build/prefill-hc-inject-norm-sep21-worker-v3",
+    "hybrid": "build/hybrid-sg2-tail-fma-sep21-worker-v1",
+    "pruned": "build/dense-w8a8-residency-prune-sep21-worker-v1"
+  },
+  "source_sha256": {
+    "prefill": {
+      "runtime/flash/FlashForward.cpp": "e7f053071c7da8b97a6b23e77fa74fbe941f0c5701d1b7539dbf3acf75938712",
+      "runtime/flash/FlashWeights.mm": "422537f19bb9aadfea9e460c480a81b464da2023ee8265d68699cc43f9e7d0b3",
+      "runtime/flash/FlashWeights.hpp": "baed6de252daa588e7eb79591c9b70a3068a1105460e5cb5b3e416d899d55589",
+      "runtime/flash/FlashFloatDenseCache.cpp": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024",
+      "runtime/flash/FlashFloatDenseCache.hpp": "f138de8875583c178f71ce45d8fa4f861e6aaee63ed86cc86f6cc751da969a44",
+      "runtime/flash/FlashInt8ExpertStore.mm": "36879e1cb5221bb5ce7ba07703e8ff52f59421e4525c2872eb8ed9465e5872ed",
+      "runtime/flash/FlashWorker.mm": "a4a039f94f9e207beaf072c57537b4b097ff2af8971fa783f96e572132e646f5"
+    },
+    "hybrid": {
+      "runtime/flash/FlashForward.cpp": "9acfa0d35e1a53da39e99296f8d9a618fe1672d93db3587fdcdc50aaacbc0535",
+      "runtime/flash/FlashWeights.mm": "c9e1baaabb57de27bdff1998c55b45ae46569302832a45479ade570b02c20305",
+      "runtime/flash/FlashWeights.hpp": "964a4ad6428b7092cf200e5f09d2648bfe996e16f603100b417957e03a7ddca2",
+      "runtime/flash/FlashFloatDenseCache.cpp": "84bcea2a0fb04d7018c5d9c3f2ac1268fc79faff454579961f2b51d5cb723dab",
+      "runtime/flash/FlashFloatDenseCache.hpp": "eb605b4bfa53ccac9ecf736d4c80c75a0ca2cc4f2ca9c45c1a88379bda980a09",
+      "runtime/flash/FlashInt8ExpertStore.mm": "f776c1ebfef5972e33daa2445a702584a58e0d5e02e8ed9dc4b9d2dd3ba331cb",
+      "runtime/flash/FlashWorker.mm": "b5884ebf3fc4fc7b3936e980c77225cbc2d7e3da6c5ef53a6ce1375c2a4d3fb2"
+    },
+    "pruned": {
+      "runtime/flash/FlashForward.cpp": "943c9f9eb265ba1d05cf50444a53ca4977d2b36cbbfaf1d513744d95c82c50ef",
+      "runtime/flash/FlashWeights.mm": "c9e1baaabb57de27bdff1998c55b45ae46569302832a45479ade570b02c20305",
+      "runtime/flash/FlashWeights.hpp": "964a4ad6428b7092cf200e5f09d2648bfe996e16f603100b417957e03a7ddca2",
+      "runtime/flash/FlashFloatDenseCache.cpp": "84bcea2a0fb04d7018c5d9c3f2ac1268fc79faff454579961f2b51d5cb723dab",
+      "runtime/flash/FlashFloatDenseCache.hpp": "eb605b4bfa53ccac9ecf736d4c80c75a0ca2cc4f2ca9c45c1a88379bda980a09",
+      "runtime/flash/FlashInt8ExpertStore.mm": "f776c1ebfef5972e33daa2445a702584a58e0d5e02e8ed9dc4b9d2dd3ba331cb",
+      "runtime/flash/FlashWorker.mm": "325a27fcf0c489d15cea315e3fc6158cba8d9c3edbf20cee26023c1a3227944d"
+    }
+  },
+  "persistent_owner_cases": [
+    {
+      "prune": 0,
+      "dense": 0,
+      "owners": 916,
+      "bytes": 204143722496
+    },
+    {
+      "prune": 0,
+      "dense": 1,
+      "owners": 916,
+      "bytes": 204143722496
+    },
+    {
+      "prune": 1,
+      "dense": 0,
+      "owners": 748,
+      "bytes": 202252746752
+    },
+    {
+      "prune": 1,
+      "dense": 1,
+      "owners": 832,
+      "bytes": 200368848896
+    }
+  ],
+  "proposed_minimum_recompiled_objects": [
+    "FlashForward.o",
+    "FlashWeights.o",
+    "FlashFloatDenseCache.o",
+    "FlashWorker.o"
+  ],
+  "retain_existing_prefill_arithmetic": true,
+  "prospective_qsa_packedv_component_is_not_whole_model_qualified": true,
+  "semantic_quality_and_acceptance_inheritance": false,
+  "standard_concurrent_supported_as_independent_requests": true,
+  "true_joint_graph_batch_supported": false,
+  "tests_pending_root_review": true,
+  "phase_routing": "all Prefill rows retain current I8; explicit Decode/Verify use originalQ4",
+  "f32_constructed_union_count": 296,
+  "f32_constructed_union_allocated_bytes": 12097945600,
+  "f32_persistent_count": 118,
+  "f32_persistent_allocated_bytes": 3247964160,
+  "f32_transient_only_count": 178,
+  "f32_transient_only_allocated_bytes": 8849981440,
+  "additional_backing_over_previous_pruned_hybrid": 8849981440,
+  "additional_backing_governor_charged": true,
+  "fresh_admission_proven": false,
+  "unsupported_short_prompt_restrictions": false,
+  "no_new_decode_shader": true
+}

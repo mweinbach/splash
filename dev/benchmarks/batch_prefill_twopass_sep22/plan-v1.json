@@ -1,0 +1,173 @@
+{
+  "schema": "splash-current-batch-packedV-twopass-transfer-plan-v1",
+  "status": "PLAN_ONLY_NO_BUILD",
+  "parent": "/Users/mweinbach/Projects/splash/build/batch-prefill-restored-teacher-clock-sep22-worker-v1",
+  "documentation": "/Users/mweinbach/Projects/splash/dev/benchmarks/batch_prefill_twopass_sep22/PLAN.md",
+  "inputs_sha256_source_and_report_metadata_only": {
+    "build/release/flash/sep22-restored-batch-bqsa-teacher-bulk0-standard-B4-B2-v1.json": "080cccdc747bc6743d313ba6808f635c5d7b95e8a43d80854fc38b0262588f14",
+    "build/release/flash/sep22-restored-batch-bqsa-teacher-bulk0-3-B4-B2-v1.json": "84b70ee212d6cc2f7792e260a86c209519b6cee68ceb994e50586e03f156d11e",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashBatchPrefill.cpp": "8959e91c5a889650cfbce9ecd2206e5cd2872b1cda72680414f7cd8513e15b3c",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/runtime/flash/FlashForward.cpp": "a287c9b6f1449c96d7ec9909571a5fb5703adb8184fb7f4459308b3cc292ca41",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill_qsa_twopass_sep21/twopass.hpp": "1b90209b1b8724542cf2a1a918f423585791766baf796feff8d56e8690411375",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill_qsa_twopass_sep21/twopass.cpp": "1f9f56f5ac77bedaa054fb51d0d3ed8b5d6e12d5eb1d5e8688a5b0fd9fde735e",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/source/dev/benchmarks/prefill_qsa_twopass_sep21/worker_bridge.hpp": "a01ac3ce5296f5c8ef4b4652dc2c16e68201af5797191200f1d1c5038a66665c",
+    "build/batch-prefill-restored-teacher-clock-sep22-worker-v1/splash.metallib": "1e34d3b01907acd7ad8d42532c072212b0d276336c23dc0fd49b8663711dfbaf",
+    "build/release/flash/sep21-qsa-twopass-packed-v-v1.json": "5fcb9803b81c0752586aba9da45428d1e2d4ae9a7a09344859c1d93d7cce794c"
+  },
+  "observed_rates_and_costs": [
+    {
+      "mode": "standard",
+      "width": 2,
+      "prompt_numerator": 4096,
+      "prefill_tps": 3693.223923678483,
+      "prefill_command_wall_ms": 1109.0581249999996,
+      "prefill_gpu_ms": 1078.7308749999993,
+      "main_and_teacher_host_ms": 1109.0581249999996,
+      "teacher_command_wall_ms": 0,
+      "preparation_ms": 0.6559999892499997,
+      "encoding_ms": 0.5337919574300001,
+      "scheduled_callback_ms_diagnostic_only": 23.59641599500003,
+      "minimum_ms_saving_to_strict_gt4000": 85.05812499999956,
+      "conditional_prior_component_saving_ms": 85.0644,
+      "conditional_projected_tps": 4000.024511868959
+    },
+    {
+      "mode": "standard",
+      "width": 4,
+      "prompt_numerator": 8192,
+      "prefill_tps": 3838.2578657316067,
+      "prefill_command_wall_ms": 2134.301625,
+      "prefill_gpu_ms": 2096.70866665,
+      "main_and_teacher_host_ms": 2134.301625,
+      "teacher_command_wall_ms": 0,
+      "preparation_ms": 0.7778749568399999,
+      "encoding_ms": 0.6310420576499998,
+      "scheduled_callback_ms_diagnostic_only": 27.498957934000032,
+      "minimum_ms_saving_to_strict_gt4000": 86.30162500000006,
+      "conditional_prior_component_saving_ms": 170.1288,
+      "conditional_projected_tps": 4170.712421907171
+    },
+    {
+      "mode": "3",
+      "width": 2,
+      "prompt_numerator": 4096,
+      "prefill_tps": 3606.9141652676562,
+      "prefill_command_wall_ms": 1135.5967490000003,
+      "prefill_gpu_ms": 1096.0775830000002,
+      "main_and_teacher_host_ms": 1135.5967490000003,
+      "teacher_command_wall_ms": 24.29233400000001,
+      "preparation_ms": 0.6325830472599994,
+      "encoding_ms": 0.51691697444,
+      "scheduled_callback_ms_diagnostic_only": 25.347125018000042,
+      "minimum_ms_saving_to_strict_gt4000": 111.59674900000027,
+      "conditional_prior_component_saving_ms": 85.0644,
+      "conditional_projected_tps": 3898.9756040344446
+    },
+    {
+      "mode": "3",
+      "width": 4,
+      "prompt_numerator": 8192,
+      "prefill_tps": 3769.2179844479783,
+      "prefill_command_wall_ms": 2173.3951270000007,
+      "prefill_gpu_ms": 2126.26799999,
+      "main_and_teacher_host_ms": 2173.3951270000007,
+      "teacher_command_wall_ms": 36.76462699999999,
+      "preparation_ms": 0.79650001135,
+      "encoding_ms": 0.6045420886900001,
+      "scheduled_callback_ms_diagnostic_only": 28.923833043999934,
+      "minimum_ms_saving_to_strict_gt4000": 125.39512700000068,
+      "conditional_prior_component_saving_ms": 170.1288,
+      "conditional_projected_tps": 4089.321469436349
+    }
+  ],
+  "one_candidate": "reuseUNCHANGED addTwoPassQSA packedVtrue perrealfresh2or4cohortlane afterexistingbatchprojection; no B1Forward or otherbatch/head/math edits",
+  "numerical_scope": "existingqualifiedSingleQSA arithmetic transferredtoBATCH underNEW sourceboundpolicy; notoldbatchfloatingtree byteparity or inheritedB2/B4semantics",
+  "whole_cohort_eligibility": {
+    "lanes": [
+      2,
+      4
+    ],
+    "uniform_rows": 2048,
+    "ALL_states_begin": 0,
+    "healthy_owned_nonpending_nonpoisoned": true,
+    "actual_capacity_min": 2048,
+    "service_capacity": 16384,
+    "other_shapes_or_mixed_historical": "exactrestoredparent fallback"
+  },
+  "workspace": {
+    "existingLegacyBQSA_bytes_retained": 234356736,
+    "existingPrepared3_bytes_reused": 31457280,
+    "oneBatchOwnedExtraSharedArena_bytes": 478150656,
+    "completeTwoPassWorkspace_bytes": 509607936,
+    "newArena_views": [
+      {
+        "offset": 0,
+        "bytes": 25165824,
+        "role": "packedQ_thenpackedV"
+      },
+      {
+        "offset": 25165824,
+        "bytes": 402653184,
+        "role": "F32scores_theninPlaceP"
+      },
+      {
+        "offset": 427819008,
+        "bytes": 50331648,
+        "role": "rawAttentionF32"
+      }
+    ],
+    "reuse": "eachcomplete9DSP lane finishes before nextlane/all12layers reuse",
+    "trunk_private_arena_borrowed": false,
+    "new_weight_bytes": 0,
+    "normalGovernor_before_allocation_andactualowner_charge_delta": true,
+    "no_second_model": true
+  },
+  "lane_contiguous_shapes": {
+    "q": 12288,
+    "k": 512,
+    "v": 512,
+    "index": 640,
+    "output": 6144,
+    "offset": "lane*2048*width*2",
+    "extent": "2048*width*2"
+  },
+  "source_api_contract": {
+    "ordinary_max_rows": 128,
+    "fast_max_rows": 128,
+    "fast_max_partitions": 32,
+    "prepared_max_rows": 2048,
+    "model_epsilon_literal": 1e-06,
+    "model_theta_literal": 10000000.0,
+    "qualified35_dispatch_plan_validates_before_copy_first3": true,
+    "packedV_complete_dispatches": 9,
+    "existing_library_shader_orAIRchanges": false,
+    "directV_variant_excluded": true,
+    "existing_singleton_bridge_workspace_ctor_used": false,
+    "single_body_counters_flags_source_exact_preserved": true,
+    "batch_immutable_identity_new": true,
+    "batch_mutable_counters_outside_identity": true
+  },
+  "guard_scope": [
+    "strictdefault0 dependenciesbeforeconfig/backend",
+    "all existingbackend/model/source replacement/capacity/duplicate/pending/poison/token guards untouched",
+    "outeralllane/stateCache/newArena/input/norm/scratch alias checks BEFORE graphmutation",
+    "newarenaBase plusall6TwoPassviews rejectexternalhiddenDestination;12validstart/interior4 aliascases exacterror/noSubmit/fullbytes/sameViews",
+    "inactive/dropped/ragged3/1cohorts andhistoricalmixed contexts remainoldbranch"
+  ],
+  "qualification": [
+    "RootactualcurrentperlayerQSAprojection inputcaptures withowneddebugcopies; no preparerpayload access",
+    "QSA-only samecapturedinputs legacyvsnew unchangedoriginalF64/sourceperrowbounddiagnostics; newvsSingleQSAhelper fullregister/bytepolicy reference notwholeB1Forward W8mismatch",
+    "prefixandfullfive cacheplanes/inactivefuture entries exact;packedVquality no relaxedgate/envelope",
+    "freshcurrentHeader B2/B4 alternative fullstate/hidden/logit/greedy/continuation/correction/rollback/abort/poison/owner/alias/capacity proof oneModel/process",
+    "actualnativeWorker cancel/deadline/reuse recovery evidence",
+    "isolatedB1newflags0 existingScalarBulk1 frozen22 unchanged; nativeB2/B4frozen22 withhonestgroupedcommand/lane/pair coverage notborrowedsinglehead expectedcalls",
+    "thenfreshRootstandard/MTP3 2048/256B2/B4temp0cache0context16384cap4onewarm3trials inclusiveall9DSP+teacher+normaladmission+gracefulfooter"
+  ],
+  "B2_combined_followup": "QSAtransfer conditional85.06ms belowMTP111.60msgap; existingperlane HCinjectNorm exactsource ~12.5ms hypothesis leaves~14ms; do notclaimB2>4K withoutadditionalmeasured gain",
+  "closed_routes_reopened": false,
+  "independent_API_audit": "/root/batch_teacher_cache source/lane/arena audit PASS includingWHOLECOHORTfresh gate",
+  "GPU_executed": false,
+  "model_operand_capture_export_payload_read_or_hashed": false,
+  "production_edits": false,
+  "build_authorized_or_performed": false
+}

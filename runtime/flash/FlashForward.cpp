@@ -1,3 +1,4 @@
+#include "flash/FlashQSABulk.hpp"
 #include "flash/FlashForward.hpp"
 
 #include "flash/FlashAffine.hpp"
@@ -19,6 +20,7 @@
 #include "flash/FlashHCFused.hpp"
 #include "flash/FlashMoE.hpp"
 #include "flash/FlashMTPWindow.hpp"
+#include "flash/FlashPrefillDenseTiles.hpp"
 #include "flash/FlashPLE.hpp"
 #include "flash/FlashPLEFused.hpp"
 #include "flash/FlashPLESSD.hpp"
@@ -122,6 +124,8 @@ struct FlashForward::Impl final {
   const bool blockMoE = fusionEnabled("SPLASH_FLASH_BLOCKED_MOE");
   const bool onlineQSA = fusionEnabled("SPLASH_FLASH_QSA_F32");
   const bool mppQSA = fusionEnabled("SPLASH_FLASH_QSA_MPP");
+  const bool bulkQSAPrefill = qsaBulkPrefillEnabled();
+  const bool bulkQSAPrefillSG8 = qsaBulkPrefillSG8Enabled(bulkQSAPrefill);
   const bool smallDense = fusionEnabled("SPLASH_FLASH_DENSE_SMALL_ROWS");
   const bool cacheFloat = fusionEnabled("SPLASH_FLASH_FLOAT_DENSE_CACHE");
   const bool codeHead = fusionEnabled("SPLASH_FLASH_INT8_HEAD");
@@ -134,6 +138,8 @@ struct FlashForward::Impl final {
   std::array<metal::MetalBuffer, kScratchCount> scratch;
   FlashQSAWorkspace qsaWorkspace;
   FlashQSAFastWorkspace qsaFastWorkspace;
+  std::optional<FlashQSABulkWorkspace> bulkQSAWorkspace;
+  FlashQSABulkCounters bulkQSACounters;
   FlashPLEWeights pleWeights;
   std::unique_ptr<FlashPLEFused> pleLookup;
   std::unique_ptr<FlashPLESSD> pleSSD;
@@ -288,6 +294,15 @@ struct FlashForward::Impl final {
           : allocateQSAFastWorkspace(backend, std::min(maximumRows, uint32_t{128}), 4);
     if (blockMoE && maximumRows >= 256)
       blockedScratch = allocateMoEBlockedScratch(backend, maximumRows, kSelections);
+    if (bulkQSAPrefill && maximumRows >= 2048) {
+      bulkQSAWorkspace.emplace(allocateQSABulkWorkspace(backend));
+      const auto &bulk = *bulkQSAWorkspace;
+      const uint64_t bulkPlaneBytes = bulk.prepared.queries.sizeBytes() +
+          bulk.prepared.indexQueries.sizeBytes() + bulk.prepared.selectedBlocks.sizeBytes() +
+          bulk.partials.partitionStatistics.sizeBytes() + bulk.partials.partitionValues.sizeBytes();
+      if (bulkPlaneBytes != qsaBulkWorkspacePlannedBytes())
+        throw std::logic_error("Flash bulk QSA five-plane allocation/admission mismatch");
+    }
     uint32_t gdnSlot = 0;
     for (uint32_t layer = 0; layer < descriptor.layers; ++layer)
       if (descriptor.layerKinds[layer] == FlashLayerKind::GatedDeltaNet)
@@ -317,6 +332,8 @@ struct FlashForward::Impl final {
     const uint64_t after = backend.memoryStats().allocatedBytes;
     if (after < before) throw std::logic_error("Flash workspace allocation ledger regressed");
     workspaceBytes = after - before;
+    if (bulkQSAWorkspace && workspaceBytes < qsaBulkWorkspacePlannedBytes())
+      throw std::logic_error("Flash bulk QSA planes omitted from allocation ledger");
   }
 
   metal::MetalBuffer view(Scratch slot, uint64_t bytes) {
@@ -556,18 +573,25 @@ uint64_t FlashForward::workspacePlannedBytes(uint32_t capacity, uint32_t maximum
   if (fusionEnabled("SPLASH_FLASH_GPU_GREEDY"))
     total += greedyGPUWorkspacePlannedBytes(
         std::min(maximumRows, uint32_t{kFlashGreedyGPUMaximumRows}), 248320);
+  const bool bulkPrefillEnabled = qsaBulkPrefillEnabled();
+  (void)qsaBulkPrefillSG8Enabled(bulkPrefillEnabled);
+  if (bulkPrefillEnabled && maximumRows >= 2048)
+    total += qsaBulkWorkspacePlannedBytes();
   return total;
 }
 
 std::string FlashForward::kernelRoutes() const {
   if (!impl_) throw std::logic_error("Flash forward is not initialized");
   return std::string(flashAffineSemantics()) +
+      (impl_->bulkQSAWorkspace ? kFlashQSABulkPrefillRoute : "") +
+      (impl_->bulkQSAWorkspace && impl_->bulkQSAPrefillSG8 ? kFlashQSABulkPrefillSG8Route : "") +
       (impl_->fuseHC ? ";hc-fused-literal-sg4" : ";hc-separate") +
       (impl_->fuseGDN ? ";gdn-decode-persistent512-verify-capture512" : ";gdn-separate") +
       (impl_->lazyGDN ? kFlashGDNLazyRollbackRoute : "") +
       (impl_->stagedGDN ? ";gdn-prefill-staged-v16-t16" : "") +
       (impl_->denseCache ? ";dense-cache-bf16-whole-k:" + impl_->denseCache->identitySha256() : ";dense-raw") +
       (impl_->denseCache && flashDenseM64OutEnabled() ? std::string(kFlashDenseM64OutSemantics) : "") +
+      (impl_->denseCache && flashPrefillDenseTilesEnabled() ? std::string(kFlashPrefillDenseTilesSemantics) : "") +
       (impl_->smallDenseWorkspace ? ";dense-all-rows-bf16-static-operands-padded-m8" : "") +
       (impl_->floatDenseCache ? ";dense-f32-original-coefficients-multirow-mpp:" + impl_->floatDenseCache->identitySha256() : "") +
       (impl_->int8Head ? std::string(";") + kFlashInt8HeadSemantics + ":" + impl_->int8Head->identitySha256() +
@@ -607,6 +631,12 @@ uint64_t FlashForward::qsaOutF32N32EncodedRealRows() const {
   if (!impl_) return 0;
   std::lock_guard lock(impl_->mutex);
   return impl_->floatDenseCache ? impl_->floatDenseCache->qsaOutF32N32RealRows() : 0;
+}
+
+FlashQSABulkCounters FlashForward::qsaBulkPrefillCounters() const {
+  if (!impl_) return {};
+  std::lock_guard lock(impl_->mutex);
+  return impl_->bulkQSACounters;
 }
 
 uint64_t FlashForward::expertCachePlannedBytes(const FlashWeights &weights) {
@@ -762,6 +792,12 @@ void FlashForward::batchValidateExternalDestination(const metal::MetalBuffer &de
       impl_->greedyWorkspace.partials, impl_->greedyResults, impl_->capturedRoutes,
       impl_->verifyRecurrent, impl_->verifyConvolution, impl_->beforePLEHistory,
       impl_->beforePLEConvolution, impl_->retainedCount, impl_->beforeGDNConvolution}) reject(buffer);
+  if (impl_->bulkQSAWorkspace) {
+    const auto &bulk = *impl_->bulkQSAWorkspace;
+    for (const auto &buffer : {bulk.prepared.queries, bulk.prepared.indexQueries,
+        bulk.prepared.selectedBlocks, bulk.partials.partitionStatistics,
+        bulk.partials.partitionValues}) reject(buffer);
+  }
   const auto &blocked = impl_->blockedScratch;
   for (const auto &buffer : {blocked.buckets.counts, blocked.buckets.offsets, blocked.buckets.routeMap,
       blocked.buckets.canonicalToPacked, blocked.buckets.packedInputs, blocked.buckets.jobOffsets,
@@ -907,6 +943,7 @@ FlashForwardResult FlashForward::forwardImpl(FlashRequestState &request,
     impl_->project(graph, prefix, input, output, diag, rows);
   };
   metal::CommandGraph graph;
+  uint32_t bulkQSALayerCalls = 0;
   struct LazyTrialGuard {
     Impl *source;
     bool keep = false;
@@ -1055,6 +1092,19 @@ FlashForwardResult FlashForward::forwardImpl(FlashRequestState &request,
         return impl_->backend.view(buffer, uint64_t{offset} * width * 2,
                                      uint64_t{count} * width * 2);
       };
+      if (impl_->bulkQSAWorkspace && qsaBulkPrefillGeometry(begin, rows, state.capacity, verification)) {
+        const FlashQSAFastInputs bulkInputs{q, k, v, index,
+            &impl_->weights.tensor(qNorm), &impl_->weights.tensor(kNorm),
+            &impl_->weights.tensor(iqNorm), &impl_->weights.tensor(ikNorm),
+            attentionOutput, diag, {},
+            impl_->weights.normConvention(qNorm), impl_->weights.normConvention(kNorm),
+            impl_->weights.normConvention(iqNorm), impl_->weights.normConvention(ikNorm),
+            impl_->descriptor.normEpsilon, impl_->descriptor.rotaryTheta};
+        addQSABulkPrefill(impl_->backend, graph, bulkInputs, state.qsa[layer],
+            impl_->qsaWorkspace, impl_->qsaFastWorkspace, *impl_->bulkQSAWorkspace, begin, rows,
+            impl_->bulkQSAPrefillSG8);
+        ++bulkQSALayerCalls;
+      } else {
       for (uint32_t offset = 0; offset < rows;) {
         const uint32_t count = std::min(rows - offset, impl_->qsaWorkspace.maximumRows);
         if (impl_->onlineQSA) {
@@ -1086,6 +1136,7 @@ FlashForwardResult FlashForward::forwardImpl(FlashRequestState &request,
             impl_->descriptor.normEpsilon, impl_->descriptor.rotaryTheta);
         }
         offset += count;
+      }
       }
       affine(graph, attention + ".o_proj", attentionOutput, branch);
     }
@@ -1194,6 +1245,13 @@ FlashForwardResult FlashForward::forwardImpl(FlashRequestState &request,
     throw;
   }
   state.length += rows;
+  if (bulkQSALayerCalls) {
+    ++impl_->bulkQSACounters.completedPrefillCalls;
+    impl_->bulkQSACounters.completedPrefillTokens += rows;
+    impl_->bulkQSACounters.completedLayerCalls += bulkQSALayerCalls;
+    if (impl_->bulkQSAPrefillSG8)
+      impl_->bulkQSACounters.completedSG8LayerCalls += bulkQSALayerCalls;
+  }
   impl_->capturedRows = impl_->capturedRoutes ? rows : 0;
   if (verification) {
     state.pendingVerification = true;

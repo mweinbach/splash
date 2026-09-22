@@ -1,0 +1,24 @@
+{
+  "schema": "genuine-trained-R4-readonly-source-pins-v3",
+  "source_files_sha256": {
+    "contracts.hpp": "453832554af55ae0d59e953e2f404cecb94bbaee082aa10d5597723c45faff47",
+    "interfaces.hpp": "f487610f67f2d5c46f270dcd43c1fc33d8ff694c9680ab28dd9b63fe89f5b2fc",
+    "inspect.hpp": "84133d4343dd369a9bf8f222acf79dadf9149d2e1da82c89ee966a0c1915f2d7",
+    "inspection.cpp.inc": "5957e0fdfb9adee2f3a96e142efdfe8b8cb9db20cc97b82550ab07ef36c4026c",
+    "recorder.hpp": "bb08ae1deee49a2c62d79aa3cf075f5aa8cc71ea52c724bd172f0aa4bc899c5d",
+    "overlay.py": "9a84f027def72491a8e14be5333f712cf2a9c22bc04d32b27d84f5decc7bd675",
+    "build_cpu.py": "b66e1e03ea02be23248709f1443b600bfdfe5e67e5b3f30ded02529599ad97c5",
+    "prepare_plan.py": "1a72ae1fa06fd2f2723913172ab7eca9bbb97ecccf074ea01b9d3d14bba990a9",
+    "PLAN.md": "bae90decdf93ff66e291dc389fa95795fbcf8f9ed3b417bb5e0fc0a0cf66a690",
+    "SOURCE_PREP.json": "2770bfaae80310f2b109663c410654ff6686ecd1eed42453d97a4ba7971b76a8"
+  },
+  "source_inverse_pass": true,
+  "Root_authorized_reversible_control_CPU_compile": true,
+  "Root_GPU_release_requires_final_Source_and_closure_review": true,
+  "candidate_READY_final_binding_pending": true,
+  "all_flags_bind_measured_good_pref_later": true,
+  "no_actual_token_or_model_or_snapshot_payload_access": true,
+  "selected_third_exact_graph_counter_attribution_added": true,
+  "FIRST_next_actual_target_callback_select_or_fail_never_skip": true,
+  "preserved_previous_source_archive": "dev/benchmarks/raw_large_R4_trained_state_oracle_sep22/archive/counter-source-v2-01e978e7c2784f6c"
+}

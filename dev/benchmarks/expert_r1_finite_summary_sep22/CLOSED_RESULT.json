@@ -1,0 +1,81 @@
+{
+  "schema": "R1-native-finite-summary-closed-result-v1",
+  "status": "closed-performance-loss",
+  "Root_GPU_job": 23306,
+  "report": {
+    "path": "/Users/mweinbach/Projects/splash/build/release/flash/sep22-expert-r1-native-finite-summary-layer0-ten-expert-v2.json",
+    "sha256": "710537f55828201ee5f840832b75ac89797e9428afc68a626aa7ec63be2f93ed",
+    "schema": "expert-r1-finite-summary-component-v1",
+    "exact_qualification_pass": true,
+    "qualification_complete": true,
+    "checks": 478,
+    "guard_cases": 104
+  },
+  "program": {
+    "build": "/Users/mweinbach/Projects/splash/build/expert-r1-finite-summary-sep22-component-v2",
+    "source_identity_sha256": "de626a7aa3fd0a642b55301493ffecdf7a35dfda1ac6134802990fdf6a4a6a2c",
+    "CPU_READY_sha256": "00eae2334d371480aad281f5da9629c6be217fc15c5d33c329b6ab4fd6decacc",
+    "original_gathered_AIR_sha256": "a0cd35e03daf13324d0308c8b4d8cee1d6d932989be6cbdc0429e6ec471d05c2",
+    "component_metallib_sha256": "4d5191162ad9aea8defaad43a754180c7d2eda381d78f93e7d5f58a906e43dbb",
+    "external_registration_sha256": "cadcf2007c0eba4985e65bd9e22c74ee9988e15df0d761700d82fc42cf26edea"
+  },
+  "fixture": {
+    "layer": 0,
+    "original_expert_base": 0,
+    "original_distinct_experts": 10,
+    "Root_coefficient_payload_bytes": 49305600,
+    "synthetic_normalized_R1_input": true,
+    "actual_current_causal_capture": false,
+    "hot_primitive_only": true,
+    "warm_GPU_ms_each_variant_atleast": 150,
+    "balanced_sample_pairs": 18,
+    "original_dispatches": 2,
+    "candidate_dispatches": 4,
+    "packet_logical_bytes": 64,
+    "packet_owner_charged_bytes": 16384
+  },
+  "quality": {
+    "all_raw_scaled_F32_BF16_gate_up_SwiGLU_down_exact": true,
+    "original_numeric_gates_preserved": true,
+    "bounds_diagnostics_canaries_alias_immutability_stale_packet_epoch_overwrite_recovery_pass": true
+  },
+  "timing": {
+    "control_GPU_median_ms": 0.07287500193342566,
+    "candidate_GPU_median_ms": 0.15416665701195598,
+    "control_over_candidate_ratio": 0.47270274484692265,
+    "candidate_over_control_time_ratio": 2.1154943797160186,
+    "candidate_time_increase_percent": 111.54943797160186,
+    "control_wall_median_ms": 0.24764600000000003,
+    "candidate_wall_median_ms": 0.3279375
+  },
+  "allocation": {
+    "planned_bytes": 134217728,
+    "actual_owned_delta_bytes": 55427072,
+    "peak_owned_delta_bytes": 55427072,
+    "current_device_delta_bytes": 55689216,
+    "peak_device_delta_bytes": 55689216,
+    "after_fixture_owned_delta_bytes": 0,
+    "denied_reservations": 0,
+    "host_reserve_bytes": 27487790694,
+    "host_measurement_valid": true,
+    "growth_allowed": true
+  },
+  "backend_stopped_and_destroyed_after_zero_owned_ledger": true,
+  "source_counts_only": {
+    "old_scan_words": 512000,
+    "summary_scan_words": 8960,
+    "old_producer_scan_barriers": 1000,
+    "scan_count_reduction_is_not_measured_runtime_saving": true,
+    "isolated_stage_cost_unmeasured": true
+  },
+  "decision": {
+    "standard_worker_build_admitted": false,
+    "standard_model_timing_admitted": false,
+    "promotion_admitted": false,
+    "repeat_other_layers_or_patterns_without_new_evidence": false,
+    "reason": "Inclusive four-dispatch chain is 2.11549x slower despite exact math; source scan-count reduction does not predict hardware time."
+  },
+  "preserved_v1_failed_harness_report": "build/release/flash/sep22-expert-r1-native-finite-summary-layer0-ten-expert-v1.json",
+  "v1_v2_shader_and_library_bytes_unchanged": true,
+  "agent_GPU_or_model_capture_coefficient_payload_reads": 0
+}

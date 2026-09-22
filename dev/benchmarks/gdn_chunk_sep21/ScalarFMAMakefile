@@ -1,0 +1,21 @@
+# Isolated explicit-FMA staged scalar experiment; source compilation only.
+GDN_FMA_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
+GDN_FMA_SOURCE := $(GDN_FMA_ROOT)/dev/benchmarks/gdn_chunk_sep21
+GDN_FMA_BUILD ?= $(GDN_FMA_ROOT)/build/gdn-scalar-fma-sep21
+GDN_FMA_CXX := xcrun -sdk macosx clang++
+GDN_FMA_FLAGS := -std=c++20 -O3 -ffp-contract=off -fno-fast-math -Wall -Wextra -Werror -Wno-deprecated-declarations -I$(GDN_FMA_ROOT)/runtime -mmacosx-version-min=27.0
+GDN_FMA_METALFLAGS := -std=metal4.1 -O3 -Wall -Wextra -Werror -I$(GDN_FMA_ROOT)/runtime -mmacosx-version-min=27.0
+.PHONY: all
+all: $(GDN_FMA_BUILD)/metal-oracle-scalar-fma $(GDN_FMA_BUILD)/gdn-scalar-fma.metallib
+$(GDN_FMA_BUILD):
+	mkdir -p $@
+$(GDN_FMA_BUILD)/cpu-oracle.o: $(GDN_FMA_SOURCE)/cpu_oracle.cpp $(GDN_FMA_SOURCE)/cpu_oracle.hpp | $(GDN_FMA_BUILD)
+	$(GDN_FMA_CXX) $(GDN_FMA_FLAGS) -DGDN_CPU_ORACLE_NO_MAIN -c $< -o $@
+$(GDN_FMA_BUILD)/metal-oracle-scalar-fma: $(GDN_FMA_SOURCE)/metal_oracle_scalar_fma.mm $(GDN_FMA_SOURCE)/cpu_oracle.hpp $(GDN_FMA_BUILD)/cpu-oracle.o
+	$(GDN_FMA_CXX) $(GDN_FMA_FLAGS) -fobjc-arc $< $(GDN_FMA_BUILD)/cpu-oracle.o -framework Foundation -framework Metal -o $@
+$(GDN_FMA_BUILD)/scalar-fma.air: $(GDN_FMA_SOURCE)/scalar_fma.metal $(GDN_FMA_ROOT)/runtime/metal/abi/FlashGDN.h | $(GDN_FMA_BUILD)
+	xcrun -sdk macosx metal $(GDN_FMA_METALFLAGS) -c $< -o $@
+$(GDN_FMA_BUILD)/canonical.air: $(GDN_FMA_ROOT)/runtime/metal/kernels/shared/flash_gdn_staged.metal $(GDN_FMA_ROOT)/runtime/metal/abi/FlashGDN.h | $(GDN_FMA_BUILD)
+	xcrun -sdk macosx metal $(GDN_FMA_METALFLAGS) -c $< -o $@
+$(GDN_FMA_BUILD)/gdn-scalar-fma.metallib: $(GDN_FMA_BUILD)/scalar-fma.air $(GDN_FMA_BUILD)/canonical.air
+	xcrun -sdk macosx metallib $^ -o $@

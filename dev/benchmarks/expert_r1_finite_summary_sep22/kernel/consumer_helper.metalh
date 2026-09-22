@@ -1,0 +1,58 @@
+template <bool Gate>
+inline void r1_finite_summary_private_gathered_mpp_execute_consumer(device const bfloat *input, device int8_t *gate,
+    device const float *gs, device int8_t *up, device const float *us,
+    device const uint *ranks, device const long *ids, device bfloat *output, device uint *diag,
+    constant FlashGatheredMPPParams &p, uint3 group, uint3 threads, uint tid,
+    threadgroup bfloat *safe_a, threadgroup atomic_uint *nonfinite, bool needsOriginalScan) {
+  constexpr ushort K = Gate ? 2560 : 640, N = 64;
+  constexpr uint Width = Gate ? 640 : 2560;
+  if (!p.rows || p.rows > 16 || p.selections != 10 || p.experts != 512 || p.reserved ||
+      group.x >= Width / N || group.y >= p.rows || group.z >= 10 ||
+      threads.x != 128 || threads.y != 1 || threads.z != 1) {
+    if (!tid) gathered_mpp_error(diag, 2u); return;
+  }
+  const ulong route = ulong(group.y) * 10 + group.z;
+  const device bfloat *x = input + (Gate ? ulong(group.y) : route) * K;
+  // Finite operands keep the original deviceA tensor. Only malformed-input
+  // fallback stages locally; no global scratch or source mutation is made.
+  const uint rank = gathered_mpp_rank(ids, ranks, route, tid, diag), column = group.x * N;
+  const bool bad = (Gate || rank != UINT_MAX) ? (needsOriginalScan ? gathered_mpp_scan<K>(x, safe_a, nonfinite, tid, diag) : false) : false;
+  if (rank == UINT_MAX) {
+    if (!tid) gathered_mpp_error(diag, Gate ? 1u : 5u);
+    for (uint n = tid; n < N; n += 128) output[route * Width + column + n] = gathered_mpp_nan();
+    return;
+  }
+  auto a = tensor(const_cast<device bfloat *>(x), dextents<int, 2>{K, 1}, array<int, 2>{1, K});
+  auto safe = tensor(safe_a, dextents<int, 2>{K, 1}, array<int, 2>{1, K});
+  auto g = tensor(gate + (ulong(rank) * Width + column) * K,
+      dextents<int, 2>{K, N}, array<int, 2>{1, K});
+  constexpr auto descriptor = matmul2d_descriptor(16, N, static_cast<int>(dynamic_extent),
+      false, true, false, matmul2d_descriptor::mode::multiply);
+  matmul2d<descriptor, execution_simdgroups<4>> operation;
+  auto gd = operation.template get_destination_cooperative_tensor<decltype(a), decltype(g), float>();
+  if (bad) operation.run(safe, g, gd); else operation.run(a, g, gd);
+  auto ud = operation.template get_destination_cooperative_tensor<decltype(a), decltype(g), float>();
+  if constexpr (Gate) {
+    auto u = tensor(up + (ulong(rank) * Width + column) * K,
+        dextents<int, 2>{K, N}, array<int, 2>{1, K});
+    if (bad) operation.run(safe, u, ud); else operation.run(a, u, ud);
+  }
+#pragma unroll
+  for (ushort i = 0; i < gd.get_capacity(); ++i) {
+    if (!gd.is_valid_element(i)) continue;
+    const auto index = gd.get_multidimensional_index(i);
+    if (index[1] != 0) continue;
+    const uint n = column + index[0];
+    const float scale = gs[ulong(rank) * Width + n], result = gd[i] * scale;
+    bfloat value = bfloat(result);
+    if constexpr (Gate) {
+      const float up_scale = us[ulong(rank) * Width + n], up_result = ud[i] * up_scale;
+      const bfloat uv = bfloat(up_result), silu = value * gathered_mpp_sigmoid(value);
+      value = silu * uv;
+      if (!(up_scale > 0) || !gathered_mpp_finite(up_scale) || !gathered_mpp_finite(up_result)) gathered_mpp_error(diag, 4u);
+    }
+    if (!(scale > 0) || !gathered_mpp_finite(scale) || !gathered_mpp_finite(result) ||
+        !gathered_mpp_finite(float(value))) gathered_mpp_error(diag, 4u);
+    output[route * Width + n] = value;
+  }
+}

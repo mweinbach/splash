@@ -25,7 +25,7 @@ class LocalPLESSDLauncherTests(unittest.TestCase):
         self.assertIsNone(args.ple_ssd_streaming)
         self.assertIsNone(args.ple_ssd_cache_mb)
         self.assertEqual(launcher.LOCAL_PROFILE, profile)
-        self.assertEqual(len(profile["environment"]), 39)
+        self.assertEqual(len(profile["environment"]), 44)
         self.assertEqual(profile["environment"]["SPLASH_FLASH_PLE_SSD_STREAMING"], "1")
         self.assertNotIn("SPLASH_FLASH_PLE_SSD_CACHE_MB", profile["environment"])
 

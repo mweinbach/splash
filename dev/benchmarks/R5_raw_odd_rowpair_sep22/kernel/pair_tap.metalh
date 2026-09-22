@@ -1,0 +1,196 @@
+#include "control_tap.metalh"
+
+namespace r5_raw_odd_rowpair_tap_sep22 {
+template <ushort Bits, ushort Values>
+inline void qdot_pair(const device uchar *w,
+    const thread float *x0, const thread float *x1,
+    float scale, float bias, float sum0, float sum1,
+    thread float &dot0, thread float &dot1) {
+  float accum0 = 0, accum1 = 0;
+  if (Bits == 4) {
+    for (int i = 0; i < (Values / 4); i++) {
+
+      const uint16_t packed = uint16_t(w[2 * i]) |
+          (uint16_t(w[2 * i + 1]) << 8);
+      const uint16_t m0 = packed & 0x000f;
+      const uint16_t m1 = packed & 0x00f0;
+      const uint16_t m2 = packed & 0x0f00;
+      const uint16_t m3 = packed & 0xf000;
+      accum0 +=
+          (x0[4 * i] * m0 +
+           x0[4 * i + 1] * m1 +
+           x0[4 * i + 2] * m2 +
+           x0[4 * i + 3] * m3);
+      accum1 +=
+          (x1[4 * i] * m0 +
+           x1[4 * i + 1] * m1 +
+           x1[4 * i + 2] * m2 +
+           x1[4 * i + 3] * m3);
+    }
+  }
+  else if (Bits == 5) {
+    for (int i = 0; i < (Values / 8); i++) {
+
+      x0 += 8 * i;
+      x1 += 8 * i;
+      w += 5 * i;
+      const int m0 = w[0] & 0x1f;
+      const int m1 = w[0] & 0xe0;
+      const int m2 = w[1] & 0x3;
+      const int m3 = w[1] & 0x7c;
+      const int m4 = w[1] & 0x80;
+      const int m5 = w[2] & 0xf;
+      const int m6 = w[2] & 0xf0;
+      const int m7 = w[3] & 0x1;
+      const int m8 = w[3] & 0x3e;
+      const int m9 = w[3] & 0xc0;
+      const int m10 = w[4] & 0x7;
+      const int m11 = w[4] & 0xf8;
+      accum0 += m0 * x0[0];
+      accum0 += m1 * x0[1];
+      accum0 += m2 * (x0[1] * 256.0f);
+      accum0 += m3 * x0[2];
+      accum0 += m4 * x0[3];
+      accum0 += m5 * (x0[3] * 256.0f);
+      accum0 += m6 * x0[4];
+      accum0 += m7 * (x0[4] * 256.0f);
+      accum0 += m8 * x0[5];
+      accum0 += m9 * x0[6];
+      accum0 += m10 * (x0[6] * 256.0f);
+      accum0 += m11 * x0[7];
+      accum1 += m0 * x1[0];
+      accum1 += m1 * x1[1];
+      accum1 += m2 * (x1[1] * 256.0f);
+      accum1 += m3 * x1[2];
+      accum1 += m4 * x1[3];
+      accum1 += m5 * (x1[3] * 256.0f);
+      accum1 += m6 * x1[4];
+      accum1 += m7 * (x1[4] * 256.0f);
+      accum1 += m8 * x1[5];
+      accum1 += m9 * x1[6];
+      accum1 += m10 * (x1[6] * 256.0f);
+      accum1 += m11 * x1[7];
+    }
+  }
+  else if (Bits == 6) {
+    for (int i = 0; i < (Values / 4); i++) {
+
+      x0 += 4 * i;
+      x1 += 4 * i;
+      w += 3 * i;
+      const int m0 = w[0] & 0x3f;
+      const int m1 = w[0] & 0xc0;
+      const int m2 = w[1] & 0x0f;
+      const int m3 = w[1] & 0xf0;
+      const int m4 = w[2] & 0x03;
+      const int m5 = w[2] & 0xfc;
+      accum0 += m0 * x0[0];
+      accum0 += m1 * x0[1];
+      accum0 += m2 * (x0[1] * 256.0f);
+      accum0 += m3 * x0[2];
+      accum0 += m4 * (x0[2] * 256.0f);
+      accum0 += m5 * x0[3];
+      accum1 += m0 * x1[0];
+      accum1 += m1 * x1[1];
+      accum1 += m2 * (x1[1] * 256.0f);
+      accum1 += m3 * x1[2];
+      accum1 += m4 * (x1[2] * 256.0f);
+      accum1 += m5 * x1[3];
+    }
+  }
+  dot0 = scale * accum0 + sum0 * bias;
+  dot1 = scale * accum1 + sum1 * bias;
+}
+
+template <ushort Bits, ushort GroupSize>
+inline void project_pair(const device bfloat *input,
+    const device uchar *weights, const device uchar *scales,
+    const device uchar *biases, device bfloat *output,
+    device atomic_uint *diagnostics, device float *raw_f32,
+    constant FlashAffineParams &p,
+    uint3 group, uint simd_group, uint lane) {
+  constexpr uint Values = Bits == 6 ? 8 : 16;
+  constexpr uint Block = Values * 32;
+  static_assert((Bits == 4 && GroupSize == 64) || Bits == 5 ||
+                (Bits == 6 && GroupSize == 64));
+  static_assert(GroupSize % Values == 0);
+  const bool observed =
+      (Bits == 4 && GroupSize == 64 &&
+       ((p.input_size == 2560 && (p.output_size == 10240 || p.output_size == 12288)) ||
+        (p.input_size == 6144 && p.output_size == 2560))) ||
+      (Bits == 5 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 10240) ||
+      (Bits == 5 && GroupSize == 128 &&
+       ((p.input_size == 6144 && p.output_size == 2560) ||
+        (p.input_size == 2560 && p.output_size == 6144))) ||
+      (Bits == 6 && GroupSize == 64 && p.input_size == 2560 && p.output_size == 6144);
+  if (!observed || p.rows != 5 || p.selections != 1 || p.experts != 1 || p.flags ||
+      p.bits != Bits || p.group_size != GroupSize || p.input_size % Block ||
+      p.output_size % 8 || p.weight_row_stride_bytes < ulong(p.input_size) * Bits / 8 ||
+      p.parameter_row_stride_bytes < ulong(p.input_size / GroupSize) * 2 ||
+      p.parameter_row_stride_bytes % 2 || p.parameter_expert_stride_bytes % 2 ||
+      p.weight_row_stride_bytes > (~ulong(0) - ulong(p.input_size) * Bits / 8) / (p.output_size - 1) ||
+      p.parameter_row_stride_bytes > (~ulong(0) - ulong(p.input_size / GroupSize) * 2) / (p.output_size - 1)) {
+    if (!lane) atomic_fetch_or_explicit(diagnostics, 2u, memory_order_relaxed);
+    return;
+  }
+  const uint out_row = group.x * 8 + simd_group * 4;
+  if (group.x >= p.output_size / 8 || group.y >= 3 || group.z || out_row >= p.output_size) return;
+  if (group.y == 2) {
+    // Literal original math body, explicit real fifth row. Calling the old
+    // project driver with group.y2 would silently compute row2 and is forbidden.
+    r5_raw_odd_control_tap::project_math<Bits, GroupSize, true>(
+        input + ulong(4) * p.input_size, weights, scales, biases, output,
+        diagnostics, raw_f32, p, out_row, 0, ulong(4), lane);
+    return;
+  }
+  const ulong route0 = ulong(group.y) * 2, route1 = route0 + 1;
+  const device bfloat *x0 = input + route0 * p.input_size;
+  const device bfloat *x1 = input + route1 * p.input_size;
+  thread float x_thread0[Values], x_thread1[Values];
+  thread float result0[4] = {0}, result1[4] = {0};
+  for (uint k = 0; k < p.input_size; k += Block) {
+    const uint channel = k + lane * Values;
+    const float sum0 = r5_raw_odd_control_tap::mlx_qmv_f32xsum_v1_load_vector<
+        bfloat, float, Values, Bits>(x0 + channel, x_thread0);
+    const float sum1 = r5_raw_odd_control_tap::mlx_qmv_f32xsum_v1_load_vector<
+        bfloat, float, Values, Bits>(x1 + channel, x_thread1);
+    const uint coefficient = channel / GroupSize;
+    for (ushort row = 0; row < 4; ++row) {
+      if (out_row + row < p.output_size) {
+        const device uchar *wl = weights +
+            ulong(out_row + row) * p.weight_row_stride_bytes + ulong(channel) * Bits / 8;
+        const ulong offset = ulong(out_row + row) * p.parameter_row_stride_bytes;
+        const device bfloat *sl = reinterpret_cast<const device bfloat *>(scales + offset);
+        const device bfloat *bl = reinterpret_cast<const device bfloat *>(biases + offset);
+        const float s = float(sl[coefficient]);
+        const float b = float(bl[coefficient]);
+        float dot0, dot1;
+        qdot_pair<Bits, Values>(wl, x_thread0, x_thread1, s, b, sum0, sum1, dot0, dot1);
+        result0[row] += dot0;
+        result1[row] += dot1;
+      }
+    }
+  }
+  for (ushort row = 0; row < 4; ++row) {
+    if (out_row + row < p.output_size) {
+      const float sum0 = simd_sum(result0[row]);
+      if (lane == 0) {
+        const bfloat value0 = bfloat(sum0);
+        if (!r5_raw_odd_control_tap::finite(sum0) || !r5_raw_odd_control_tap::finite(float(value0)))
+          atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);
+        output[route0 * p.output_size + out_row + row] = value0;
+        raw_f32[route0 * p.output_size + out_row + row] = sum0;
+      }
+      const float sum1 = simd_sum(result1[row]);
+      if (lane == 0) {
+        const bfloat value1 = bfloat(sum1);
+        if (!r5_raw_odd_control_tap::finite(sum1) || !r5_raw_odd_control_tap::finite(float(value1)))
+          atomic_fetch_or_explicit(diagnostics, 4u, memory_order_relaxed);
+        output[route1 * p.output_size + out_row + row] = value1;
+        raw_f32[route1 * p.output_size + out_row + row] = sum1;
+      }
+    }
+  }
+}
+
+}

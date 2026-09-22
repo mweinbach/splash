@@ -1,0 +1,15 @@
+# Original HC compiler-policy preservation
+
+The combined HC worker failed real four-row verification even though the 97-role synthetic component passed. Root's one-feature tests isolated the failure to HC: compact-only passed all native verification, rollback and future checks; HC-only reproduced the combined mismatch at the first hidden word. These observations quarantine the former HC worker and do not establish a new numerical certificate.
+
+An actual-AIR CPU audit found that the immutable baseline `089-flash_hc_fused.air` was compiled with Metal4.1, Apple metal32023.921.6 and default fast math. Failed private HC AIR used the same compiler with Metal4.0 and `-fno-fast-math`. The baseline has `fast_math_enable`, F32/BF16 `nnan/ninf/nsz/arcp/afn` flags, `air.fast_exp.f32` and `air.fast_fabs.f32`; the failed private AIR has `fast_math_disable` and regular exp/fabs. All twelve down templates, thirteen dot helpers and both sigmoid helpers differ in compiled arithmetic policy. Both flush denormals. Source-token equality alone did not preserve these operations.
+
+Qualified-component full versus shipping-prefix private AIRs had 196 identical common function bodies, so comparing only those two private artifacts could not reveal the original-baseline difference. Under corrected Metal4.1/default-fast flags, the down-only prefix matches baseline math, while the full diagnostic translation unit still changes down/dot template attributes because it also contains HC-up's safe-math context. A full-source rebuild under default fast math is therefore insufficient.
+
+The corrected component V8 separates the down prefix and safe HC-up F32 probe into two translation units. Actual down AIR `7cc3d642e22bbf90fb95f6c524af232a75fe6c8d99d7385a5e51f7ee572eeefa` matches baseline operations, intrinsics, flags and call attributes for all twelve down, thirteen dot and two sigmoid helpers. All twelve down probes match ordered FP operations after excluding tap IO. Separate up-probe AIR `ce21eaa23acc11f0165a1377717428424f350b0756b97799732f9c84496c4796` matches the original Debugtrue's 23 ordered floating operations and attributes; remaining pointer-constructor specialization changes non-FP bookkeeping. Original timed up AIR stays untouched.
+
+V8 source/compiler review is ready, not numerical qualification. Root must repeat all 97-role comparisons and real Verify-only/combined state checks with the new library. Component V7 (unsplit full-source/default-fast) and former safe-math V6/V2 artifacts remain preserved and quarantined.
+
+Corrected whole-worker V3 keeps C++/headers/objects/worker bytes unchanged from V2 and links the baseline-matched down AIR. `HC-fast-source-profile.json` retires the former safe-math component admission, declares the active V8 manifest/AIR and requires fresh component/full-state proof. The inherited C++ certificate string describes the design; it is explicitly insufficient for admitting the changed artifact. Root's new artifact/profile pins and fresh numerical reports provide that admission.
+
+All audits were CPU/source/AIR-only, with no GPU execution or model/input/capture/export tensor payload reads or hashes by agents.

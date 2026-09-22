@@ -1,0 +1,16 @@
+{
+  "valid": true,
+  "checks": {
+    "original_manifest_categories_sum_exact": true,
+    "full512_projection_lengths_equal_manifest_total": true,
+    "selected_f32_operand_deltas_nonnegative": true,
+    "all_traffic_rates_finite_positive": true,
+    "proxy_below_spec_for_all_supported_batches": true,
+    "unsupported_batch8_16_group_bound_does_not_scale": true,
+    "measured_verifier_targets_increase_with_real_speedup": true,
+    "no_gpu_execution_or_model_payload_access": true,
+    "scalar_depths1_to15_cover_source_cap": true,
+    "scalar_deep_rates_finite_positive": true
+  },
+  "script_sha256": "9e69db8d6345507c102a608a5e6aea9f35bae1cb46cf24f22afd37c6a96ef65a"
+}

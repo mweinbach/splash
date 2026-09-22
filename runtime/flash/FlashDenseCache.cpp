@@ -1,5 +1,7 @@
 #include "FlashDenseCache.hpp"
 #include "FlashOperandStore.hpp"
+#include "FlashDenseTraversal.hpp"
+#include "FlashPrefillDenseTiles.hpp"
 
 #include "metal/abi/FlashDenseCache.h"
 
@@ -15,6 +17,19 @@
 #include <unordered_map>
 
 namespace splash::flash {
+bool flashPrefillDenseTilesEnabled() {
+  static const bool enabled = parseFlashPrefillDenseTilesFlag(std::getenv("SPLASH_FLASH_PREFILL_DENSE_TILES"));
+  return enabled;
+}
+bool flashDenseTraversalEnabled() {
+  static const bool enabled = [] {
+    const char *value = std::getenv("SPLASH_FLASH_DENSE_TRAVERSAL");
+    if (!value || std::string_view(value) == "0") return false;
+    if (std::string_view(value) == "1") return true;
+    throw std::invalid_argument("SPLASH_FLASH_DENSE_TRAVERSAL must be 0 or 1");
+  }();
+  return enabled;
+}
 bool flashDenseM64OutEnabled() {
   static const bool enabled = [] {
     const char *value = std::getenv("SPLASH_FLASH_DENSE_M64_OUT");
@@ -42,8 +57,15 @@ bool flashDenseM64OutGeometry(std::string_view prefix, uint32_t rows,
   return role == "linear_attn.out_proj" || role == "self_attn.o_proj";
 }
 const char *flashDenseCacheExecutionSemantics() {
-  if (!flashDenseM64OutEnabled()) return kFlashDenseCacheExecutionSemantics;
-  static const std::string value = std::string(kFlashDenseCacheExecutionSemantics) + kFlashDenseM64OutSemantics;
+  if (!flashDenseM64OutEnabled() && !flashDenseTraversalEnabled() && !flashPrefillDenseTilesEnabled())
+    return kFlashDenseCacheExecutionSemantics;
+  static const std::string value = [] {
+    std::string result = kFlashDenseCacheExecutionSemantics;
+    if (flashDenseM64OutEnabled()) result += kFlashDenseM64OutSemantics;
+    if (flashDenseTraversalEnabled()) result += kFlashDenseTraversalSemantics;
+    if (flashPrefillDenseTilesEnabled()) result += kFlashPrefillDenseTilesSemantics;
+    return result;
+  }();
   return value.c_str();
 }
 namespace {
@@ -145,6 +167,11 @@ std::pair<uint32_t, uint32_t> tileGeometry(FlashAffineMPPTile tile) {
   }
   throw std::invalid_argument("Flash dense cache invalid MPP tile");
 }
+void addDenseBF16WholeKImpl(metal::MetalBackend &backend, metal::CommandGraph &graph,
+                           metal::MetalBuffer input, const FlashTensor &weight,
+                           metal::MetalBuffer output, metal::MetalBuffer diagnostics,
+                           uint32_t rows, FlashAffineMPPTile tile,
+                           FlashPrefillDenseTilePlan prefillPlan);
 } // namespace
 
 struct FlashDenseCache::Impl final {
@@ -331,20 +358,34 @@ void FlashDenseCache::addProjection(metal::CommandGraph &graph, std::string_view
   if (flashDenseM64OutEnabled() && weight.shape.size() == 2 &&
       flashDenseM64OutGeometry(prefix, rows, uint32_t(weight.shape[0]), uint32_t(weight.shape[1])))
     tile = FlashAffineMPPTile::M64N128;
-  addDenseBF16WholeK(impl_->backend, graph, input, weight, output, diagnostics, rows, tile);
+  const auto prefillPlan = flashPrefillDenseTilesEnabled() && weight.shape.size() == 2
+      ? flashPrefillDenseTilePolicy(prefix,rows,uint32_t(weight.shape[0]),uint32_t(weight.shape[1]))
+      : FlashPrefillDenseTilePlan{};
+  addDenseBF16WholeKImpl(impl_->backend, graph, input, weight, output, diagnostics, rows, tile,prefillPlan);
 }
 
 void addDenseBF16WholeK(metal::MetalBackend &backend, metal::CommandGraph &graph,
                         metal::MetalBuffer input, const FlashTensor &weight,
                         metal::MetalBuffer output, metal::MetalBuffer diagnostics,
                         uint32_t rows, FlashAffineMPPTile tile) {
+  addDenseBF16WholeKImpl(backend,graph,input,weight,output,diagnostics,rows,tile,{});
+}
+
+namespace {
+void addDenseBF16WholeKImpl(metal::MetalBackend &backend, metal::CommandGraph &graph,
+                           metal::MetalBuffer input, const FlashTensor &weight,
+                           metal::MetalBuffer output, metal::MetalBuffer diagnostics,
+                           uint32_t rows, FlashAffineMPPTile tile,
+                           FlashPrefillDenseTilePlan prefillPlan) {
   if (weight.dtype != FlashDType::BF16 || weight.shape.size() != 2 ||
       !weight.shape[0] || weight.shape[0] > UINT32_MAX || weight.shape[0] % 64 ||
       !weight.shape[1] || weight.shape[1] > 32768 || weight.shape[1] % 32 ||
       weight.logicalBytes < product(product(weight.shape[0], weight.shape[1]), 2))
     throw std::invalid_argument("Flash whole-K projection requires a checked BF16 matrix");
   requireBuffer(weight.buffer, weight.logicalBytes, "BF16 weights");
-  const auto [m, n] = tileGeometry(tile);
+  const auto [legacyM, legacyN] = tileGeometry(tile);
+  const uint32_t m = prefillPlan ? prefillPlan.tileRows : legacyM;
+  const uint32_t n = prefillPlan ? prefillPlan.tileOutputs : legacyN;
   const uint32_t k = static_cast<uint32_t>(weight.shape[1]);
   const uint32_t outputs = static_cast<uint32_t>(weight.shape[0]);
   if (!rows || rows > 8192)
@@ -358,12 +399,21 @@ void addDenseBF16WholeK(metal::MetalBackend &backend, metal::CommandGraph &graph
   if (overlaps(input, output) || overlaps(diagnostics, input) || overlaps(diagnostics, output))
     throw std::invalid_argument("Flash dense cache projection buffer overlap");
   const uint32_t fullRows = rows / m * m;
+  const auto traversal = prefillPlan ? prefillPlan.traversal : flashDenseTraversalEnabled()
+      ? flashDenseTraversalPolicy(rows, outputs, k, m, n)
+      : FlashDenseTraversal::ColumnFast;
   const auto dispatch = [&](uint32_t begin, uint32_t count, uint32_t tileN) {
     if (!fullRows || !count) return;
-    const FlashDenseCacheParams params{fullRows, k, outputs, begin, count, m, tileN, 0};
-    graph.add("flash_dense_cache_m" + std::to_string(m) + "_n" + std::to_string(tileN),
+    const auto grid = flashDenseTraversalGrid(fullRows / m, count / tileN, traversal);
+    const FlashDenseCacheParams params{fullRows, k, outputs, begin, count, m, tileN,
+                                      static_cast<uint32_t>(traversal)};
+    const std::string suffix = traversal == FlashDenseTraversal::ColumnFast ? "" : "_traversal";
+    const std::string pipeline = prefillPlan
+        ? "flash_dense_cache_prefill_m128_n64_sg" + std::to_string(prefillPlan.simdGroups)
+        : "flash_dense_cache_m" + std::to_string(m) + "_n" + std::to_string(tileN) + suffix;
+    graph.add(pipeline,
         {input, weight.buffer, output, diagnostics}, params,
-        {count / tileN, fullRows / m, 1}, {m == 64 ? 256u : 128u, 1, 1});
+        {grid.x, grid.y, 1}, {prefillPlan ? prefillPlan.simdGroups*32 : m == 64 ? 256u : 128u, 1, 1});
   };
   const uint32_t fullColumns = outputs / n * n;
   dispatch(0, fullColumns, n);
@@ -376,6 +426,7 @@ void addDenseBF16WholeK(metal::MetalBackend &backend, metal::CommandGraph &graph
     addDenseBF16(graph, tailInput, weight, tailOutput, diagnostics, rows - fullRows);
   }
 }
+} // namespace
 
 bool FlashDenseCache::supportsHCUpMix(std::string_view prefix, uint32_t rows,
                                      FlashAffineMPPTile tile) const noexcept {

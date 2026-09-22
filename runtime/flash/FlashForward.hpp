@@ -46,6 +46,7 @@ class FlashBatchPrefill;
 class FlashExpertDenseCache;
 class FlashInt8ExpertStore;
 struct FlashGDNLazyRollbackCounters;
+struct FlashQSABulkCounters;
 class FlashPLEFused;
 
 class FlashRequestState final {
@@ -154,6 +155,8 @@ public:
   // Completed graph construction only; these do not imply GPU submission.
   [[nodiscard]] uint64_t qsaOutF32N32EncodedCalls() const;
   [[nodiscard]] uint64_t qsaOutF32N32EncodedRealRows() const;
+  // Successful target commands only, after GPU completion and diagnostics.
+  [[nodiscard]] FlashQSABulkCounters qsaBulkPrefillCounters() const;
   // Immutable CPU metadata only; reading never maps files or submits work.
   [[nodiscard]] FlashPersistedOperandStatus persistedOperandStatus() const;
   // Verified saved BF16/F32 operands plus derived selected-INT8 payload/rank

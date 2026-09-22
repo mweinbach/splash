@@ -1,0 +1,120 @@
+{
+  "schema": "online-packed-V-QSA-original-producer-recipe-v1",
+  "pass": true,
+  "compiler_work": false,
+  "GPU_work": false,
+  "original_AIR": {
+    "path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/prefill4k_bulk_attention_sg8.air",
+    "bytes": 52416,
+    "sha256": "7e560b9b3e4c598fa04d3d061ec88b93ca20d705849b550e6390158d97a352d2"
+  },
+  "current_parent_AIR": {
+    "path": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/reused/air/120-prefill4k_bulk_attention_sg8.air",
+    "bytes": 52416,
+    "sha256": "7e560b9b3e4c598fa04d3d061ec88b93ca20d705849b550e6390158d97a352d2"
+  },
+  "current_source": {
+    "path": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/dev/benchmarks/prefill4k_attention/bulk_attention_sg8.metal",
+    "bytes": 40660,
+    "sha256": "9f5a1da89e05a20b109330eaced63a645000a5728538c8e9cafc738ce9ae0905"
+  },
+  "stored_configuration": {
+    "path": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/prefill4k_bulk_attention_sg8.air.config",
+    "bytes": 59,
+    "sha256": "15300a76968f1912c0f919e5be7e25fbc6a701dc06e3a075858d46d02ab53208",
+    "text": "26ff33bbeeaa8d04-private-wide-fullcache-v1-qsa-bulk-sg8-v1"
+  },
+  "configuration_digest_reproduction": {
+    "rules_inputs_in_order": [
+      {
+        "path": "Makefile",
+        "bytes": 13626,
+        "sha256": "d4f3cedf4bef216a814673ea5098e122b556585f2ee524c91954be9a20675b54"
+      },
+      {
+        "path": "dev/native.mk",
+        "bytes": 33615,
+        "sha256": "c24b87f47f350530354f03c62758b3e1d982d69bbbb05cfd8a1d330e08609252"
+      },
+      {
+        "path": "dev/tools/build_config.py",
+        "bytes": 2145,
+        "sha256": "b1a4f302d6d5ffd661cc4bfba56fc2db751c9b56311e6730144be4eece034a11"
+      }
+    ],
+    "rules_hash_preimage_utf8": "d4f3cedf4bef216a814673ea5098e122b556585f2ee524c91954be9a20675b54  Makefile\nc24b87f47f350530354f03c62758b3e1d982d69bbbb05cfd8a1d330e08609252  dev/native.mk\nb1a4f302d6d5ffd661cc4bfba56fc2db751c9b56311e6730144be4eece034a11  dev/tools/build_config.py\n",
+    "rules_algorithm": "SHA256 of UTF8 concatenated shasum -a 256 lines, each lowercase hex SHA, two spaces, relative path, newline; take first 16 hex characters",
+    "rules_full_sha256": "85e8ddc4269df922e532591e7a0409ffe5dc82fdc2c9412aea87f90c76dffe05",
+    "rules_digest": "85e8ddc4269df922",
+    "config_input_strings_in_order": [
+      "85e8ddc4269df922",
+      "xcrun -sdk macosx clang++",
+      "-std=c++20 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1",
+      "-std=c++20 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1 -fobjc-arc",
+      "-MMD -MP",
+      "-framework Foundation -framework Metal -framework IOKit",
+      "xcrun -sdk macosx ar",
+      "xcrun -sdk macosx metal",
+      "-std=metal4.1 -O3 -Wall -Wextra -Werror -Iruntime -mmacosx-version-min=27.0 -DSPLASH_INT8_EXPERIMENT=1",
+      "xcrun -sdk macosx metallib"
+    ],
+    "config_algorithm": "SHA256 of each UTF8 input string in order followed by one NUL byte, including the final string; take first 16 hex characters",
+    "config_full_sha256": "26ff33bbeeaa8d04068578a33614cc67a63e23703409a274d96cdd89080dd813",
+    "config_digest": "26ff33bbeeaa8d04",
+    "matches_stored_original_air_base_configuration": true,
+    "reproduction_method": "pure Python hashlib over code metadata and resolved literal flag strings; no make or compiler build executed"
+  },
+  "producer_rules": [
+    {
+      "path": "dev/benchmarks/prefill4k_wide.mk",
+      "bytes": 5785,
+      "sha256": "cd1638bd316f0407a57af03fbb2895f3bca6c0d475f3fd33507d6b6e3b3b40db"
+    },
+    {
+      "path": "dev/benchmarks/prefill4k_attention/bulk_runtime.mk",
+      "bytes": 2098,
+      "sha256": "68b933723eef3b303b5ca2e2eba05f7093b499f150767f57b2e08d91bc3af200"
+    }
+  ],
+  "resolved_original_argv": [
+    "xcrun",
+    "-sdk",
+    "macosx",
+    "metal",
+    "-Ibuild/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime",
+    "-Ibuild/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/dev/benchmarks/prefill4k_attention",
+    "-std=metal4.1",
+    "-O3",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Iruntime",
+    "-mmacosx-version-min=27.0",
+    "-DSPLASH_INT8_EXPERIMENT=1",
+    "-c",
+    "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/dev/benchmarks/prefill4k_attention/bulk_attention_sg8.metal",
+    "-o",
+    "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/metal/prefill4k_bulk_attention_sg8.air"
+  ],
+  "argv_status": "Resolved producer-rule argv authenticated by stored configuration; not a saved historical full invocation log",
+  "default_float_recipe": "default-fast plus literal original Metal safe/reducer clang off source pragmas",
+  "original_performance_AIR_rebuilt": false,
+  "private_native_wrappers": "untimed original authentication only",
+  "private_ABI_headers": [
+    {
+      "path": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/abi/FlashQSA.h",
+      "bytes": 645,
+      "sha256": "639bbae2882600a0a3bb9363870628997813cdcba6ea525434d909066aade443"
+    },
+    {
+      "path": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/abi/FlashQSAFast.h",
+      "bytes": 452,
+      "sha256": "a770a0d7324703cf1cb1088a8b62864d6be3a44fd3ee87d7f795ab35f90edd64"
+    },
+    {
+      "path": "build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2/source/runtime/metal/abi/FlashQSARowTiles.h",
+      "bytes": 540,
+      "sha256": "cbb5b990592983cd4e9e5f48f637156842b551f6ac9fdab101a1dd1e0871fca2"
+    }
+  ]
+}

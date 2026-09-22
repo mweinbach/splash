@@ -1,0 +1,81 @@
+{
+  "schema": "original-prefill-state-preserving-budget-source-plan-v1",
+  "status": "no-justified150ms-plan-identified",
+  "Root_context_matched_baseline_ms": 647.1830830159469,
+  "saving_required_ms_to4000": 135.18308301594686,
+  "requested_large_saving_margin_ms": 150,
+  "empirical_candidate_budgets": [
+    {
+      "lever": "pointwise-combine-poison",
+      "saving_ms": 21.0008,
+      "qualification": "literal original BF16 partial order/diagnostics retained; historical stage extrapolation"
+    },
+    {
+      "lever": "SG2K128",
+      "saving_ms": 16.896,
+      "qualification": "empirical bounded parity; old whole-K multiply becomes20/5K128 MACs, original full state not certified"
+    },
+    {
+      "lever": "adaptive-M16-tail",
+      "saving_ms": 6.4632,
+      "qualification": "empirical parity versus SG2 control; not universal old whole-K equivalence"
+    },
+    {
+      "lever": "teacher-bulk-sequence",
+      "saving_ms": 9.41999,
+      "qualification": "measured complete-sequence call opportunity, not16times and not guaranteedWorker counterdelta"
+    }
+  ],
+  "candidate_total_ms": 53.77999,
+  "candidate_total_is_not_certified_original_state_preserving": true,
+  "residual_ms_to4000": 81.40309301594687,
+  "residual_ms_to150margin": 96.22001,
+  "hypothetical_rate_if_all_candidate_savings_realize": 3451.2796176897627,
+  "known_HC_opportunity_additional_ms_range": [
+    6,
+    9
+  ],
+  "counter_scope": {
+    "oldWorker_source": "build/prefill4k-qsa-bulk-gathered-mpp-sep21-v1/source/runtime/flash/FlashWorker.mm",
+    "published_prefill_wall_counter_line": 3109,
+    "actual_denominator": "prefill_.host (targetAPI call plus teacherPrime API call time)",
+    "teacher_added_to_host_line": 1877,
+    "teacher_rows_do_not_inflate_prompt_numerator": true,
+    "driver_summed_command_wall_label_does_not_describe_full_host_scope_precisely": true
+  },
+  "qualification_required_before_exact_label": [
+    "Original2K hidden and logits words",
+    "All134physical request-state planes",
+    "All original teacher cache/state fields",
+    "Future outputs and acceptance/correction recovery",
+    "No threshold or boundary exceptions"
+  ],
+  "remaining_large_budget": {
+    "old_gate_plus_down_ms": 212.5,
+    "old_dense_ms": 156.6,
+    "no_documented_open_exact2x_MoE_or_dense_avenue": true,
+    "no_blind_geometry_reduction_or_quantization_plan": true
+  },
+  "latest_Root_scalar_diagnostics": {
+    "all4numerical_prefill_switches_off": {
+      "prefill_approx_tokens_per_second": 3489,
+      "native_decode_approx_tokens_per_second": 70.39,
+      "cycles": 80,
+      "accepted_drafts": 175,
+      "coding_trajectory_restored_empirically": true,
+      "all134state_exactness_not_certified": true
+    },
+    "FMAonly": {
+      "prefill_approx_tokens_per_second": 3528,
+      "native_decode_approx_tokens_per_second": 70.857,
+      "cycles": 79,
+      "numerical_rounding_policy_not_old_bitexact": true
+    }
+  },
+  "decision": {
+    "no_new_code_or_build_authorized_by_plan": true,
+    "do_not_claim_initial_decode_objective_met_by_oldslow_fixed4": true,
+    "current_Root_diagnostics_remain_separate_from_oldexactness_certification": true
+  },
+  "agent_GPU_or_original_payload_reads": 0
+}

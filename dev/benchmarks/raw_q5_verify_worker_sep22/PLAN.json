@@ -1,0 +1,127 @@
+{
+  "schema": "rawQ5-GDN36-VerifyR4-narrow-whole-worker-plan-v1",
+  "scope": "PLAN ONLY; no build or source transformation until Root Q4 whole-state proof passes",
+  "parent": {
+    "path": "/Users/mweinbach/Projects/splash/build/rawQ4-GDN26-VerifyR4-composite-sep22-worker-v2",
+    "source_identity": "162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a",
+    "worker_sha256": "663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438",
+    "library_sha256": "7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8",
+    "active_Root_whole_state_job": "93766",
+    "required_before_build": "Root terminal exact whole26frames54repeats pass/backendDestroyed; parent quiescent and current seal/artifacts reauthenticated"
+  },
+  "leaf": {
+    "path": "/Users/mweinbach/Projects/splash/build/raw-q5-rowpair-sep22-component-v1/candidate.air",
+    "sha256": "99d57fd78957cfcc68ecc30d426c754b0dd702e42a32acef0008155234482a69",
+    "symbol": "raw_q5_rowpair_sep22_timed",
+    "Metal_compile_count": 0,
+    "coefficient_representation": "original affine U32-packed Q5 and original BF16 scale+bias",
+    "intended_numerical_policy": "preserve each original twelve-fragment per-eight-values dependency chronology, Values16/K512 chunks, original per-chunk result accumulation, simd_sum and BF16 boundary; share integer load/masks/common scale+bias across exactly two rows",
+    "already_actual_qualified_scope": "Root one layer0 GDN out projection on real current ordinary-target VerifyR4 input; 92 raw-F32/BF16/tap/guard gates; not all36 roles or whole worker"
+  },
+  "selector": {
+    "flag": "SPLASH_FLASH_RAW_Q5_ROWPAIR_VERIFY_SEP22",
+    "default": "0",
+    "syntax": "strict 0|1; freeze/recheck in Worker prepaths and Forward constructor/hot route",
+    "enabled_dependency": "SPLASH_FLASH_RAW_Q4_ROWPAIR_VERIFY_SEP22=1 plus unchanged Q4 dependency gates; phase=0",
+    "qualified_prefix": "language_model.model.layers.<canonical decimal 0..47>.linear_attn.out_proj",
+    "layer_rule": "layer%4!=3; exactly36 main GDN output roles",
+    "required_physical_rows": 4,
+    "verification": true,
+    "singletonMain": true,
+    "experts": 1,
+    "K": 6144,
+    "N": 2560,
+    "bits": 5,
+    "group": 128,
+    "placement": "ONLY existing floatDenseCache.contains(prefix) + selectiveFloat + NULL flashFloatDenseSmallRowsPolicy branch, adjacent to disjoint existing Q4 selector; never intercept generic fallback or other cache routes",
+    "all_other_contexts": "unchanged original branch: all Prefill/tails, AR R1, R2/R8/R9..16, MTP seed/head/vocab, BatchForward/BatchVerify, QSA/PLE/Z/shared experts/HC, and selected F32 or BF16 tiles"
+  },
+  "constructor_inventory": {
+    "source_identity": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
+    "before_graph_work": "validate all36 roles, exact quantization/geometry/source planes and null R4 cache policy; reject absent/unexpected role/dtype/stride/census",
+    "weights": "U32 logical9830400B; row stride3840B",
+    "scales_biases": "BF16 logical245760B EACH; row stride96B",
+    "original_F32_cache": "all36 original cache memberships retained, tensorF32 logical62914560B each; validate after unchanged cache construction; no cache additions/removals",
+    "graph_only_fallback_policy": "flag0 uses exact parent addAffine; enabled selector does not broaden if inventory invalid"
+  },
+  "dispatch": {
+    "original_temp_descriptor": "derive through unchanged addAffine on temporary CPU CommandGraph; demand one original flash_affine_mlx_qmv_f32xsum_v1_q5_g128 dispatch, params64 at7, original grid320x4x1/64",
+    "shipping_candidate_grid": [
+      320,
+      2,
+      1
+    ],
+    "threads": [
+      64,
+      1,
+      1
+    ],
+    "buffers": "same original7 bindings/owners/views/byte extents and copied original64-byte parameters, flags0",
+    "minimum_binding_bytes": [
+      49152,
+      9830400,
+      245760,
+      245760,
+      1,
+      20480,
+      4
+    ],
+    "host_validation": "reuse sealed Q5 policy complete-grid/stride/extent/alignment/overflow and all output/diag versus readonly alias checks BEFORE appending candidate to actual graph",
+    "GPU_resources_added_bytes": 0,
+    "GPU_dispatch_count_change": 0,
+    "new_weight_cache_bytes": 0,
+    "new_workspace_bytes": 0
+  },
+  "closure": {
+    "changed_files": [
+      "runtime/flash/FlashForward.cpp",
+      "runtime/flash/FlashWorker.mm"
+    ],
+    "new_private_policy_header_only": true,
+    "public_header_or_ABI_changes": false,
+    "normal_host_TUs": 50,
+    "actual_header_census": "rerun all50; expect private Q5 header ONLY Forward+Worker; rebuild those2, freeze other48 plusCore4 exactly",
+    "state_oracle_current_nonWorker_closure": 53,
+    "shader_link": "recover exact ordered parent original76+integer+FASTHCdown+qualifiedQ4 AIR, relink baseline FIRST and require exact754028...; append ONLY already-qualified Q5candidate99d57...; no q5 probes or native qmv duplicate AIR",
+    "symbol_gate": "all parent exports unchanged and one new timed Q5 export only; compiler policy/AIR identity pinned from original component"
+  },
+  "identity_status": {
+    "static_fields": "strict requested flag/scope/source-policy/sourceID/leafAIR stable; marker conditional on flag, no changing counters inside identity",
+    "counters": "graph calls/rows top-level separate from identity; actual graph construction not GPU completion; expected36calls/144rows per completed main VerifyR4 graph",
+    "combined_qualification_expected_if_current54case_suite_unchanged": {
+      "Q4calls": 130,
+      "Q4rows": 520,
+      "Q5calls": 180,
+      "Q5rows": 720,
+      "bundleCalls": 240,
+      "bundleRows": 960,
+      "HCcalls": 485,
+      "HCrows": 1940,
+      "pads": 485
+    },
+    "qualification_counter_derivation": "bind source suite actual five healthy VerifyR4 graphs, not model layer multiplication or depth assumption; reject excluded-context counts",
+    "quality_adapter": "extend frozen parent private Q4/composite/guard/HC gates, retain original22 specs/bodies/graders/actual execution policy; validate both status snapshots and all counters; require NEW combined source/worker/library/current26-54 proof, never inherit Q4-only or old HC proof admission"
+  },
+  "proof_plan": [
+    "Pure CPU selector matrix all layer/prefix/row/verify/singleton/shape/type boundaries; early malformed/missingdependency/lifetime mutation reject before paths/model/backend; source-overlay restore/unchanged arithmetic witness and header closure.",
+    "Root current same-artifact Q5 component PASS already completed for L0realinput, unchanged compiler/AIR; preserve all raw-F32/BF16 guards/taps and diagnostic constraints.",
+    "Fresh combined Root-only native26unique54repeat exact states/hidden/logits/fullGreedy/commit/rollback/tapes/future against reusable qualified original control spill, all134 states+216 initialized tapes+definedPLE and real owner/redzone/alias/parameter failures, all six allocation/growth/teardown guards. RawQ4 and Q5 counter gates both registered.",
+    "Only after complete state proof, same-worker Q5flag0 control / Q5flag1 canonical2048/256 B1MTP3 one warmup+three uncached trials and original22 quality compare; phase/parent prefill/source policy unchanged."
+  ],
+  "budget": {
+    "measured_component_original_GPU_ms": 0.03347918391227722,
+    "measured_component_paired_GPU_ms": 0.029791670385748148,
+    "measured_component_GPU_reduction_fraction": 0.11014347112495826,
+    "36role_repeat_projection_original_ms": 1.20525062084198,
+    "36role_repeat_projection_paired_ms": 1.0725001338869333,
+    "projected_save_if_all_roles_representative_ms": 0.13275048695504665,
+    "whole_cycle_reference_ms": 46.11,
+    "whole_TPS_gain_ceiling_from_this_projection_sensitivity": 0.002887308143941558,
+    "limits": "L0projection timing is a sensitivity, not measured36role throughput. Single-componentAPIwall neutral; no dispatch removal, extra CPU descriptor/alias validation can absorb GPU gain. No20%whole or peak promise."
+  },
+  "GPU_work": false,
+  "payload_reads_or_hashes_by_planner": 0,
+  "worker_or_component_source_mutations": false,
+  "build_executed": false,
+  "Q6_approved": false
+}

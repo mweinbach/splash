@@ -1,0 +1,248 @@
+{
+  "parent": "/Users/mweinbach/Projects/splash/build/trunkverify-rawQ4-GDN26-VerifyR4-sep22-v1/source/dev/benchmarks/trunk_verify_exact_sep22/oracle.mm",
+  "parent_sha256": "40011a8f59b7fff6013b5c73ac5588f5d5c3e497b7b74521565d14f882cacb04",
+  "journal": [
+    {
+      "label": "R5 policy include",
+      "old": "#include \"dev/benchmarks/raw_q4_verify_worker_sep22/policy.hpp\"",
+      "new": "#include \"dev/benchmarks/expert_r5_verify_worker_sep22/policy.hpp\"\n#include \"dev/benchmarks/raw_q4_verify_worker_sep22/policy.hpp\""
+    },
+    {
+      "label": "real maximum rows",
+      "old": "kVerifyRows=4",
+      "new": "kVerifyRows=5"
+    },
+    {
+      "label": "failure unique count",
+      "old": "\"expected_unique_frames\\\":26",
+      "new": "\"expected_unique_frames\\\":29"
+    },
+    {
+      "label": "failure repeat count",
+      "old": "\"expected_repeated_frames\\\":54",
+      "new": "\"expected_repeated_frames\\\":61"
+    },
+    {
+      "label": "manifest frame count",
+      "old": "frames_.size()==26",
+      "new": "frames_.size()==29"
+    },
+    {
+      "label": "manifest message",
+      "old": "all26 expected frames required",
+      "new": "all29 expected frames required"
+    },
+    {
+      "label": "completion count",
+      "old": "completed_==26&&repeated_==54",
+      "new": "completed_==29&&repeated_==61"
+    },
+    {
+      "label": "source formula spill upper bound",
+      "old": "15*FlashForward::requestStateBytes(kCapacity)+(200ULL<<20)+(128ULL<<20)",
+      "new": "17*FlashForward::requestStateBytes(kCapacity)+(96ULL<<20)+36*FlashGDNLazyRollback::plannedBytes(5,1)+(2ULL<<20)"
+    },
+    {
+      "label": "CPU expected counts",
+      "old": "\"unique_frames\\\":26,\\\"state_frames\\\":15",
+      "new": "\"unique_frames\\\":29,\\\"state_frames\\\":17"
+    },
+    {
+      "label": "enable paired current flag0 export",
+      "old": "require(!exporting,\"registered composite comparator cannot export\");",
+      "new": ""
+    },
+    {
+      "label": "five corrections",
+      "old": "std::array<uint32_t,4> correction{};",
+      "new": "std::array<uint32_t,5> correction{};"
+    },
+    {
+      "label": "five metadata tokens",
+      "old": "inputs.count==4&&fixes.count==4",
+      "new": "inputs.count==5&&fixes.count==5"
+    },
+    {
+      "label": "five control tokens",
+      "old": "for(uint32_t i=0;i<4;++i){verification.push_back",
+      "new": "for(uint32_t i=0;i<5;++i){verification.push_back"
+    },
+    {
+      "label": "six lifecycle trials",
+      "old": "retained:{1u,2u,3u,4u,0u}",
+      "new": "retained:{1u,2u,3u,4u,5u,0u}"
+    },
+    {
+      "label": "five current verify inputs",
+      "old": "verification={greedy(body,0),prompt[kRows-3],prompt[kRows-2],prompt[kRows-1]}",
+      "new": "verification={greedy(body,0),prompt[kRows-4],prompt[kRows-3],prompt[kRows-2],prompt[kRows-1]}"
+    },
+    {
+      "label": "five logits",
+      "old": "verified.logitRows==4",
+      "new": "verified.logitRows==5"
+    },
+    {
+      "label": "five verify output rows",
+      "old": "store.output(\"verify.output\",verified,4,repeat)",
+      "new": "store.output(\"verify.output\",verified,5,repeat)"
+    },
+    {
+      "label": "five correction records",
+      "old": "if(retained==1)for(uint32_t i=0;i<4;++i)",
+      "new": "if(retained==1)for(uint32_t i=0;i<5;++i)"
+    },
+    {
+      "label": "five invalid-operation replay rows",
+      "old": "store.output(\"verify.output\",verified,4,true)",
+      "new": "store.output(\"verify.output\",verified,5,true)"
+    },
+    {
+      "label": "invalid six retained",
+      "old": "target.commitVerify(state,5);},\"excess retained\"",
+      "new": "target.commitVerify(state,6);},\"excess retained\""
+    },
+    {
+      "label": "full five acceptance",
+      "old": "if(retained==4)require(commit.gpuSeconds",
+      "new": "if(retained==5)require(commit.gpuSeconds"
+    },
+    {
+      "label": "new explicit scope",
+      "old": "TRUNK Prefill+Verify4+Commit1..4+correction/future matrix; no trained head",
+      "new": "TRUNK Prefill+Verify5+Commit1..5+zero-retained rejection/abort+correction/future matrix; no trained head"
+    },
+    {
+      "label": "five verification metadata",
+      "old": "for(uint32_t i=0;i<4;++i){if(i)c<<',';c<<verification",
+      "new": "for(uint32_t i=0;i<5;++i){if(i)c<<',';c<<verification"
+    },
+    {
+      "label": "five correction metadata",
+      "old": "for(uint32_t i=0;i<4;++i){if(i)c<<',';c<<correction",
+      "new": "for(uint32_t i=0;i<5;++i){if(i)c<<',';c<<correction"
+    },
+    {
+      "label": "report scope",
+      "old": "registered COMPOSITE compact1 HC1 bundle1 exact matrix",
+      "new": "current Q4 source R5 flag0 blocked10 versus flag1 integer6 main-state exact matrix"
+    },
+    {
+      "label": "both pending scalar checks",
+      "old": "std::array<uint64_t,3>{4,kRows,36}",
+      "new": "std::array<uint64_t,3>{5,kRows,36}",
+      "count": 2
+    },
+    {
+      "label": "exact current R5 role admission",
+      "old": "void early(){\n  raw_q4_verify_sep22::validateDependencies();\n  require(raw_q4_verify_sep22::requested(),\"new rawQ4 flag1 required for current qualifier\");\n  require(std::string_view(raw_q4_verify_sep22::kSourceIdentitySha256)==\"162b01e610d480552c3e005c3ec77566163f4648730c22d303cfa7665d3c810a\",\"new rawQ4 source identity differs\");\n  require(selected(\"SPLASH_FLASH_ALLROWS_FULL512_TARGET\"),\"pure I8 parent/candidate required\");\n  require(!selected(\"SPLASH_FLASH_PREFILL_I8_DECODE_Q4_SEP21\"),\"phase-Q4 profile excluded\");\n  require(selected(\"SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22\"),\"registered composite requires COMPACT1\");\n  require(selected(\"SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22\"),\"registered composite requires HC1\");\n  require(selected(\"SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22\"),\"registered composite requires BUNDLE1\");\n  require(selected(\"SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22\"),\"registered composite requires explicit registration flag1\");\n  for(const char *n:{\"SPLASH_FLASH_BATCH\",\"SPLASH_FLASH_BATCH_MTP\",\"SPLASH_FLASH_BATCH_MTP_PREFILL\",\"SPLASH_FLASH_BATCH_PREFILL\",\"SPLASH_FLASH_MTP\",\"SPLASH_FLASH_ORIGINAL_TEXT_RESIDENT\",\"SPLASH_FLASH_IDLE_RESIDENCY_MAINTENANCE\"})require(!selected(n),std::string(\"excluded worker route: \")+n);\n  require(selected(\"SPLASH_FLASH_GDN_LAZY_ROLLBACK\")&&selected(\"SPLASH_FLASH_GPU_GREEDY\"),\"guarded lazy tapes/greedy required\");\n  (void)commonPolicy();\n}",
+      "new": "void early(){\n  raw_q4_verify_sep22::validateDependencies();\n  require(raw_q4_verify_sep22::requested(),\"current qualified rawQ4 flag1 required\");\n  require(std::string_view(compact_native_r5_verify_sep22::kSourceIdentitySha256)==\"4bb7b637c2b6b60520159ad3724a8d9e3867c7c538dd8d260caa4fc7d184769a\",\"current R5 source differs\");\n  const bool candidate=bool(SPLASH_VERIFY_CANDIDATE);\n  require(selected(compact_native_r5_verify_sep22::kFlag)==candidate,\"R5 flag must match private binary role\");\n  compact_native_r5_verify_sep22::validateDepth(selected(\"SPLASH_FLASH_MTP\"),4,true);\n  const char*depth=std::getenv(\"SPLASH_FLASH_MTP_DRAFT_DEPTH\");require(depth&&std::string_view(depth)==\"4\",\"explicit fixed4 environment required\");\n  for(const char*n:{\"SPLASH_FLASH_ALLROWS_FULL512_TARGET\",\"SPLASH_FLASH_COMPACT_NATIVE_R4_VERIFY_SEP22\",\"SPLASH_FLASH_HC_PAD_VERIFY_R4_SEP22\",\"SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22\",\"SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22\",\"SPLASH_FLASH_GDN_LAZY_ROLLBACK\",\"SPLASH_FLASH_GPU_GREEDY\"})require(selected(n),std::string(\"current parent flag1 required: \")+n);\n  require(!selected(\"SPLASH_FLASH_PREFILL_I8_DECODE_Q4_SEP21\"),\"phase-Q4 excluded\");\n  for(const char*n:{\"SPLASH_FLASH_BATCH\",\"SPLASH_FLASH_BATCH_MTP\",\"SPLASH_FLASH_BATCH_MTP_PREFILL\",\"SPLASH_FLASH_BATCH_PREFILL\",\"SPLASH_FLASH_ORIGINAL_TEXT_RESIDENT\",\"SPLASH_FLASH_IDLE_RESIDENCY_MAINTENANCE\"})require(!selected(n),std::string(\"excluded route: \")+n);\n  (void)commonPolicy();\n}"
+    },
+    {
+      "label": "five-row tape metadata",
+      "old": "saved VerifyR4 operands\\\",\\\"maximum_rows\\\":4",
+      "new": "saved VerifyR5 operands\\\",\\\"maximum_rows\\\":5"
+    },
+    {
+      "label": "actual R5 window counters",
+      "old": "require(raw_q4_verify_sep22::graphCalls.load()-rawBeforeVerify==26&&raw_q4_verify_sep22::graphRows.load()-rawRowsBeforeVerify==104,\"Verify4 actual rawQ4 family26 counter differs\");",
+      "new": "require(raw_q4_verify_sep22::graphCalls.load()==rawBeforeVerify&&raw_q4_verify_sep22::graphRows.load()==rawRowsBeforeVerify,\"R5 must not execute R4-only rawQ4 pairing\");require(compact_native_r5_verify_sep22::graphCalls.load()-r5BeforeVerify==(SPLASH_VERIFY_CANDIDATE?48:0)&&compact_native_r5_verify_sep22::graphRows.load()-r5RowsBeforeVerify==(SPLASH_VERIFY_CANDIDATE?240:0),\"actual R5 layer census differs\");"
+    },
+    {
+      "label": "R5 before snapshot",
+      "old": "stage=\"verify\";auto verified",
+      "new": "const auto r5BeforeVerify=compact_native_r5_verify_sep22::graphCalls.load(),r5RowsBeforeVerify=compact_native_r5_verify_sep22::graphRows.load();\n        stage=\"verify\";auto verified"
+    },
+    {
+      "label": "fresh R5 final census no inherited score",
+      "old": "      const auto actualBundle=target.batchInt8ExpertStore()->compactR4PreflightCounters();const auto actualPlan=target.batchInt8ExpertStore()->compactNativeR4VerifyCounters();\n      require(actualBundle.enabled&&actualBundle.calls==240&&actualBundle.rows==960,\"actual bundle verification census differs\");\n      require(actualPlan.planCalls==actualBundle.calls&&actualPlan.planRows==actualBundle.rows,\"actual bundle/plan counters differ\");\n      const uint64_t hcCalls=hc_pad_verify_sep22::graphCalls.load(std::memory_order_relaxed),hcRows=hc_pad_verify_sep22::graphRows.load(std::memory_order_relaxed),hcPads=hc_pad_verify_sep22::savedPaddingDispatches.load(std::memory_order_relaxed);\n      require(hcCalls==485&&hcRows==1940&&hcPads==485,\"actual HC97 x five VerifyR4 census differs\");\n      const uint64_t actualRawQ4Calls=raw_q4_verify_sep22::graphCalls.load(),actualRawQ4Rows=raw_q4_verify_sep22::graphRows.load();\n      require(actualRawQ4Calls==130&&actualRawQ4Rows==520,\"five current Verify4 rawQ4 trials must produce130calls520rows\");\n      const uint32_t actualGuardCases=Access::actualBundleGuardProbes(target);require(actualGuardCases==8,\"actual model-buffer guard census differs\");\n      std::ostringstream o;o<<\"{\\\"actual_rawQ4_rowpair_calls\\\":\"<<actualRawQ4Calls<<\",\\\"actual_rawQ4_rowpair_rows\\\":\"<<actualRawQ4Rows<<\",\\\"rawQ4_source_identity_sha256\\\":\"<<json::quote(raw_q4_verify_sep22::kSourceIdentitySha256)<<\",\\\"qualified_worker_executable_sha256\\\":\\\"663663067a6b696811980c5afa3d2cca2dd1b0b28629e6d9b326a7973d084438\\\",\\\"qualified_rowpair_library_sha256\\\":\\\"7540286fde20ea7032f1aadbeeb0107920dfc9c42aed05feb7bb3c9373cde7c8\\\",\\\"actual_HC_VerifyR4_calls\\\":\"<<hcCalls<<\",\\\"actual_HC_VerifyR4_rows\\\":\"<<hcRows<<\",\\\"actual_HC_padding_dispatches_saved\\\":\"<<hcPads<<\",\\\"actual_owned_buffer_guard_cases\\\":\"<<actualGuardCases<<\",\\\"actual_bundle_verify_calls\\\":\"<<actualBundle.calls<<\",\\\"actual_bundle_verify_rows\\\":\"<<actualBundle.rows<<\",\\\"private_lexical_token_fault_injection_claimed\\\":false,\\\"source_harness_cases_separate\\\":11630,\\\"worker\\\":\"<<kPrefillExactBuildProvenance<<\",\\\"kernel_routes\\\":\"<<json::quote(target.kernelRoutes())<<\",\\\"local_pointer_redzone_tape_checks\\\":\"<<localChecks<<\",\\\"invalid_operation_checks\\\":\"<<invalidChecks<<'}';own=o.str();allocation.governor=governor.snapshot();allocation.finalAllocated=backend.memoryStats().allocatedBytes;",
+      "new": "      const auto actualBundle=target.batchInt8ExpertStore()->compactR4PreflightCounters();const auto actualPlan=target.batchInt8ExpertStore()->compactNativeR4VerifyCounters();\n      const uint64_t hcCalls=hc_pad_verify_sep22::graphCalls.load(),hcRows=hc_pad_verify_sep22::graphRows.load(),hcPads=hc_pad_verify_sep22::savedPaddingDispatches.load();\n      const uint64_t rawCalls=raw_q4_verify_sep22::graphCalls.load(),rawRows=raw_q4_verify_sep22::graphRows.load();\n      require(actualBundle.calls==0&&actualBundle.rows==0&&actualPlan.planCalls==0&&actualPlan.planRows==0&&hcCalls==0&&hcRows==0&&hcPads==0&&rawCalls==0&&rawRows==0,\"R5/future matrix executed excluded R4-only chain\");\n      const uint64_t r5Calls=compact_native_r5_verify_sep22::graphCalls.load(),r5Rows=compact_native_r5_verify_sep22::graphRows.load();\n      require(r5Calls==(SPLASH_VERIFY_CANDIDATE?288:0)&&r5Rows==(SPLASH_VERIFY_CANDIDATE?1440:0),\"six actual Verify5 trials x48 layers required\");\n      const uint32_t guardCases=Access::actualBundleGuardProbes(target);require(guardCases==8,\"preserved R4 metadata guard census differs\");const auto r5GuardCases=Access::actualR5GuardProbes(target);require(r5GuardCases==9,\"fresh actual R5 canonical negative metadata guards differ\");\n      std::ostringstream o;o<<\"{\\\"R5_enabled\\\":\"<<(SPLASH_VERIFY_CANDIDATE?\"true\":\"false\")<<\",\\\"actual_R5_calls\\\":\"<<r5Calls<<\",\\\"actual_R5_rows\\\":\"<<r5Rows<<\",\\\"actual_rawQ4_calls\\\":\"<<rawCalls<<\",\\\"actual_HC_R4_calls\\\":\"<<hcCalls<<\",\\\"actual_bundle_R4_calls\\\":\"<<actualBundle.calls<<\",\\\"preserved_R4_owned_metadata_guard_cases\\\":\"<<guardCases<<\",\\\"actual_R5_owned_metadata_guard_cases\\\":\"<<r5GuardCases<<\",\\\"local_pointer_redzone_tape_checks\\\":\"<<localChecks<<\",\\\"invalid_operation_checks\\\":\"<<invalidChecks<<\",\\\"source_identity_sha256\\\":\"<<json::quote(compact_native_r5_verify_sep22::kSourceIdentitySha256)<<\",\\\"worker\\\":\"<<kPrefillExactBuildProvenance<<\",\\\"kernel_routes\\\":\"<<json::quote(target.kernelRoutes())<<'}';own=o.str();allocation.governor=governor.snapshot();allocation.finalAllocated=backend.memoryStats().allocatedBytes;\n      require(allocation.governor.reservedBytes==0&&allocation.governor.deniedReservations==0,\"final governor reserved/denied must be zero\");"
+    },
+    {
+      "label": "each invalid operation authenticates no submit",
+      "old": "template<class F>void rejected(F &&f,const char *label){bool bad=false;",
+      "new": "template<class F>void rejected(metal::MetalBackend&backend,F &&f,const char *label){const auto submits=backend.submissionCount();bool bad=false;"
+    },
+    {
+      "label": "invalid no-submit gate",
+      "old": "require(bad,std::string(\"invalid operation accepted: \")+label);}",
+      "new": "require(bad,std::string(\"invalid operation accepted: \")+label);require(backend.submissionCount()==submits,std::string(\"invalid operation submitted: \")+label);}"
+    },
+    {
+      "label": "eight rejected calls use actual backend",
+      "old": "rejected([&]",
+      "new": "rejected(backend,[&]",
+      "count": 8
+    },
+    {
+      "label": "null operation lifecycle before actual state",
+      "old": "LocalTails tails(target);uint64_t localChecks=0,invalidChecks=0;",
+      "new": "LocalTails tails(target);uint64_t localChecks=0,invalidChecks=0;\n      {FlashRequestState nullState;const bool nullPoisoned=nullState.poisoned();const std::array<uint32_t,1> one{prompt[0]};const auto submits=backend.submissionCount(),owned=backend.memoryStats().allocatedBytes;\n        rejected(backend,[&]{(void)target.forward(nullState,one);},\"null forward\");\n        rejected(backend,[&]{(void)target.verify(nullState,one);},\"null verify\");\n        rejected(backend,[&]{(void)target.commitVerify(nullState,1);},\"null commit\");invalidChecks+=3;\n        target.abortVerify(nullState);require(backend.submissionCount()==submits&&backend.memoryStats().allocatedBytes==owned&&nullState.poisoned()==nullPoisoned&&!Access::pending(nullState)&&Access::tapeStatus(target)==std::array<uint64_t,3>{0,0,0},\"null abort changed ownership/tape/submit\");tails.check();require(Access::tapeCanaries(target),\"null operations damaged tapes\");++localChecks;\n      }"
+    },
+    {
+      "label": "empty/excess/no-pending no-submit preserves full state",
+      "old": "if(verification.empty())verification=",
+      "new": "if(retained==1){const std::array<uint32_t,6> excess{prompt[0],prompt[1],prompt[2],prompt[3],prompt[4],prompt[5]};\n          const auto noPending=[&]{store.state(\"prefill.state\",target,state,true);binding.check(target,state);checkGuards(guards);tails.check();require(Access::tapeStatus(target)==std::array<uint64_t,3>{0,0,0},\"rejected fresh operation armed tape\");++localChecks;};\n          rejected(backend,[&]{(void)target.forward(state,{});},\"empty forward\");noPending();\n          rejected(backend,[&]{(void)target.verify(state,{});},\"empty verify\");noPending();\n          rejected(backend,[&]{(void)target.verify(state,excess);},\"six-row verify exceeds owned five-row tape\");noPending();\n          rejected(backend,[&]{(void)target.commitVerify(state,1);},\"commit without pending\");noPending();invalidChecks+=4;\n        }\n        if(verification.empty())verification="
+    },
+    {
+      "label": "new no-submit repeated frames",
+      "old": "completed_==29&&repeated_==61",
+      "new": "completed_==29&&repeated_==65"
+    },
+    {
+      "label": "new failure expected repeated",
+      "old": "\"expected_repeated_frames\\\":61",
+      "new": "\"expected_repeated_frames\\\":65"
+    },
+    {
+      "label": "actual destruction ledger fields",
+      "old": "uint64_t beforeState=0,afterState=0,stateDelta=0,finalAllocated=0;",
+      "new": "uint64_t beforeState=0,afterState=0,stateDelta=0,finalAllocated=0,afterTargetDestruction=0,afterModelDestruction=0;bool stopped=false;"
+    },
+    {
+      "label": "destruction ledger report",
+      "old": "<<\",\\\"final_allocated\\\":\"<<finalAllocated",
+      "new": "<<\",\\\"after_target_destruction\\\":\"<<afterTargetDestruction<<\",\\\"after_model_destruction\\\":\"<<afterModelDestruction<<\",\\\"backend_stopped\\\":\"<<(stopped?\"true\":\"false\")<<\",\\\"final_allocated\\\":\"<<finalAllocated"
+    },
+    {
+      "label": "nested actual mapped owner lifetime",
+      "old": "backendCreated=true;const auto weights=",
+      "new": "backendCreated=true;{const auto weights="
+    },
+    {
+      "label": "nested target owner lifetime",
+      "old": "stage=\"target\";FlashForward target",
+      "new": "stage=\"target\";{FlashForward target"
+    },
+    {
+      "label": "actual target model owner zero drain stop before backend destruction",
+      "old": "require(allocation.governor.reservedBytes==0&&allocation.governor.deniedReservations==0,\"final governor reserved/denied must be zero\");",
+      "new": "require(allocation.governor.reservedBytes==0&&allocation.governor.deniedReservations==0,\"final governor reserved/denied must be zero\");\n      }\n      allocation.afterTargetDestruction=backend.memoryStats().allocatedBytes;require(allocation.afterTargetDestruction==allocation.mappedInitial,\"target/state/tape owned bytes remain after destruction\");allocation.governor=governor.snapshot();require(allocation.governor.reservedBytes==0&&allocation.governor.deniedReservations==0,\"governor residue after target destruction\");\n      }\n      allocation.afterModelDestruction=backend.memoryStats().allocatedBytes;require(allocation.afterModelDestruction==0,\"mapped/native owned bytes remain after all owners destroyed\");backend.drainSparseUnmaps();require(backend.healthy(),\"backend unhealthy after synchronous proof drain\");backend.stop();allocation.stopped=true;"
+    },
+    {
+      "label": "before data scratch host and exact source geometry admission",
+      "old": "const auto prompt=tokens(argv[5]);",
+      "new": "const uint64_t spillBound=17*FlashForward::requestStateBytes(kCapacity)+(96ULL<<20)+36*FlashGDNLazyRollback::plannedBytes(5,1)+(2ULL<<20);require(spillBound<kLimit,\"R5 entire campaign physical spill bound exceeds4GiB before any checkpoint\");\n    const auto hostAvailable=engine::queryHostAvailableMemory();const auto hostReserve=std::max<uint64_t>(16ULL<<30,NSProcessInfo.processInfo.physicalMemory/10);require(hostAvailable&&*hostAvailable>hostReserve+(64ULL<<20),\"bounded64MiB host streaming/metadata admission denied before checkpoint scratch\");\n    const auto prompt=tokens(argv[5]);"
+    },
+    {
+      "label": "exact current model metadata before target",
+      "old": "const auto weights=FlashWeights::load(backend,argv[4]);",
+      "new": "const auto weights=FlashWeights::load(backend,argv[4]);require(weights.sourceIdentity()==\"ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e\"&&weights.manifestFingerprint()==\"edc4ffe67a2479bad999fd7cd26d05cc16549d52f79659577ad21ff1d8d310a0\",\"original source/layout must match before target\");"
+    },
+    {
+      "label": "exact original Full512 store before trunk",
+      "old": "workspace=target.workspaceBytes();",
+      "new": "require(target.batchInt8ExpertStore()&&target.batchInt8ExpertStore()->identitySha256()==\"ba22514a30a41d5ddc734ad0aea0a67ce527a3a5c22b95031c1c5810972363f1\",\"original Full512 store identity differs before trunk\");workspace=target.workspaceBytes();"
+    },
+    {
+      "label": "actual prefill excludes new R5",
+      "old": "auto body=target.forward(state,prompt,false,true);",
+      "new": "const auto r5BeforePref=compact_native_r5_verify_sep22::graphCalls.load(),r5RowsBeforePref=compact_native_r5_verify_sep22::graphRows.load();\n        auto body=target.forward(state,prompt,false,true);require(compact_native_r5_verify_sep22::graphCalls.load()==r5BeforePref&&compact_native_r5_verify_sep22::graphRows.load()==r5RowsBeforePref,\"Prefill executed excluded R5 setup\");"
+    },
+    {
+      "label": "actual ordinary future excludes new R5",
+      "old": "const auto before=state.logicalLength();auto result=target.forward(state,input,true,true);",
+      "new": "const auto r5BeforeFuture=compact_native_r5_verify_sep22::graphCalls.load(),r5RowsBeforeFuture=compact_native_r5_verify_sep22::graphRows.load();const auto before=state.logicalLength();auto result=target.forward(state,input,true,true);require(compact_native_r5_verify_sep22::graphCalls.load()==r5BeforeFuture&&compact_native_r5_verify_sep22::graphRows.load()==r5RowsBeforeFuture,\"ordinary future AR/four/eight rows executed excluded R5 setup\");"
+    }
+  ]
+}

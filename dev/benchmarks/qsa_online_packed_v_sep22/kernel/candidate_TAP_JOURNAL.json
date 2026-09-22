@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "unselected_entry",
+    "old": "[[max_total_threads_per_threadgroup(128)]]\nkernel void flash_qsa_mpp_prefill_bulk_early_2048(\n    device const bfloat *queries [[buffer(0)]],\n    device const bfloat *keys [[buffer(1)]],\n    device const bfloat *values [[buffer(2)]],\n    device const uint *selected [[buffer(3)]],\n    device float *statistics [[buffer(4)]],\n    device float *numerators [[buffer(5)]],\n    device atomic_uint *diagnostics [[buffer(6)]],\n    constant FlashQSAFastParams &params [[buffer(7)]],\n    uint3 group [[threadgroup_position_in_grid]],\n    uint3 groupSize [[threads_per_threadgroup]],\n    uint tid [[thread_index_in_threadgroup]]) {\n  if (params.common.begin != 0 || params.common.rows != 2048 ||\n      params.common.capacity < 2048 || params.maximum_partitions < 4 ||\n      params.partitions != 4 || group.y != 0 || group.z != 0 ||\n      any(groupSize != uint3(128, 1, 1))) {\n    if (!tid) bulk_qsa_mpp_failure(diagnostics, 1u << 9);\n    return;\n  }\n  const uint cta = group.x;\n  if (cta >= 3328) return;\n  uint window;\n  uint3 localGroup;\n  uint partitions;\n  if (cta < 256) {\n    window = 0;\n    partitions = 1;\n    localGroup = uint3(cta % 128, cta / 128, 0);\n  } else {\n    const uint offset = cta - 256;\n    window = 1 + offset / 1024;\n    const uint local = offset % 1024;\n    partitions = 4;\n    localGroup = uint3(local % 128, (local / 128) % 2, local / 256);\n  }\n  FlashQSAFastParams localParams = params;\n  localParams.common.begin = window * 128;\n  localParams.common.rows = 128;\n  localParams.partitions = partitions;\n  const ulong firstRow = ulong(window) * 128;\n  const ulong scratchBase = firstRow * 24 * params.maximum_partitions;\n  threadgroup BulkOnlineScratch scratch;\n  bulk_qsa_online_partition(queries + firstRow * 24 * 256, keys, values,\n      selected + firstRow * 512, statistics + scratchBase * 2,\n      numerators + scratchBase * 256, diagnostics, localParams, localGroup, tid,\n      scratch.aq, scratch.kvMemory, scratch.kvMemory, scratch.weights,\n      scratch.maximum, scratch.sum, scratch.alpha);\n}",
+    "new": "// Private component omits the unselected entry: flash_qsa_mpp_prefill_bulk_early_2048.",
+    "count": 1
+  },
+  {
+    "kind": "unselected_entry",
+    "old": "[[max_total_threads_per_threadgroup(256)]]\nkernel void flash_qsa_mpp_prefill_bulk_temporal_sg8_2048(\n    device const bfloat *queries [[buffer(0)]],\n    device const bfloat *keys [[buffer(1)]],\n    device const bfloat *values [[buffer(2)]],\n    device const uint *selected [[buffer(3)]],\n    device float *statistics [[buffer(4)]],\n    device float *numerators [[buffer(5)]],\n    device atomic_uint *diagnostics [[buffer(6)]],\n    constant FlashQSAFastParams &params [[buffer(7)]],\n    uint3 group [[threadgroup_position_in_grid]],\n    uint3 groupSize [[threads_per_threadgroup]],\n    uint tid [[thread_index_in_threadgroup]]) {\n  if (params.common.begin != 0 || params.common.rows != 2048 ||\n      params.common.capacity < 2048 || params.maximum_partitions < 4 ||\n      params.partitions != 4 || group.y != 0 || group.z != 0 ||\n      any(groupSize != uint3(256, 1, 1))) {\n    if (!tid) bulk_temporal_sg8_error(diagnostics, 1u << 9);\n    return;\n  }\n  const uint cta = group.x;\n  if (cta >= 4608) return;\n  const uint window = 4 + cta / 384;\n  const uint local = cta % 384;\n  const uint3 localGroup(local % 48, (local / 48) % 2, local / 96);\n  FlashQSAFastParams localParams = params;\n  localParams.common.begin = window * 128;\n  localParams.common.rows = 128;\n  localParams.partitions = 4;\n  const ulong firstRow = ulong(window) * 128;\n  const ulong scratchBase = firstRow * 24 * params.maximum_partitions;\n  threadgroup BulkTemporalSG8QueryStorage<32> queryMemory;\n  threadgroup bfloat kvMemory[64 * 64];\n  threadgroup float weights[32 * 64];\n  bulk_temporal_sg8_online<32>(queries + firstRow * 24 * 256, keys, values,\n      selected + firstRow * 512, statistics + scratchBase * 2,\n      numerators + scratchBase * 256, diagnostics, localParams, localGroup, tid,\n      queryMemory, kvMemory, weights);\n}",
+    "new": "// Private component omits the unselected entry: flash_qsa_mpp_prefill_bulk_temporal_sg8_2048.",
+    "count": 1
+  },
+  {
+    "kind": "untimed_raw_quotient_binding",
+    "old": "    constant FlashQSAFastParams &params [[buffer(5)]],",
+    "new": "    constant FlashQSAFastParams &params [[buffer(5)]],\n    device float *raw_quotient [[buffer(6)]],\n    device bfloat *rounded_attention [[buffer(7)]],",
+    "count": 1
+  },
+  {
+    "kind": "untimed_live_quotient_store",
+    "old": "  const bfloat attention = bfloat(value / sum);",
+    "new": "  const float quotient = value / sum;\n  const bfloat attention = bfloat(quotient);\n  raw_quotient[(ulong(row) * 24 + head) * 256 + tid] = quotient;\n  rounded_attention[(ulong(row) * 24 + head) * 256 + tid] = attention;",
+    "count": 1
+  }
+]

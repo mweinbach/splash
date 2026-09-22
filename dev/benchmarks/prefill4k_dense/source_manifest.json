@@ -1,0 +1,171 @@
+{
+  "schema": "splash-pinned-mlx-steel-sources-v1",
+  "repository": "https://github.com/ml-explore/mlx",
+  "pinned_commit": "2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99",
+  "include_root": "dev/benchmarks/prefill4k_dense/steel_vendor",
+  "source_transformations": "none; exact official raw.githubusercontent.com bytes",
+  "entry_roots": [
+    "mlx/backend/metal/kernels/steel/gemm/kernels/steel_gemm_fused_nax.h",
+    "mlx/backend/metal/kernels/steel/gemm/gemm_nax.h",
+    "mlx/backend/metal/kernels/utils.h"
+  ],
+  "license": {
+    "spdx": "MIT",
+    "upstream_path": "LICENSE",
+    "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/LICENSE",
+    "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/LICENSE",
+    "bytes": 1066,
+    "sha256": "ccfab7ccb2ea306f71531c8ca77bb55507606cd90768b1e32b8b52ab5b48cf01"
+  },
+  "headers": [
+    {
+      "upstream_path": "mlx/backend/metal/kernels/bf16.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/bf16.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/bf16.h",
+      "bytes": 306,
+      "sha256": "abd87446a310b77ac530ef52a324feae5cb285d03ec9613e3a88ebb71410fdcb",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/bf16_math.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/bf16_math.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/bf16_math.h",
+      "bytes": 26024,
+      "sha256": "1f374f8380f756eb89acf6a847741cb8fecbe642945e159fb6208d804cc06496",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/complex.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/complex.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/complex.h",
+      "bytes": 9062,
+      "sha256": "16e8a815b2cbdb6070e0824e64fe33fccb6e918f1b84ea5c792bd89d33e57bf1",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/bf16.h"
+      ]
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/defines.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/defines.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/defines.h",
+      "bytes": 830,
+      "sha256": "a2930dbd644c69c4b66a511a094034217f3c03f48e29a1613f601532150f9163",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/logging.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/logging.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/logging.h",
+      "bytes": 511,
+      "sha256": "197d9d81944146bea274ebcbc17b2b97b39c7478c0316a3166a08b3fb2467e4b",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/defines.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/defines.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/defines.h",
+      "bytes": 231,
+      "sha256": "b03cea6a7d5cfe814e6838d8536e2aacdcafd2744cb408e954fda336ce21759a",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/gemm/gemm_nax.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/gemm/gemm_nax.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/gemm/gemm_nax.h",
+      "bytes": 3580,
+      "sha256": "8f8d11f3c29e30dbfcaa6799963edd5fb71b81f912c4f3494e294d3002e3d337",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/steel/gemm/nax.h",
+        "mlx/backend/metal/kernels/steel/gemm/params.h",
+        "mlx/backend/metal/kernels/steel/gemm/transforms.h",
+        "mlx/backend/metal/kernels/steel/utils.h"
+      ]
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/gemm/kernels/steel_gemm_fused_nax.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/gemm/kernels/steel_gemm_fused_nax.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/gemm/kernels/steel_gemm_fused_nax.h",
+      "bytes": 6437,
+      "sha256": "149ffe9006edd26daf8c1379ced976f39d929c2cf7cdb57d075be24fc1779765",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/gemm/nax.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/gemm/nax.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/gemm/nax.h",
+      "bytes": 25621,
+      "sha256": "fb10bcae44095e9fed5c81213d03527dd5fe5ac11be11ec7784bd357c6f317ec",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/steel/defines.h",
+        "mlx/backend/metal/kernels/steel/utils/integral_constant.h"
+      ]
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/gemm/params.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/gemm/params.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/gemm/params.h",
+      "bytes": 1136,
+      "sha256": "6711e72e32310eafb088895d5a6d20fcfca814158f5b38eb72b6e69d9d773e43",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/gemm/transforms.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/gemm/transforms.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/gemm/transforms.h",
+      "bytes": 1760,
+      "sha256": "73487e29beab5af9478bc931c49b5e8d66937c2fa2651499867f47ac5529afc2",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/steel/utils.h"
+      ]
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/utils.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/utils.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/utils.h",
+      "bytes": 1073,
+      "sha256": "d4c36298145d1c5617a94f07dbfabf6ac932afe2fd7ea0c9291f1fb385c5404a",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/utils/integral_constant.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/utils/integral_constant.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/utils/integral_constant.h",
+      "bytes": 3700,
+      "sha256": "886eccaac4f8f00eab5a10551fdb5315df7ab7462aba13d69bb95765c1a4735e",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/steel/utils/type_traits.h"
+      ]
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/steel/utils/type_traits.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/steel/utils/type_traits.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/steel/utils/type_traits.h",
+      "bytes": 1145,
+      "sha256": "4766c5a3809d3cf7740e63acc5703ef76b6b4e85d8baf16602c9d517a2fd426c",
+      "quoted_dependencies": []
+    },
+    {
+      "upstream_path": "mlx/backend/metal/kernels/utils.h",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/2d27ab05fb7dcda69bb3c57abd74c0b3bc9a5a99/mlx/backend/metal/kernels/utils.h",
+      "local_file": "dev/benchmarks/prefill4k_dense/steel_vendor/mlx/backend/metal/kernels/utils.h",
+      "bytes": 15157,
+      "sha256": "3be2d84c6683a55fc7876f1da06ceffd58fd883a7a4dc244c25666131c6bb47b",
+      "quoted_dependencies": [
+        "mlx/backend/metal/kernels/bf16.h",
+        "mlx/backend/metal/kernels/bf16_math.h",
+        "mlx/backend/metal/kernels/complex.h",
+        "mlx/backend/metal/kernels/defines.h",
+        "mlx/backend/metal/kernels/logging.h"
+      ]
+    }
+  ],
+  "system_includes": [
+    "MetalPerformancePrimitives/MetalPerformancePrimitives.h",
+    "metal_logging",
+    "metal_math",
+    "metal_simdgroup",
+    "metal_simdgroup_matrix",
+    "metal_stdlib"
+  ],
+  "total_header_bytes": 96573
+}

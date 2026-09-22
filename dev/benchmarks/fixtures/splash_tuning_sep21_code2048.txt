@@ -1,0 +1,280 @@
+ultra-locality-fixed-code-20260921
+Review this Python event-worker snapshot. Repeated helper copies represent generated source.
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+                if attempt + 1 == retries:
+                    queue.append(event)
+    return len(pending) - len(queue)
+
+def drain_pending(queue, sink, retries=3):
+    """Flush queued events while retaining failed work for a later retry."""
+    pending = list(queue)
+    queue.clear()
+    for event in pending:
+        for attempt in range(retries):
+            try:
+                sink.write(event)
+                break
+            except OSError:
+Find correctness and cancellation bugs. Provide a complete robust replacement, explain failure handling, and write comprehensive pytest tests. Include all code; do not abbreviate.

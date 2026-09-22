@@ -1,0 +1,82 @@
+{
+  "schema": "splash-source-only-expert-r4-cohort-cost-sep22",
+  "source_parent": "build/prefill-qsa-twopass-sep21-worker-v1/source",
+  "gpu_work": false,
+  "model_payload_reads": false,
+  "capture_payload_reads": false,
+  "model_or_capture_hashes": false,
+  "kernel_built": false,
+  "runtime_overlap_known": false,
+  "rows": 4,
+  "route_pairs": 40,
+  "expert_layers": 48,
+  "bytes_per_expert": 4915200,
+  "scales_bytes_per_expert": 15360,
+  "current_logical_code_bytes_per_layer": 196608000,
+  "cohort_cases": [
+    {
+      "unique_experts": 10,
+      "mean_rows_per_cohort": 4.0,
+      "logical_code_bytes_per_layer": 49152000,
+      "logical_code_bytes_all_layers": 2359296000
+    },
+    {
+      "unique_experts": 20,
+      "mean_rows_per_cohort": 2.0,
+      "logical_code_bytes_per_layer": 98304000,
+      "logical_code_bytes_all_layers": 4718592000
+    },
+    {
+      "unique_experts": 30,
+      "mean_rows_per_cohort": 1.3333333333333333,
+      "logical_code_bytes_per_layer": 147456000,
+      "logical_code_bytes_all_layers": 7077888000
+    },
+    {
+      "unique_experts": 40,
+      "mean_rows_per_cohort": 1.0,
+      "logical_code_bytes_per_layer": 196608000,
+      "logical_code_bytes_all_layers": 9437184000
+    }
+  ],
+  "tile_cases": [
+    {
+      "tile": 8,
+      "columns_per_simd": 2,
+      "gate_up_accumulator_scalars_per_thread": 16,
+      "down_accumulator_scalars_per_thread": 8,
+      "persistent_cohort_slots": 10,
+      "ctas_per_layer": 4000,
+      "logical_bf16_input_load_bytes_per_layer": 131072000
+    },
+    {
+      "tile": 16,
+      "columns_per_simd": 4,
+      "gate_up_accumulator_scalars_per_thread": 32,
+      "down_accumulator_scalars_per_thread": 16,
+      "persistent_cohort_slots": 10,
+      "ctas_per_layer": 2000,
+      "logical_bf16_input_load_bytes_per_layer": 65536000
+    },
+    {
+      "tile": 32,
+      "columns_per_simd": 8,
+      "gate_up_accumulator_scalars_per_thread": 64,
+      "down_accumulator_scalars_per_thread": 32,
+      "persistent_cohort_slots": 10,
+      "ctas_per_layer": 1000,
+      "logical_bf16_input_load_bytes_per_layer": 32768000
+    }
+  ],
+  "new_dependency_depth": {
+    "K2560": 27,
+    "K640": 12
+  },
+  "new_dependency_additions": {
+    "K2560": 2591,
+    "K640": 671
+  },
+  "f32_products_per_layer": 196608000,
+  "f32_arithmetic_ops_with_physical_xor_per_layer": 417792000,
+  "metadata_scratch_logical_written_bytes": 6796
+}

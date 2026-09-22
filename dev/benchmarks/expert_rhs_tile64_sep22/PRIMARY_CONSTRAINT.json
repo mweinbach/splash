@@ -1,0 +1,47 @@
+{
+  "schema": "MSL41-inline-tensor-firststride-constraint-v3-bug-and-v4-correctview-v1",
+  "created_utc": "2026-09-22T09:22:24.005344+00:00",
+  "pass": true,
+  "GPU_work": false,
+  "model_capture_export_payload_reads_or_hashes": false,
+  "primary_url": "https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf",
+  "primary_version_date": "2026-06-04",
+  "local_PDF": "/tmp/splash-metal-shading-language-sep22-rhs-audit.pdf",
+  "local_text": "/tmp/splash-metal-shading-language-sep22-rhs-audit.txt",
+  "local_pdf_sha256": "41538b30d2f1140a5b2a0c84ce0a9f7b67bf0c707e224cfea0bfe5a44aa26cf5",
+  "local_text_sha256": "ef8aab02a7079e79bf51ffc60c708ae29797f86099cc5bb6894278d05e9395cd",
+  "primary_sections": [
+    {
+      "printed_page": 92,
+      "description": "tensor get_stride(0) always returns1"
+    },
+    {
+      "printed_pages": [
+        100,
+        101
+      ],
+      "table": "2.30 Shader-allocated tensor parameters",
+      "description": "raw tensor constructor strides[0] always1; ordinaryInt8 notFORMAT128bytepitch case"
+    }
+  ],
+  "Root_independent_primary_verification_ACK": true,
+  "v3_failed_source_actual_bug": "tensor extents(K,64),strides(64,1) violatesinline tensor firstaxis stride1; bytepackingbijection doesnotvalidateAPI view",
+  "v3_runtime_failure_Root_report": "sep22-expert-rhs-tile64-singleexpert-v1.json; activation firstbyte0 beforetiming; actual20,365,312 bytes/Gov0/backendDestroyed",
+  "correct_v4_view": {
+    "physical_codes": "rank,Ntile,K,64",
+    "extent": "64,K",
+    "stride": "1,64",
+    "transpose_right": false
+  },
+  "original_control_view": {
+    "physical_codes": "rank,Ntile,64,K",
+    "extent": "K,64",
+    "stride": "1,K",
+    "transpose_right": true
+  },
+  "logical_coefficient_equality": "oldB(k,n)=oldCode[tileBase+n*K+k]; newB(n,k)=newCode[tileBase+k*64+n]=oldCode[tileBase+n*K+k]",
+  "unchanged": "wholeK, M16,N64,SG4,multiply, no relaxedprecision, signedI8values, scale/output mapping, BF16/activation order, guards and originalcontrolAIR",
+  "opaque_association_bitidentity_proven": false,
+  "Root_full_raw_scaled_F32_and_BF16_bitgates_required": true,
+  "old_v3_failed_artifacts_retained": true
+}

@@ -1,0 +1,90 @@
+{
+  "schema": "online-packed-V-QSA-proposed-source-seal-v1",
+  "source_materialized": true,
+  "compiler_work": false,
+  "GPU_work": false,
+  "compiled_arithmetic_admission": "pending",
+  "source_review": "pending",
+  "authoritative_source_sha256": "9f5a1da89e05a20b109330eaced63a645000a5728538c8e9cafc738ce9ae0905",
+  "original_AIR_sha256": "7e560b9b3e4c598fa04d3d061ec88b93ca20d705849b550e6390158d97a352d2",
+  "files": [
+    {
+      "path": "PackedV.hpp",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/PackedV.hpp",
+      "bytes": 835,
+      "sha256": "8468e1bccbb1acd505d181f165c72b7a496c9d1e649baf90ff07c11f3daa65a5"
+    },
+    {
+      "path": "SOURCE_DIFF.patch",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/SOURCE_DIFF.patch",
+      "bytes": 1470,
+      "sha256": "07772cc26a5a79da9e7e5240f534bba28122b5dcadf8d785499df50d34bc5b83"
+    },
+    {
+      "path": "SOURCE_JOURNAL.json",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/SOURCE_JOURNAL.json",
+      "bytes": 10467,
+      "sha256": "fcde1a304780dad8aef4c88aa1adc77438eba9e9ba1928054a46b6cd548e03af"
+    },
+    {
+      "path": "SOURCE_PLAN.md",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/SOURCE_PLAN.md",
+      "bytes": 3732,
+      "sha256": "8fc08ed54289b8a1e10bda7c5a7bd8b3a440a479c5e3c1594d846af7df575db9"
+    },
+    {
+      "path": "authoritative.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/authoritative.metal",
+      "bytes": 40660,
+      "sha256": "9f5a1da89e05a20b109330eaced63a645000a5728538c8e9cafc738ce9ae0905"
+    },
+    {
+      "path": "candidate.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/candidate.metal",
+      "bytes": 39303,
+      "sha256": "f87f406acc49c25dfb8751fefceca37ed56efa6a6c72584c4a5667c60c33d090"
+    },
+    {
+      "path": "candidate_TAP_JOURNAL.json",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/candidate_TAP_JOURNAL.json",
+      "bytes": 4937,
+      "sha256": "989e7d62272a958fa61a82f71156630472d641e041c188d756ab3570f009e33a"
+    },
+    {
+      "path": "candidate_reduce_tap.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/candidate_reduce_tap.metal",
+      "bytes": 35921,
+      "sha256": "c1ef0e29d4660fa2fb856510d428962327525cf4ba684b2222a6fe38cd8657a1"
+    },
+    {
+      "path": "native.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/native.metal",
+      "bytes": 39147,
+      "sha256": "1479f5b39ed2fde139b1d9b451555f6c1795bf036b8434541c528f5175ca920e"
+    },
+    {
+      "path": "native_TAP_JOURNAL.json",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/native_TAP_JOURNAL.json",
+      "bytes": 4937,
+      "sha256": "989e7d62272a958fa61a82f71156630472d641e041c188d756ab3570f009e33a"
+    },
+    {
+      "path": "native_reduce_tap.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/native_reduce_tap.metal",
+      "bytes": 35783,
+      "sha256": "27d27fc9f8c716388e24d0ab77f2079ed17d86445901fb77041d0a3f085d7664"
+    },
+    {
+      "path": "pack.metal",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/pack.metal",
+      "bytes": 1616,
+      "sha256": "c53e2383f390db91294fc8a00b67795a123b12b6981ba79252b28e5b5c34df8a"
+    },
+    {
+      "path": "prepare.py",
+      "program_path": "dev/benchmarks/qsa_online_packed_v_sep22/kernel/prepare.py",
+      "bytes": 7377,
+      "sha256": "88a2b2132fc0c28dca03daf722d831bf96fbb24abbfc17c8b1276bb7ce303183"
+    }
+  ]
+}

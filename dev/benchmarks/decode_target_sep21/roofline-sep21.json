@@ -1,0 +1,550 @@
+{
+  "schema": "splash-flash-next-decode-payload-roofline-sep21-v1",
+  "gpu_execution": false,
+  "model_payload_files_opened": false,
+  "apple_spec": {
+    "memory_bandwidth_GBps": 1200,
+    "url": "https://www.apple.com/mac-studio/specs/",
+    "checked": "2026-09-21"
+  },
+  "bandwidth_proxy": {
+    "effective_operand_payload_GBps": 844.288,
+    "physical_sustained_DRAM_bandwidth_measured": false,
+    "source": "dev/benchmarks/flash-head-q8-r1-v8.md",
+    "definition": "675430400 original Q8 code+scale+bias bytes / 0.8 ms retained vocabulary primitive; warm caches and repeated transactions unresolved"
+  },
+  "source_identity": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
+  "metadata": {
+    "layers": 48,
+    "experts": 512,
+    "selected_experts": 10,
+    "manifest_total_logical_GB": 106.29413673,
+    "packed_categories_GB": {
+      "target_dense": 2.61425692,
+      "target_experts_all": 67.9477248,
+      "target_vocab": 0.6754304,
+      "mtp_dense": 0.067700896,
+      "mtp_experts_all": 1.4155776,
+      "ple_table": 32.000153602,
+      "embedding": 0.6754304,
+      "unused": 0.897862112
+    },
+    "target_single_active_packed_GB": 4.61679132,
+    "head_single_active_packed_GB": 0.770779296,
+    "target_single_weight_only_standard_spec_tps": 259.9207797852124,
+    "target_single_weight_only_standard_proxy_tps": 182.87332943608115,
+    "standard_minimum_state_GB": 0.276824064,
+    "mtp_depth3_minimum_state_GB": 0.50331648,
+    "target_active_quantized_projection_GFLOP": 13.211648,
+    "selected_F32_cache_deltas_GB": {
+      "1": 0.0,
+      "2": 0.0,
+      "4": 2.6294272,
+      "8": 7.54622464,
+      "16": 10.04396544
+    }
+  },
+  "full512_metadata": {
+    "logical_store_GB": 121.17344256,
+    "logical_projection_planes_GB": {
+      "down_proj": 40.51697664,
+      "gate_proj": 40.32823296,
+      "up_proj": 40.32823296
+    },
+    "selected10_all48layers_GB": 2.3666688,
+    "target_single_active_compact_GB": 5.65635612,
+    "original_trained_mtp_unchanged": true,
+    "route_scope": "Full512 I8 numerical derivative, existing target selective F32 dense routes inventory separate from packed Q4 ideal"
+  },
+  "retained_route_calibration": {
+    "scope": "one diagnostic 16-row speculative window, not a normal depth3 route population",
+    "layer_four_row_windows": 192,
+    "observed_unique_experts_per_four_rows": 24.515625,
+    "observed_neighbor_overlap_fraction": 0.2590277777777778,
+    "modeled_unique_experts_per_four_rows": 24.515625
+  },
+  "traffic_roofs": [
+    {
+      "batch": 1,
+      "standard_cycle_GB": 4.893615384,
+      "mtp_depth3_cycle_GB": 9.358820088,
+      "standard_spec_aggregate_tps": 245.21747334771743,
+      "standard_proxy_aggregate_tps": 172.52847511483137,
+      "mtp_depth3_coding_prefix3_spec_aggregate_tps": 384.66387494893365,
+      "mtp_depth3_coding_prefix3_proxy_aggregate_tps": 270.6392447107377,
+      "mtp_depth3_full_prefix4_spec_aggregate_tps": 512.8851665985782,
+      "mtp_depth3_full_prefix4_proxy_aggregate_tps": 360.8523262809836,
+      "native_four_lane_group_standard_proxy_tps": 172.52847511483137,
+      "native_four_lane_group_mtp_coding_proxy_tps": 270.6392447107377,
+      "target_existing_f32_cache_delta_GB": 2.6294272,
+      "native_four_lane_group_existing_cache_mtp_coding_proxy_tps": 211.2789250297954,
+      "native_four_lane_group_existing_cache_mtp_full_proxy_tps": 281.70523337306054,
+      "full512_standard_spec_ideal_aggregate_tps": 202.2524114868513,
+      "full512_standard_proxy_ideal_aggregate_tps": 142.29940332450892,
+      "full512_native_group4_existing_cache_standard_proxy_tps": 142.29940332450892,
+      "full512_native_group4_existing_cache_mtp_coding_prefix3_1875_proxy_tps": 185.1278827688023,
+      "full512_native_group4_existing_cache_mtp_full_proxy_tps": 232.31734308241857,
+      "full512_native_group4_mtp_existing_cycle_GB": 14.536805368
+    },
+    {
+      "batch": 2,
+      "standard_cycle_GB": 6.471623448,
+      "mtp_depth3_cycle_GB": 13.04115565471875,
+      "standard_spec_aggregate_tps": 370.849759613517,
+      "standard_proxy_aggregate_tps": 260.9200015371475,
+      "mtp_depth3_coding_prefix3_spec_aggregate_tps": 552.0983101980526,
+      "mtp_depth3_coding_prefix3_proxy_aggregate_tps": 388.4416484337445,
+      "mtp_depth3_full_prefix4_spec_aggregate_tps": 736.1310802640701,
+      "mtp_depth3_full_prefix4_proxy_aggregate_tps": 517.9221979116594,
+      "native_four_lane_group_standard_proxy_tps": 260.9200015371475,
+      "native_four_lane_group_mtp_coding_proxy_tps": 388.4416484337445,
+      "target_existing_f32_cache_delta_GB": 7.54622464,
+      "native_four_lane_group_existing_cache_mtp_coding_proxy_tps": 246.05986422174868,
+      "native_four_lane_group_existing_cache_mtp_full_proxy_tps": 328.07981896233156,
+      "full512_standard_spec_ideal_aggregate_tps": 281.34509525763946,
+      "full512_standard_proxy_ideal_aggregate_tps": 197.9469064874016,
+      "full512_native_group4_existing_cache_standard_proxy_tps": 197.9469064874016,
+      "full512_native_group4_existing_cache_mtp_coding_prefix3_1875_proxy_tps": 210.5562100087165,
+      "full512_native_group4_existing_cache_mtp_full_proxy_tps": 264.2274007952521,
+      "full512_native_group4_mtp_existing_cycle_GB": 25.562466192648436
+    },
+    {
+      "batch": 4,
+      "standard_cycle_GB": 9.551894688304687,
+      "mtp_depth3_cycle_GB": 19.963222545752824,
+      "standard_spec_aggregate_tps": 502.51810312325847,
+      "standard_proxy_aggregate_tps": 353.55833687477474,
+      "mtp_depth3_coding_prefix3_spec_aggregate_tps": 721.326427484204,
+      "mtp_depth3_coding_prefix3_proxy_aggregate_tps": 507.50603900648633,
+      "mtp_depth3_full_prefix4_spec_aggregate_tps": 961.7685699789387,
+      "mtp_depth3_full_prefix4_proxy_aggregate_tps": 676.6747186753151,
+      "native_four_lane_group_standard_proxy_tps": 353.55833687477474,
+      "native_four_lane_group_mtp_coding_proxy_tps": 507.50603900648633,
+      "target_existing_f32_cache_delta_GB": 10.04396544,
+      "native_four_lane_group_existing_cache_mtp_coding_proxy_tps": 337.6343029813502,
+      "native_four_lane_group_existing_cache_mtp_full_proxy_tps": 450.17907064180025,
+      "full512_standard_spec_ideal_aggregate_tps": 353.2032638639734,
+      "full512_standard_proxy_ideal_aggregate_tps": 248.50439770098865,
+      "full512_native_group4_existing_cache_standard_proxy_tps": 208.2176535929941,
+      "full512_native_group4_existing_cache_mtp_coding_prefix3_1875_proxy_tps": 272.5762615462207,
+      "full512_native_group4_existing_cache_mtp_full_proxy_tps": 342.05648507761026,
+      "full512_native_group4_mtp_existing_cycle_GB": 39.49233120645261
+    },
+    {
+      "batch": 8,
+      "standard_cycle_GB": 15.423020402970804,
+      "mtp_depth3_cycle_GB": 32.2250792323098,
+      "standard_spec_aggregate_tps": 622.4461713187408,
+      "standard_proxy_aggregate_tps": 437.93652757529753,
+      "mtp_depth3_coding_prefix3_spec_aggregate_tps": 893.7138615666858,
+      "mtp_depth3_coding_prefix3_proxy_aggregate_tps": 628.7932406286783,
+      "mtp_depth3_full_prefix4_spec_aggregate_tps": 1191.6184820889143,
+      "mtp_depth3_full_prefix4_proxy_aggregate_tps": 838.3909875049044,
+      "native_four_lane_group_standard_proxy_tps": 353.55833687477474,
+      "native_four_lane_group_mtp_coding_proxy_tps": 507.50603900648633,
+      "target_existing_f32_cache_delta_GB": 10.04396544,
+      "native_four_lane_group_existing_cache_mtp_coding_proxy_tps": 337.6343029813502,
+      "native_four_lane_group_existing_cache_mtp_full_proxy_tps": 450.17907064180025,
+      "full512_standard_spec_ideal_aggregate_tps": 413.9233373451078,
+      "full512_standard_proxy_ideal_aggregate_tps": 291.2254222003553,
+      "full512_native_group4_existing_cache_standard_proxy_tps": 208.2176535929941,
+      "full512_native_group4_existing_cache_mtp_coding_prefix3_1875_proxy_tps": 272.5762615462207,
+      "full512_native_group4_existing_cache_mtp_full_proxy_tps": 342.05648507761026,
+      "full512_native_group4_mtp_existing_cycle_GB": 39.49233120645261
+    },
+    {
+      "batch": 16,
+      "standard_cycle_GB": 26.108454902084656,
+      "mtp_depth3_cycle_GB": 51.67884973918617,
+      "standard_spec_aggregate_tps": 735.3939584707848,
+      "standard_proxy_aggregate_tps": 517.403578674485,
+      "mtp_depth3_coding_prefix3_spec_aggregate_tps": 1114.5758911178714,
+      "mtp_depth3_coding_prefix3_proxy_aggregate_tps": 784.1858749667712,
+      "mtp_depth3_full_prefix4_spec_aggregate_tps": 1486.1011881571617,
+      "mtp_depth3_full_prefix4_proxy_aggregate_tps": 1045.5811666223615,
+      "native_four_lane_group_standard_proxy_tps": 353.55833687477474,
+      "native_four_lane_group_mtp_coding_proxy_tps": 507.50603900648633,
+      "target_existing_f32_cache_delta_GB": 10.04396544,
+      "native_four_lane_group_existing_cache_mtp_coding_proxy_tps": 337.6343029813502,
+      "native_four_lane_group_existing_cache_mtp_full_proxy_tps": 450.17907064180025,
+      "full512_standard_spec_ideal_aggregate_tps": 473.914605835523,
+      "full512_standard_proxy_ideal_aggregate_tps": 333.4336789430517,
+      "full512_native_group4_existing_cache_standard_proxy_tps": 208.2176535929941,
+      "full512_native_group4_existing_cache_mtp_coding_prefix3_1875_proxy_tps": 272.5762615462207,
+      "full512_native_group4_existing_cache_mtp_full_proxy_tps": 342.05648507761026,
+      "full512_native_group4_mtp_existing_cycle_GB": 39.49233120645261
+    }
+  ],
+  "scalar_depth1_to15_perfect_acceptance_scenarios": [
+    {
+      "depth": 1,
+      "ideal_committed_tokens": 2,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 17.40972222222222,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 245.63841255491593,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 194.44483419945033,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 276.3675440600132,
+      "full512_i8_cycle_GB": 8.684087736
+    },
+    {
+      "depth": 2,
+      "ideal_committed_tokens": 3,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 21.169642857142858,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 311.010046074699,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 244.8461677552651,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 348.0037632967875,
+      "full512_i8_cycle_GB": 10.344715717714287
+    },
+    {
+      "depth": 3,
+      "ideal_committed_tokens": 4,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 24.584935897435898,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 281.4892538353145,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 232.05548747728488,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 329.82416541836653,
+      "full512_i8_cycle_GB": 14.553208961846153
+    },
+    {
+      "depth": 4,
+      "ideal_committed_tokens": 5,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 27.34722222222222,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 321.39333013082216,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 264.20774507991024,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 375.52268194726474,
+      "full512_i8_cycle_GB": 15.977729944
+    },
+    {
+      "depth": 5,
+      "ideal_committed_tokens": 6,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 29.984848484848484,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 355.3493220670929,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 291.5904838254924,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 414.44220525530494,
+      "full512_i8_cycle_GB": 17.372748018181817
+    },
+    {
+      "depth": 6,
+      "ideal_committed_tokens": 7,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 32.21875,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 385.6990243509719,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 316.5138741545623,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 449.86621743466065,
+      "full512_i8_cycle_GB": 18.672217816
+    },
+    {
+      "depth": 7,
+      "ideal_committed_tokens": 8,
+      "fold_chunks": 1,
+      "observed_single_case_target_unique_experts": 34.30555555555556,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 317.2913536803191,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 271.7628169877675,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 386.2608261461977,
+      "full512_i8_cycle_GB": 24.853672312
+    },
+    {
+      "depth": 8,
+      "ideal_committed_tokens": 9,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 36.109375,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 361.67872128431435,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 306.852208558501,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 436.133938028494,
+      "full512_i8_cycle_GB": 24.763035064
+    },
+    {
+      "depth": 9,
+      "ideal_committed_tokens": 10,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 37.833333333333336,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 383.61386135923675,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 325.4544432818514,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 462.5735909289504,
+      "full512_i8_cycle_GB": 25.9418182
+    },
+    {
+      "depth": 10,
+      "ideal_committed_tokens": 11,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 39.708333333333336,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 403.291771676192,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 341.9888431083163,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 486.0741971104405,
+      "full512_i8_cycle_GB": 27.156347896
+    },
+    {
+      "depth": 11,
+      "ideal_committed_tokens": 12,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 41.63333333333333,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 421.1848191044556,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 356.9587141568456,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 507.35111358708724,
+      "full512_i8_cycle_GB": 28.382710936
+    },
+    {
+      "depth": 12,
+      "ideal_committed_tokens": 13,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 43.723958333333336,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 437.2304146911933,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 370.1984394454519,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 526.1689463009569,
+      "full512_i8_cycle_GB": 29.648271928
+    },
+    {
+      "depth": 13,
+      "ideal_committed_tokens": 14,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 45.604166666666664,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 452.4728404157819,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 382.9710626580971,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 544.3228793844239,
+      "full512_i8_cycle_GB": 30.864034264
+    },
+    {
+      "depth": 14,
+      "ideal_committed_tokens": 15,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 47.395833333333336,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 466.77142948586635,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 395.0336107152408,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 561.4675713243454,
+      "full512_i8_cycle_GB": 32.05884172
+    },
+    {
+      "depth": 15,
+      "ideal_committed_tokens": 16,
+      "fold_chunks": 2,
+      "observed_single_case_target_unique_experts": 49.6875,
+      "original_q4_existing_cache_perfect_prefix_proxy_tps": 420.98555856727114,
+      "full512_i8_existing_cache_perfect_prefix_proxy_tps": 362.6141633912355,
+      "full512_i8_existing_cache_perfect_prefix_spec_tps": 515.389293783025,
+      "full512_i8_cycle_GB": 37.253393176
+    }
+  ],
+  "measured_normal_depth3": {
+    "code": {
+      "native_stream_median_tps": 72.70342703997262,
+      "mean_committed_tokens_per_cycle": 3.0,
+      "aggregate_proposal_acceptance": 0.6666666666666666
+    },
+    "count": {
+      "native_stream_median_tps": 97.1385645434335,
+      "mean_committed_tokens_per_cycle": 3.984375,
+      "aggregate_proposal_acceptance": 1.0
+    },
+    "prose": {
+      "native_stream_median_tps": 59.079513379424625,
+      "mean_committed_tokens_per_cycle": 2.4423076923076925,
+      "aggregate_proposal_acceptance": 0.48231511254019294
+    }
+  },
+  "measured_trace_cycle": {
+    "scope": "one diagnostic warmed coding trace; GPU times distinct from untraced HTTP",
+    "committed_tokens_per_cycle": 3,
+    "verify_gpu_ms": 32.391087744412395,
+    "head_and_restore_gpu_ms": 5.783569605966263,
+    "command_boundary_ms": 1.3789186849154573,
+    "gpu_verify_fraction": 0.8484971442472189
+  },
+  "measured_phase_targets": [
+    {
+      "verifier_speedup": 1,
+      "coding_prefix3_tps": 75.84649229498403,
+      "full_prefix4_tps": 101.12865639331204,
+      "target_verify_gpu_ms": 32.391087744412395,
+      "cycle_ms": 39.553576035294114
+    },
+    {
+      "verifier_speedup": 1.5,
+      "coding_prefix3_tps": 104.32407000063967,
+      "full_prefix4_tps": 139.09876000085288,
+      "target_verify_gpu_ms": 21.59405849627493,
+      "cycle_ms": 28.75654678715665
+    },
+    {
+      "verifier_speedup": 2,
+      "coding_prefix3_tps": 128.43547688665404,
+      "full_prefix4_tps": 171.2473025155387,
+      "target_verify_gpu_ms": 16.195543872206198,
+      "cycle_ms": 23.35803216308792
+    },
+    {
+      "verifier_speedup": 3,
+      "coding_prefix3_tps": 167.0423491879525,
+      "full_prefix4_tps": 222.72313225060333,
+      "target_verify_gpu_ms": 10.797029248137465,
+      "cycle_ms": 17.959517539019185
+    },
+    {
+      "verifier_speedup": 4,
+      "coding_prefix3_tps": 196.58904601738575,
+      "full_prefix4_tps": 262.118728023181,
+      "target_verify_gpu_ms": 8.097771936103099,
+      "cycle_ms": 15.260260226984819
+    }
+  ],
+  "measured_moe_primitive_rates": [
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r1-mixed-v1.json",
+      "rows": 1,
+      "route_pattern": "mixed",
+      "input_scope": "synthetic normalized BF16; not actual decode activation",
+      "exact_old_mpp_parity_pass": true,
+      "frozen_F64_strict_pass": true,
+      "layer0_gpu_median_ms": {
+        "oldMPP": 0.49825001042336226,
+        "gatheredMPP": 0.19933335715904832
+      },
+      "quantized_linear_equivalent_GFLOP": 0.098304,
+      "effective_chain_TFLOPs": {
+        "oldMPP": 0.19729854077970063,
+        "gatheredMPP": 0.4931638206522711
+      },
+      "all48_layers_same_timing_moe_only_ms": {
+        "oldMPP": 23.91600050032139,
+        "gatheredMPP": 9.56800114363432
+      },
+      "caveat": "one warm synthetic layer; family-equivalent FLOPs only; cannot infer GPU-wide BF16 tensor peak or actual whole-model ceiling"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r2-first.json",
+      "rows": 2,
+      "route_pattern": "mixed",
+      "input_scope": "synthetic normalized BF16; not actual decode activation",
+      "exact_old_mpp_parity_pass": true,
+      "frozen_F64_strict_pass": false,
+      "layer0_gpu_median_ms": {
+        "oldMPP": 0.5502916756086051,
+        "gatheredMPP": 0.2220416790805757
+      },
+      "quantized_linear_equivalent_GFLOP": 0.196608,
+      "effective_chain_TFLOPs": {
+        "oldMPP": 0.3572796186359857,
+        "gatheredMPP": 0.8854553830348842
+      },
+      "all48_layers_same_timing_moe_only_ms": {
+        "oldMPP": 26.414000429213047,
+        "gatheredMPP": 10.658000595867634
+      },
+      "caveat": "one warm synthetic layer; family-equivalent FLOPs only; cannot infer GPU-wide BF16 tensor peak or actual whole-model ceiling"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r4-repeated-v1.json",
+      "rows": 4,
+      "route_pattern": "repeated",
+      "input_scope": "synthetic normalized BF16; not actual decode activation",
+      "exact_old_mpp_parity_pass": true,
+      "frozen_F64_strict_pass": false,
+      "layer0_gpu_median_ms": {
+        "oldMPP": 0.5094166845083237,
+        "gatheredMPP": 0.271500030066818
+      },
+      "quantized_linear_equivalent_GFLOP": 0.393216,
+      "effective_chain_TFLOPs": {
+        "oldMPP": 0.771894623709709,
+        "gatheredMPP": 1.4483092318745854
+      },
+      "all48_layers_same_timing_moe_only_ms": {
+        "oldMPP": 24.452000856399536,
+        "gatheredMPP": 13.032001443207264
+      },
+      "caveat": "one warm synthetic layer; family-equivalent FLOPs only; cannot infer GPU-wide BF16 tensor peak or actual whole-model ceiling"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r16-repeated-v1.json",
+      "rows": 16,
+      "route_pattern": "repeated",
+      "input_scope": "synthetic normalized BF16; not actual decode activation",
+      "exact_old_mpp_parity_pass": true,
+      "frozen_F64_strict_pass": false,
+      "layer0_gpu_median_ms": {
+        "oldMPP": 0.5288749816827476,
+        "gatheredMPP": 0.7371666724793613
+      },
+      "quantized_linear_equivalent_GFLOP": 1.572864,
+      "effective_chain_TFLOPs": {
+        "oldMPP": 2.973980722240899,
+        "gatheredMPP": 2.1336612990246597
+      },
+      "all48_layers_same_timing_moe_only_ms": {
+        "oldMPP": 25.385999120771885,
+        "gatheredMPP": 35.38400027900934
+      },
+      "caveat": "one warm synthetic layer; family-equivalent FLOPs only; cannot infer GPU-wide BF16 tensor peak or actual whole-model ceiling"
+    }
+  ],
+  "full512_measured_conditional_target": {
+    "source_report": "build/release/flash/ultra-locality-prefill4k-allrows-full512-first.json",
+    "median_decode_tps": 60.549072610410825,
+    "committed_prefix_per_cycle": 3.1875,
+    "measured_cycle_ms": 52.643250550000005,
+    "extrapolated_layer0_r4_chain_saving_all48layers_ms": 11.419999413192272,
+    "prediction_if_every_layer_reproduces_synthetic_r4_gain_tps": 77.3228678500304,
+    "caveat": "conditional measured-kernel extrapolation; mixed actual routes, late-layer cache state and all other kernels can lower gain; requires whole-worker measurement"
+  },
+  "assumptions": [
+    "All rates are aggregate tokens/s. Per-lane rate divides aggregate by active batch.",
+    "Ideal compact route retains original packed quantized matrices and reuses each dense/vocabulary operand once per graph; existing shader work can reread them.",
+    "Experts are independently uniformly distributed across lanes. Four-row temporal union comes from one retained diagnostic route population and can be overridden.",
+    "Depth3 uses one four-row target verification plus three head calls per cycle: one committed-feature fold and two additional proposals.",
+    "MTP output numerator uses actual prefix length, not aggregate independent acceptance: coding3 and ideal full4 tokens/cycle. Prose observed2.44.",
+    "Standard recurrent state has read+write once; MTP also has an initial lazy rollback snapshot. Cache/state transaction amplification and all activations, SSD preparation, partial recurrence replay, dispatch, host and transport costs are omitted.",
+    "Native batch executors currently cap four lanes. Batch8/16 ideal common-graph roofs need architecture work; grouped4 roofs assume no guaranteed reuse across separate groups.",
+    "Existing F32 cache adds logical operand bytes. Delta is source-policy inventory, not measured physical traffic or exact shader reread count.",
+    "Apple does not publish a directly useful BF16/affine kernel throughput spec here; no unsupported absolute compute ceiling is invented. A caller can add a measured compute constraint.",
+    "No traffic roof is a demonstrated attainable generation target. Measured phase targets state explicit verifier speedup requirements and preserve observed acceptance.",
+    "Scalar depths1..15 scenarios assume perfect acceptance, speculative-window target expert unions and optimistic within-fold trained-head expert sharing. Deep target verification numerical behavior is unqualified; old depth15/depth3 generations differed. Peers cap depth3."
+  ],
+  "provenance": [
+    {
+      "path": "install/local-models/Flash-Next-oQ4e-mtp-v1/manifest.json",
+      "sha256": "0cf9f8641fc97eae6ae4bf80d1ac5615a7674a1466006841dd72b6a5332a9402"
+    },
+    {
+      "path": "runtime/flash/FlashFloatDenseCache.cpp",
+      "sha256": "c8d78ad9d42eac1e876e25705ad98b1a0a70130c83fd8b92adc4549b2a7ab024"
+    },
+    {
+      "path": "build/release/flash/v6-verify-ctx2048-singleton-R16-stage.json.routes.jsonl",
+      "sha256": "9bc97a4cb208803d857175f780757174d0d80c1e6021c291e2ead79d042a6611"
+    },
+    {
+      "path": "build/release/flash/ultra-decode-cpu-audit.json",
+      "sha256": "819471f39b060d112b3f783e947afa424d032a893c77c3b95717a1d8b4ec394d"
+    },
+    {
+      "path": "build/release/flash/ultra-locality-status-qsa.json",
+      "sha256": "4552585fd0e56433ea8e62159bdd6f1bf9b25430782a2319a2845e0c60228029"
+    },
+    {
+      "path": "build/prefill4k-fullcache-artifacts/int8-experts-all512-v1/manifest.json",
+      "sha256": "ba22514a30a41d5ddc734ad0aea0a67ce527a3a5c22b95031c1c5810972363f1"
+    },
+    {
+      "path": "build/release/flash/ultra-locality-prefill4k-allrows-full512-first.json",
+      "sha256": "43d6cebbfd59c52f55ff972d1bdcbd6e10e516bd442791d33794860bc0c8aa85"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r1-mixed-v1.json",
+      "sha256": "77142b100ba72358d5d4d81b6d6c171fc8d0f791d9fcc7c8ff53c8d44504821f"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r2-first.json",
+      "sha256": "1953af8fe2344d752182493f7da9b1678b75a36bf1a2c7544b570229a24793d3"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r4-repeated-v1.json",
+      "sha256": "31f096e23394847d217208def60d146b0118002b53e889e9c8c1e47a45b82741"
+    },
+    {
+      "path": "build/release/flash/prefill4k-direct-gathered-mpp-r16-repeated-v1.json",
+      "sha256": "d9a02f71909aed86c9575af96f3a5fbfa8442ef59ebb3446b8bc077496106d83"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "splash.gdn-tile-v6-safe-math-control-source.v1",
+  "source_path": "dev/benchmarks/gdn_nax_chunks_sep21_v6/candidate.metal",
+  "source_sha256": "aef2719900b561b3b9ed8e45bcbda4b09a2db2d93bcaa6b6bb9ba305b95b161f",
+  "v6_cpu_seal_path": "build/gdn-nax-chunks-sep21-v6/cpu-seal-v6.json",
+  "v6_cpu_seal_sha256": "3b09463d6313a6cc6144f3a1d3eec90ceb3ffdf7d6504109d8a6aaace3893431",
+  "helper_prefix_sha256": "89827725eb8ae2c6128dd65e734705fcaf50da5bc36b32d5d996bbf18348417c",
+  "control_path": "dev/benchmarks/gdn_tile_chunk_sep21/frozen/v6_math_control.metal",
+  "control_sha256": "40d0bffe26110ff8f3b5b06c15825459fe5e6d13bc91ef03cbcc00d8ce5ff2f0",
+  "transformation": "prepend ../abi.hpp; literal pre-entry helper prefix; rename every gwy_ to gtcv6_; add TileChunkParams wrappers and audit reserved-to-tile mapping",
+  "scope": "SDK-only range0 selected safe V32 tile compared from the same current hybrid incoming seed",
+  "gpu_executed": false,
+  "strict_f64_qualified": false,
+  "whole_worker_allowed": false
+}

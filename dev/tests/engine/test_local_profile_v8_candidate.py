@@ -78,11 +78,11 @@ class LocalProfileV8CandidateTests(unittest.TestCase):
         first["environment"]["TASK_SENTINEL"] = "changed"
         self.assertEqual(second["environment"], V8_ENVIRONMENT)
         self.assertEqual(launcher.LOCAL_PROFILE, before)
-        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v10")
+        self.assertEqual(launcher.LOCAL_PROFILE["profile"], "m5-ultra-flash-next-v12")
         self.assertEqual(launcher.LOCAL_PROFILE["environment"], EXPECTED_ENVIRONMENT)
         self.assertEqual(dict(os.environ), process_before)
 
-    def test_historical_v8_and_v7_are_rejected_by_accepted_v10_gate(self):
+    def test_historical_v8_and_v7_are_rejected_by_accepted_v12_gate(self):
         candidate = self.candidate()
         (self.root / ".splash-local-profile.json").write_text(json.dumps(candidate))
         with (
