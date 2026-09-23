@@ -169,6 +169,36 @@ LOCAL_PROFILE_V13 = {'schema_version': 1,
              'metallib_sha256': 'dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6'},
  'serving': {'default_max_context_tokens': 16384}}
 
+# September22 optimized worker, built from dev/benchmarks/flash_opt_sep22/worker
+# (make install DEST=build/flash-opt-sep22-v14). Same measured environment and
+# artifacts as v13; the runtime adds the multi-row decode/verify kernels, fast
+# HC/router/route paths, parallel PLE SSD reads and a reduced draft vocabulary.
+LOCAL_PROFILE_V14 = {**LOCAL_PROFILE_V13,
+ 'profile': 'm5-ultra-flash-next-v14',
+ 'runtime': {'relative_path': 'build/flash-opt-sep22-v14/splash-flash',
+             'executable_sha256': '3b374547065e6786c1f701da5ee6be5acc6620ea0b790533684947fe492f2048',
+             'metallib_sha256': '691a41eaaf86e7745e3fbdbe2d45330a616fa2ae3b2d58bf399e5f9aeae05b6f'}}
+# September22 second pass (make install DEST=build/flash-opt-sep22-v15), same
+# environment: host-side command overhead removed, streamed PLE prefetch during
+# drafting, verify graph built during the head fold, chained draft steps,
+# faster few-row attention/GDN kernels, pooled request state and matrix-unit
+# projections for batched verification windows.
+LOCAL_PROFILE_V15 = {**LOCAL_PROFILE_V14,
+ 'profile': 'm5-ultra-flash-next-v15',
+ 'runtime': {'relative_path': 'build/flash-opt-sep22-v15/splash-flash',
+             'executable_sha256': 'dbc6ac60837de5301d8498ffab3dbe3181a2c697a729272208fb503627266ee8',
+             'metallib_sha256': '786d12b4e1ae54f25ba484dece08811684a15010b0dd451521dbad1f67dbd462'}}
+# September22 third pass (make install DEST=build/flash-opt-sep22-v16), same
+# environment: lossless 8-bit copies of 5/6-bit dense codes for matrix-unit
+# batched verification, chunked short-prefill projections/HC up to 128 rows,
+# and a fused shared-expert SwiGLU for few-row windows.
+LOCAL_PROFILE_V16 = {**LOCAL_PROFILE_V15,
+ 'profile': 'm5-ultra-flash-next-v16',
+ 'runtime': {'relative_path': 'build/flash-opt-sep22-v16/splash-flash',
+             'executable_sha256': '758742b0748c0df37c4cef11bfd646e6bdcf5c02d1b9bd241adadf2839e11d10',
+             'metallib_sha256': '02ce0bee1b37a8e494a0bb07eb5f6c42990fa7464b0ff32ec52358f310898742'}}
+PINNED_LOCAL_PROFILES = (LOCAL_PROFILE_V13, LOCAL_PROFILE_V14, LOCAL_PROFILE_V15, LOCAL_PROFILE_V16)
+
 # Optional artifacts are selected dynamically after the local profile passes
 # its source/model/hardware gate. Static defaults never force a missing path.
 LOCAL_SAVED_OPERAND_QUALIFICATION = {
@@ -940,9 +970,9 @@ def _qualified_v13_runtime(profile):
     for artifact, expected in ((binary, runtime["executable_sha256"]),
                                (binary.with_name("splash.metallib"), runtime["metallib_sha256"])):
         if artifact.is_symlink() or not artifact.is_file() or hashlib.sha256(artifact.read_bytes()).hexdigest() != expected:
-            raise LauncherError(f"selected v13 runtime is missing or changed: {artifact}; restore the qualified pair")
+            raise LauncherError(f"selected {profile['profile']} runtime is missing or changed: {artifact}; restore the qualified pair")
     if not paths.PYTHON.is_file():
-        raise LauncherError("selected v13 runtime requires the installed Python environment")
+        raise LauncherError(f"selected {profile['profile']} runtime requires the installed Python environment")
     return binary
 
 
@@ -954,13 +984,14 @@ def _local_profile_defaults(package):
         return {}
     if not isinstance(profile, dict) or not isinstance(profile.get("profile"), str):
         return {}
-    if profile["profile"].startswith(LOCAL_PROFILE_V13["profile"]) and profile != LOCAL_PROFILE_V13:
-        raise LauncherError("selected v13 profile differs from the measured configuration")
+    for pinned in PINNED_LOCAL_PROFILES:
+        if profile["profile"].startswith(pinned["profile"]) and profile != pinned:
+            raise LauncherError(f"selected {pinned['profile']} profile differs from the measured configuration")
     try:
         if (
             type(profile.get("schema_version")) is not int
             or type(profile.get("minimum_physical_ram_bytes")) is not int
-            or profile not in (LOCAL_PROFILE, LOCAL_PROFILE_V13)
+            or profile not in (LOCAL_PROFILE, *PINNED_LOCAL_PROFILES)
         ):
             return {}
         manifest = local_bundle_manifest(package)
@@ -993,13 +1024,13 @@ def _local_profile_defaults(package):
     # explicit caller choices and use the same source/layout witness; malformed
     # present artifacts propagate an error rather than silently losing defaults.
     defaults.update(_qualified_saved_operand_defaults(package, os.environ))
-    if profile == LOCAL_PROFILE_V13:
+    if profile in PINNED_LOCAL_PROFILES:
         defaults.update(_qualified_saved_int8_expert_defaults(
             package, os.environ, hardware=hardware, qualification=LOCAL_FULL512_EXPERT_QUALIFICATION))
         if "SPLASH_FLASH_INT8_EXPERT_STORE" not in os.environ and os.environ.get("SPLASH_FLASH_BLOCKED_MOE") != "0" and "SPLASH_FLASH_INT8_EXPERT_STORE" not in defaults:
-            raise LauncherError("selected v13 requires its qualified Full512 expert store")
+            raise LauncherError(f"selected {profile['profile']} requires its qualified Full512 expert store")
         if "SPLASH_FLASH_OPERAND_STORE" not in os.environ and "SPLASH_FLASH_OPERAND_STORE" not in defaults:
-            raise LauncherError("selected v13 requires its qualified saved operand store")
+            raise LauncherError(f"selected {profile['profile']} requires its qualified saved operand store")
     else:
         defaults.update(_qualified_saved_int8_expert_defaults(package, os.environ, hardware=hardware))
     return _QualifiedLocalDefaults(defaults, profile)
@@ -1062,12 +1093,13 @@ def serve(args):
             root = _ensure_local_installed(args.local_model, args.local_package)
             defaults = _local_profile_defaults(root)
             selected_profile = getattr(defaults, "profile", None)
-            binary = _qualified_v13_runtime(selected_profile) if selected_profile == LOCAL_PROFILE_V13 else ROOT / (
+            pinned = selected_profile in PINNED_LOCAL_PROFILES
+            binary = _qualified_v13_runtime(selected_profile) if pinned else ROOT / (
                 "engine/splash-flash"
                 if paths.PACKAGED
                 else "build/flash-next/splash-flash"
             )
-            if selected_profile != LOCAL_PROFILE_V13:
+            if not pinned:
                 _ensure_local_runtime(binary)
             model_arguments = ["--local-package", str(root), "--tokenizer", str(root)]
         else:
@@ -1095,7 +1127,7 @@ def serve(args):
             "auto" if args.max_memory is None else str(args.max_memory),
             "--max-context",
             str(selected_profile["serving"]["default_max_context_tokens"])
-            if local and selected_profile == LOCAL_PROFILE_V13 and args.max_context is None
+            if local and selected_profile in PINNED_LOCAL_PROFILES and args.max_context is None
             else "auto" if args.max_context is None else str(args.max_context),
         ]
         if args.max_image_pixels is not None:

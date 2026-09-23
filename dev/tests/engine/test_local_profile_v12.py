@@ -23,7 +23,8 @@ class LocalProfileV12Tests(unittest.TestCase):
         self.assertEqual(current['environment'], {**historical['environment'], BULK: '1', SG8: '1'})
         self.assertEqual(current['environment']['SPLASH_FLASH_MTP_DRAFT_DEPTH'], '3')
         self.assertIn(json.loads((launcher.ROOT / '.splash-local-profile.json').read_text()),
-                      (current, launcher.LOCAL_PROFILE_V13))
+                      (current, launcher.LOCAL_PROFILE_V13, launcher.LOCAL_PROFILE_V14,
+                       launcher.LOCAL_PROFILE_V15, launcher.LOCAL_PROFILE_V16))
         for flag in ['SPLASH_FLASH_ALLROWS_FULL512_TARGET', 'SPLASH_FLASH_DENSE_TRAVERSAL', 'SPLASH_FLASH_MOE_GATHERED_MPP', 'SPLASH_FLASH_MOE_QMV_C2', 'SPLASH_FLASH_QSA_NAX']:
             self.assertNotIn(flag, current['environment'])
 

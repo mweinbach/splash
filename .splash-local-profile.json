@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "profile": "m5-ultra-flash-next-v13",
+  "profile": "m5-ultra-flash-next-v16",
   "source_identity_sha256": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
   "architecture": "qwen4_exp",
   "cpu_brand": "Apple M5 Ultra",
@@ -72,9 +72,9 @@
     "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22": "1"
   },
   "runtime": {
-    "relative_path": "build/R5-integer-currentQ4-fixed4-sep22-worker-v2/splash-flash",
-    "executable_sha256": "6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68",
-    "metallib_sha256": "dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6"
+    "relative_path": "build/flash-opt-sep22-v16/splash-flash",
+    "executable_sha256": "758742b0748c0df37c4cef11bfd646e6bdcf5c02d1b9bd241adadf2839e11d10",
+    "metallib_sha256": "02ce0bee1b37a8e494a0bb07eb5f6c42990fa7464b0ff32ec52358f310898742"
   },
   "serving": {
     "default_max_context_tokens": 16384

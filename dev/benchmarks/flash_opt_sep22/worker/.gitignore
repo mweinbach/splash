@@ -1,0 +1,6 @@
+host/
+core/
+*.d
+splash-flash
+splash.metallib
+air/extra-*.air
