@@ -35,7 +35,7 @@ core/049-Protocol.o: $(SRC)/runtime/engine/Protocol.cpp
 core/050-MemoryGovernor.o: $(SRC)/runtime/engine/MemoryGovernor.cpp
 	@mkdir -p core
 	$(CXX) $(FLAGS) -MMD -MP -c $< -o $@
-air/extra-%.air: kernels/%.metal
+air/extra-%.air: kernels/%.metal $(wildcard kernels/*.h)
 	$(METAL) $(METALFLAGS) -c $< -o $@
 splash-flash: $(HOST) $(CORE)
 	$(CXX) $(FLAGS) $^ $(FRAMEWORKS) -o $@

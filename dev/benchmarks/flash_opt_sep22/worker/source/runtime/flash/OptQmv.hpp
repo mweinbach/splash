@@ -102,6 +102,78 @@ bool repackEligible(const FlashAffineProjection &projection) noexcept;
 [[nodiscard]] metal::MetalBuffer repackCodes(metal::MetalBackend &backend,
                                              const FlashAffineProjection &projection);
 void registerRepackedCodes(const void *codes, const metal::MetalBuffer &repacked);
+
+// SPLASH_MK_QMV=1: 2..8-row windows of wide dense projections run on the
+// matrix units over a lossless lane-major tile copy of the codes with
+// transposed scales/biases (kernels/mk_dense.metal). FlashForward builds the
+// copies at startup for eligible projections.
+bool mkDenseEnabled() noexcept;
+bool mkTileEligible(const FlashAffineProjection &projection) noexcept;
+uint64_t mkTileBytes(const FlashAffineProjection &projection) noexcept;
+struct MkTiledProjection {
+  metal::MetalBuffer tiles;
+  metal::MetalBuffer parameters;  // BF16 scales then biases, [K/G][paddedN] each
+  uint32_t paddedN = 0;
+};
+[[nodiscard]] MkTiledProjection mkTileProjection(metal::MetalBackend &backend,
+                                                 const FlashAffineProjection &projection);
+void registerMkTiled(const void *codes, const MkTiledProjection &tiled);
+// Up to four projections of one input (same K) tiled into shared buffers and
+// dispatched together (mk_mpt_multi); e.g. GDN qkv/z/a/b or attention q/k/v/index.
+struct MkTiledGroup {
+  metal::MetalBuffer tiles, parameters;
+  std::vector<std::byte> table;  // MkMultiParams without rows/strides
+  uint32_t blocks = 0, K = 0, count = 0;
+  uint32_t n[4] = {};
+};
+bool mkGroupEligible(const std::vector<const FlashAffineProjection *> &projections) noexcept;
+uint64_t mkGroupBytes(const std::vector<const FlashAffineProjection *> &projections) noexcept;
+[[nodiscard]] MkTiledGroup mkTileGroup(metal::MetalBackend &backend,
+                                       const std::vector<const FlashAffineProjection *> &projections);
+// outputs[i] receives projection i ([rows, N_i] contiguous). Returns false when
+// rows is outside 2..8.
+bool addMkGroup(metal::CommandGraph &graph, const metal::MetalBuffer &input,
+                const MkTiledGroup &group, const std::vector<metal::MetalBuffer> &outputs,
+                uint32_t rows);
+// SPLASH_MK_MOE_TILED=1 (with SPLASH_MK_QMV=1 and SPLASH_MK_MOE=1): a lossless
+// lane-major tile copy of every layer's Q4 routed experts, with per-expert
+// transposed scales/biases, for the few-row MoE kernels (mk_moe_*_t).
+bool mkExpertTilesEnabled() noexcept;
+struct MkExpertTiles {
+  metal::MetalBuffer gate, up, down, gateParameters, upParameters, downParameters;
+};
+bool mkExpertTilesEligible(const FlashAffineProjection &gate, const FlashAffineProjection &up,
+                           const FlashAffineProjection &down) noexcept;
+uint64_t mkExpertTileBytes(const FlashAffineProjection &gate, const FlashAffineProjection &up,
+                           const FlashAffineProjection &down) noexcept;
+[[nodiscard]] MkExpertTiles mkTileExperts(metal::MetalBackend &backend, const FlashAffineProjection &gate,
+                                          const FlashAffineProjection &up, const FlashAffineProjection &down);
+// Expert tiles registered by FlashForward under the gate and down code
+// addresses of their layer, for the blocked-MoE bucket kernels.
+void registerMkExpertTiles(const FlashAffineProjection &gate, const FlashAffineProjection &down,
+                           const MkExpertTiles &tiles);
+const MkExpertTiles *mkExpertTilesFor(const FlashAffineProjection &projection) noexcept;
+// Tile copy registered for a dense projection by FlashForward, or null.
+const MkTiledProjection *mkTiledProjection(const FlashAffineProjection &projection) noexcept;
+// Hyper-connection block (kernels/mk_hc.metal): down (+ inject) as a split-K
+// tiled group, up tiled with streams interleaved per 32-column block.
+struct MkHC {
+  MkTiledGroup down;
+  metal::MetalBuffer upTiles, upParameters;
+  uint32_t upBits = 0;
+  bool injection = false;
+};
+bool mkHCEligible(const FlashAffineProjection &down, const FlashAffineProjection *inject,
+                  const FlashAffineProjection &up) noexcept;
+uint64_t mkHCBytes(const FlashAffineProjection &down, const FlashAffineProjection *inject,
+                   const FlashAffineProjection &up) noexcept;
+[[nodiscard]] MkHC mkTileHC(metal::MetalBackend &backend, const FlashAffineProjection &down,
+                            const FlashAffineProjection *inject, const FlashAffineProjection &up);
+[[nodiscard]] metal::MetalBuffer mkHCPartials(metal::MetalBackend &backend);
+// normalized [rows, 4, 2560] -> mixed [rows, 2560] and (with injection) gates [rows, 4].
+bool addMkHC(metal::CommandGraph &graph, const metal::MetalBuffer &normalized, const MkHC &hc,
+             const metal::MetalBuffer &partials, const metal::MetalBuffer &mixed,
+             const metal::MetalBuffer &gates, uint32_t rows);
 bool addMoEExperts(metal::CommandGraph &graph, const metal::MetalBuffer &input,
                    const FlashAffineProjection &gate, const FlashAffineProjection &up,
                    const FlashAffineProjection &down, const metal::MetalBuffer &expertIDs,

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "profile": "m5-ultra-flash-next-v16",
+  "profile": "m5-ultra-flash-next-v18",
   "source_identity_sha256": "ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e",
   "architecture": "qwen4_exp",
   "cpu_brand": "Apple M5 Ultra",
@@ -69,12 +69,20 @@
     "SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22": "1",
     "SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22": "1",
     "SPLASH_FLASH_RAW_Q4_ROWPAIR_VERIFY_SEP22": "1",
-    "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22": "1"
+    "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22": "1",
+    "SPLASH_OPT_MOE": "1",
+    "SPLASH_OPT_MOE_TILE": "64",
+    "SPLASH_MK_MOE": "1",
+    "SPLASH_MK_DENSE": "1",
+    "SPLASH_MK_CONCURRENT": "1",
+    "SPLASH_MK_QMV": "1",
+    "SPLASH_MK_PREFILL": "1",
+    "SPLASH_MK_MOE_TILED": "1"
   },
   "runtime": {
-    "relative_path": "build/flash-opt-sep22-v16/splash-flash",
-    "executable_sha256": "758742b0748c0df37c4cef11bfd646e6bdcf5c02d1b9bd241adadf2839e11d10",
-    "metallib_sha256": "02ce0bee1b37a8e494a0bb07eb5f6c42990fa7464b0ff32ec52358f310898742"
+    "relative_path": "build/flash-opt-sep22-v18/splash-flash",
+    "executable_sha256": "cb8e014d5233a3a9d1ee8c952cd55c201cae88eaa0134c9a16f6ae877a744488",
+    "metallib_sha256": "c35a0a082bf07d35d90846e5eefe592b0a25921e1f89e017b934bf3acfc29358"
   },
   "serving": {
     "default_max_context_tokens": 16384

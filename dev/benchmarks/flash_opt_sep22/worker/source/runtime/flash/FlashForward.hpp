@@ -1,6 +1,8 @@
 // Private all-row Full512 target executor overlay v1.
 #pragma once
 
+#include "flash/OptQmv.hpp"
+
 #include "flash/FlashWeights.hpp"
 #include "metal/MetalBackend.hpp"
 #include "metal/CommandGraph.hpp"
@@ -202,6 +204,8 @@ public:
   [[nodiscard]] const FlashTensor *cachedFloatVocabulary() const;
   // Immutable selected-expert sidecar metadata and shared prefill operands.
   [[nodiscard]] const FlashInt8ExpertStore *batchInt8ExpertStore() const noexcept;
+  // Lane-major Q4 expert tiles of one layer (SPLASH_MK_MOE_TILED=1), or null.
+  [[nodiscard]] const opt::MkExpertTiles *mkExpertTiles(uint32_t layer) const noexcept;
   // Private numerical target derivative, frozen at construction.
   [[nodiscard]] bool allRowsInt8TargetEnabled() const noexcept;
   // Borrowed I64[layer,maximumRows,10] diagnostic capture. Only the first

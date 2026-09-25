@@ -15,6 +15,7 @@
 // Private all-row Full512 target executor overlay v1.
 #include "bulk.hpp"
 #include "flash/OptQmv.hpp"
+#include "flash/MegaDecode.hpp"
 #include "flash/FlashForward.hpp"
 
 #include "flash/FlashAffine.hpp"
@@ -217,6 +218,14 @@ struct FlashForward::Impl final {
   uint64_t trunkSerial = 0;
   std::vector<metal::MetalBuffer> repackedCodes;
   std::shared_ptr<FlashRequestStatePool> statePool = std::make_shared<FlashRequestStatePool>();
+  const bool mkMoE = mk::moeEnabled();
+  const bool mkConcurrent = mk::concurrentEnabled();
+  mk::MoEScratch mkMoEScratch;
+  // Per-layer grouped input projections (GDN qkv/z/a/b, attention q/k/v/index).
+  std::array<std::optional<opt::MkTiledGroup>, 64> mkInputGroups;
+  std::unordered_map<std::string, opt::MkHC> mkHCs;
+  std::array<std::optional<opt::MkExpertTiles>, 64> mkExpertTiles;
+  metal::MetalBuffer mkHCPartials;
 
   Impl(metal::MetalBackend &value, const FlashWeights &model, uint32_t context,
        uint32_t rows, uint32_t verifyRows)
@@ -294,7 +303,9 @@ struct FlashForward::Impl final {
             "language_model.model.layers." + std::to_string(layer) + ".mlp.switch_mlp",
             plan->selectedExperts[layer]);
     }
-    if (const auto directory = int8ExpertDirectory()) {
+    // With the Q4 experts replacing the store on every path (SPLASH_OPT_MOE=1)
+    // the store is never referenced, so it is neither mapped nor hashed.
+    if (const auto directory = int8ExpertDirectory(); directory && !opt::moeReplacesInt8()) {
       if (!blockMoE) throw std::invalid_argument("saved INT8 experts require blocked prefill enabled");
       int8ExpertStore = std::make_unique<FlashInt8ExpertStore>(backend, weights, *directory);
     }
@@ -387,6 +398,7 @@ struct FlashForward::Impl final {
     allocate(Scratch::HeadLogits, uint64_t{maximumLogitRows} * descriptor.vocabularySize * 2,
               "flash-forward-head-logits");
     allocate(Scratch::Diagnostics, 4, "flash-forward-diagnostics");
+    if (mkMoE) mkMoEScratch = mk::allocateMoEScratch(backend);
     qsaWorkspace = allocateQSAWorkspace(backend, std::min(maximumRows, uint32_t{128}), capacity);
     if (onlineQSA)
       qsaFastWorkspace = mppQSA
@@ -553,6 +565,11 @@ struct FlashForward::Impl final {
     if (!normalizedReady)
       addHCGroupedNorm(graph, bf(Scratch::Hyper, rows, kHyper), weights.tensor(norm),
                        normalized, geometry, weights.normConvention(norm));
+    if (const auto found = mkHCs.find(prefix); found != mkHCs.end() &&
+        found->second.injection == injection &&
+        opt::addMkHC(graph, normalized, found->second, mkHCPartials, bf(Scratch::Mixed, rows, kWidth),
+            injection ? bf(Scratch::HCInjectionWeights, rows, 4) : metal::MetalBuffer{}, rows))
+      return;
     const auto &downProjection = weights.projection(prefix + ".input_mix_weight_down");
     const auto &upProjection = weights.projection(prefix + ".input_mix_weight_up");
     const auto *injectionProjection = injection
@@ -668,6 +685,60 @@ std::vector<std::string> repackPrefixes(const FlashWeights &weights) {
   }
   return result;
 }
+
+// Wide dense projections of 2..8-row verification windows (SPLASH_MK_QMV=1).
+std::vector<std::string> mkTilePrefixes(const FlashWeights &weights) {
+  std::vector<std::string> result;
+  if (!opt::mkDenseEnabled()) return result;
+  const auto &descriptor = weights.descriptor();
+  for (uint32_t layer = 0; layer < descriptor.layers; ++layer) {
+    const std::string base = "language_model.model.layers." + std::to_string(layer);
+    const bool gdn = descriptor.layerKinds[layer] == FlashLayerKind::GatedDeltaNet;
+    const std::array<const char *, 2> names = gdn
+        ? std::array<const char *, 2>{".linear_attn.out_proj", ".mlp.shared_expert.down_proj"}
+        : std::array<const char *, 2>{".self_attn.o_proj", ".mlp.shared_expert.down_proj"};
+    for (const char *name : names)
+      if (opt::mkTileEligible(weights.projection(base + name))) result.push_back(base + name);
+  }
+  return result;
+}
+
+// Hyper-connection blocks tiled for 2..8-row windows: (prefix, has injection).
+// SPLASH_MK_HC=1 (off by default: slower than opt_hc_down/opt_hc_up_mix).
+std::vector<std::pair<std::string, bool>> mkHCPrefixes(const FlashWeights &weights) {
+  std::vector<std::pair<std::string, bool>> result;
+  const char *requested = std::getenv("SPLASH_MK_HC");
+  if (!opt::mkDenseEnabled() || !requested || std::strcmp(requested, "1") != 0) return result;
+  const auto eligible = [&](const std::string &prefix, bool injection) {
+    return opt::mkHCEligible(weights.projection(prefix + ".input_mix_weight_down"),
+        injection ? &weights.projection(prefix + ".block_inject_weight") : nullptr,
+        weights.projection(prefix + ".input_mix_weight_up"));
+  };
+  for (uint32_t layer = 0; layer < weights.descriptor().layers; ++layer)
+    for (const char *name : {".attn_hyper_connection", ".mlp_hyper_connection"}) {
+      const std::string prefix = "language_model.model.layers." + std::to_string(layer) + name;
+      if (eligible(prefix, true)) result.emplace_back(prefix, true);
+    }
+  if (eligible("language_model.model.hyper_connection_mixer", false))
+    result.emplace_back("language_model.model.hyper_connection_mixer", false);
+  return result;
+}
+
+std::vector<const FlashAffineProjection *> mkInputGroup(const FlashWeights &weights, uint32_t layer) {
+  if (!opt::mkDenseEnabled()) return {};
+  const std::string base = "language_model.model.layers." + std::to_string(layer);
+  std::vector<const FlashAffineProjection *> group;
+  if (weights.descriptor().layerKinds[layer] == FlashLayerKind::GatedDeltaNet) {
+    for (const char *name : {".linear_attn.in_proj_qkv", ".linear_attn.in_proj_z", ".linear_attn.in_proj_a",
+                             ".linear_attn.in_proj_b"})
+      group.push_back(&weights.projection(base + name));
+  } else {
+    for (const char *name : {".self_attn.q_proj", ".self_attn.k_proj", ".self_attn.v_proj",
+                             ".self_attn.indexer.index_qk_proj"})
+      group.push_back(&weights.projection(base + name));
+  }
+  return opt::mkGroupEligible(group) ? group : std::vector<const FlashAffineProjection *>{};
+}
 } // namespace
 
 uint64_t FlashForward::repackPlannedBytes(const FlashWeights &weights) {
@@ -676,6 +747,23 @@ uint64_t FlashForward::repackPlannedBytes(const FlashWeights &weights) {
     const auto &projection = weights.projection(prefix);
     total += roundAllocation(uint64_t{projection.outputSize} * projection.inputSize);
   }
+  for (const auto &prefix : mkTilePrefixes(weights))
+    total += opt::mkTileBytes(weights.projection(prefix));
+  for (uint32_t layer = 0; layer < weights.descriptor().layers; ++layer) {
+    const auto group = mkInputGroup(weights, layer);
+    if (!group.empty()) total += opt::mkGroupBytes(group);
+  }
+  if (opt::mkExpertTilesEnabled() && mk::moeEnabled())
+    for (uint32_t layer = 0; layer < weights.descriptor().layers; ++layer) {
+      const std::string mlp = "language_model.model.layers." + std::to_string(layer) + ".mlp.switch_mlp";
+      const auto &g = weights.projection(mlp + ".gate_proj"), &u = weights.projection(mlp + ".up_proj"),
+                 &d = weights.projection(mlp + ".down_proj");
+      if (opt::mkExpertTilesEligible(g, u, d)) total += opt::mkExpertTileBytes(g, u, d);
+    }
+  for (const auto &[prefix, injection] : mkHCPrefixes(weights))
+    total += opt::mkHCBytes(weights.projection(prefix + ".input_mix_weight_down"),
+        injection ? &weights.projection(prefix + ".block_inject_weight") : nullptr,
+        weights.projection(prefix + ".input_mix_weight_up"));
   return total;
 }
 
@@ -688,6 +776,31 @@ FlashForward::FlashForward(metal::MetalBackend &backend, const FlashWeights &wei
     opt::registerRepackedCodes(projection.weights->buffer.contents(), codes);
     impl_->repackedCodes.push_back(std::move(codes));
   }
+  for (const auto &prefix : mkTilePrefixes(weights)) {
+    const auto &projection = weights.projection(prefix);
+    auto tiled = opt::mkTileProjection(backend, projection);
+    opt::registerMkTiled(projection.weights->buffer.contents(), tiled);
+    impl_->repackedCodes.push_back(tiled.tiles);
+    impl_->repackedCodes.push_back(tiled.parameters);
+  }
+  for (uint32_t layer = 0; layer < impl_->descriptor.layers && layer < impl_->mkInputGroups.size(); ++layer) {
+    const auto group = mkInputGroup(weights, layer);
+    if (!group.empty()) impl_->mkInputGroups[layer] = opt::mkTileGroup(backend, group);
+  }
+  for (const auto &[prefix, injection] : mkHCPrefixes(weights))
+    impl_->mkHCs.emplace(prefix, opt::mkTileHC(backend, weights.projection(prefix + ".input_mix_weight_down"),
+        injection ? &weights.projection(prefix + ".block_inject_weight") : nullptr,
+        weights.projection(prefix + ".input_mix_weight_up")));
+  if (!impl_->mkHCs.empty()) impl_->mkHCPartials = opt::mkHCPartials(backend);
+  if (opt::mkExpertTilesEnabled() && mk::moeEnabled())
+    for (uint32_t layer = 0; layer < impl_->descriptor.layers && layer < impl_->mkExpertTiles.size(); ++layer) {
+      const std::string mlp = "language_model.model.layers." + std::to_string(layer) + ".mlp.switch_mlp";
+      const auto &g = weights.projection(mlp + ".gate_proj"), &u = weights.projection(mlp + ".up_proj"),
+                 &d = weights.projection(mlp + ".down_proj");
+      if (!opt::mkExpertTilesEligible(g, u, d)) continue;
+      impl_->mkExpertTiles[layer] = opt::mkTileExperts(backend, g, u, d);
+      opt::registerMkExpertTiles(g, d, *impl_->mkExpertTiles[layer]);
+    }
 }
 FlashForward::~FlashForward() = default;
 FlashForward::FlashForward(FlashForward &&) noexcept = default;
@@ -775,6 +888,7 @@ uint64_t FlashForward::workspacePlannedBytes(uint32_t capacity, uint32_t maximum
   total += prefill_qsa_twopass_sep21::plannedExtraBytes(maximumRows,prefill_qsa_twopass_sep21::requested());
   if (dense_w8a8_sep21::requiresCache(maximumRows))
     total += dense_w8a8_sep21::Workspace::plannedBytes();
+  total += mk::moeScratchPlannedBytes();
   return total;
 }
 
@@ -857,7 +971,7 @@ uint64_t FlashForward::qsaOutF32N32EncodedRealRows() const {
 
 uint64_t FlashForward::expertCachePlannedBytes(const FlashWeights &weights) {
   if (const auto directory = int8ExpertDirectory())
-    return FlashInt8ExpertStore::plannedBytes(weights, *directory);
+    return opt::moeReplacesInt8() ? 0 : FlashInt8ExpertStore::plannedBytes(weights, *directory);
   const auto plan = hotExpertPlan(weights);
   if (!plan) return 0;
   uint64_t total = 0;
@@ -925,6 +1039,23 @@ std::vector<metal::MetalBuffer> FlashForward::cachedOperandsOnly() const {
   };
   if (impl_->denseCache) append(impl_->denseCache->persistedWeightBuffers());
   append(impl_->repackedCodes);
+  for (const auto &group : impl_->mkInputGroups)
+    if (group) append({group->tiles, group->parameters});
+  // Prefill and batched paths keep reading the original Q4 experts; they stay
+  // resident beside the tile copy so the tiles' residency cannot evict them.
+  for (uint32_t layer = 0; layer < impl_->mkExpertTiles.size(); ++layer) {
+    const auto &tiles = impl_->mkExpertTiles[layer];
+    if (!tiles) continue;
+    append({tiles->gate, tiles->up, tiles->down, tiles->gateParameters, tiles->upParameters,
+            tiles->downParameters});
+    const std::string mlp = "language_model.model.layers." + std::to_string(layer) + ".mlp.switch_mlp";
+    for (const char *name : {".gate_proj", ".up_proj", ".down_proj"}) {
+      const auto &p = impl_->weights.projection(mlp + name);
+      append({p.weights->buffer, p.scales->buffer, p.biases->buffer});
+    }
+  }
+  for (const auto &[prefix, hc] : impl_->mkHCs)
+    append({hc.down.tiles, hc.down.parameters, hc.upTiles, hc.upParameters});
   if (impl_->denseW8Cache) append(impl_->denseW8Cache->immutableWeightBuffers());
   if (impl_->floatDenseCache) append(impl_->floatDenseCache->persistedWeightBuffers());
   // This store enumerates its derived base/rank allocations, never the raw
@@ -990,6 +1121,10 @@ bool FlashForward::allRowsInt8TargetEnabled() const noexcept {
   return impl_ && impl_->allRowsInt8Target;
 }
 
+const opt::MkExpertTiles *FlashForward::mkExpertTiles(uint32_t layer) const noexcept {
+  if (!impl_ || layer >= impl_->mkExpertTiles.size() || !impl_->mkExpertTiles[layer]) return nullptr;
+  return &*impl_->mkExpertTiles[layer];
+}
 const FlashInt8ExpertStore *FlashForward::batchInt8ExpertStore() const noexcept {
   return impl_ ? impl_->int8ExpertStore.get() : nullptr;
 }
@@ -1309,9 +1444,21 @@ std::unique_ptr<FlashForward::Window> FlashForward::buildWindow(
     if (impl_->descriptor.layerKinds[layer] == FlashLayerKind::GatedDeltaNet) {
       const std::string attention = prefix + ".linear_attn";
       const auto qkv = bf(Scratch::QProjection, 10240);
+      const bool concurrentProjections = impl_->mkConcurrent && rows <= mk::kMaximumRows;
+      const auto concurrent = [&] { if (concurrentProjections) graph.concurrentNext(); };
+      const auto &inputGroup = impl_->mkInputGroups[layer];
+      if (inputGroup && opt::addMkGroup(graph, mixed, *inputGroup,
+              {qkv, bf(Scratch::GDNZ, 6144), bf(Scratch::GDNA, 48), bf(Scratch::GDNB, 48)}, rows)) {
+      } else {
       affine(graph, attention + ".in_proj_qkv", mixed, qkv);
+      concurrent();
       affine(graph, attention + ".in_proj_z", mixed, bf(Scratch::GDNZ, 6144));
-      if (impl_->mergeGDNAB && (rows == 1 || rows == 4)) {
+      if (concurrentProjections) {
+        concurrent();
+        affine(graph, attention + ".in_proj_a", mixed, bf(Scratch::GDNA, 48));
+        concurrent();
+        affine(graph, attention + ".in_proj_b", mixed, bf(Scratch::GDNB, 48));
+      } else if (impl_->mergeGDNAB && (rows == 1 || rows == 4)) {
         (void)gdn_ab_merge::requested();
         const auto &a = impl_->weights.projection(attention + ".in_proj_a");
         const auto &b = impl_->weights.projection(attention + ".in_proj_b");
@@ -1324,6 +1471,7 @@ std::unique_ptr<FlashForward::Window> FlashForward::buildWindow(
       } else {
         affine(graph, attention + ".in_proj_a", mixed, bf(Scratch::GDNA, 48));
         affine(graph, attention + ".in_proj_b", mixed, bf(Scratch::GDNB, 48));
+      }
       }
       const FlashGDNWeights weights{&impl_->weights.tensor(attention + ".conv1d.weight"),
           &impl_->weights.tensor(attention + ".A_log"), &impl_->weights.tensor(attention + ".dt_bias"),
@@ -1402,10 +1550,18 @@ std::unique_ptr<FlashForward::Window> FlashForward::buildWindow(
       const auto k = bf(Scratch::KProjection, 512);
       const auto v = bf(Scratch::VProjection, 512);
       const auto index = bf(Scratch::IndexProjection, 640);
-      affine(graph, attention + ".q_proj", mixed, q);
-      affine(graph, attention + ".k_proj", mixed, k);
-      affine(graph, attention + ".v_proj", mixed, v);
-      affine(graph, attention + ".indexer.index_qk_proj", mixed, index);
+      const bool concurrentProjections = impl_->mkConcurrent && rows <= mk::kMaximumRows;
+      const auto concurrent = [&] { if (concurrentProjections) graph.concurrentNext(); };
+      const auto &inputGroup = impl_->mkInputGroups[layer];
+      if (!inputGroup || !opt::addMkGroup(graph, mixed, *inputGroup, {q, k, v, index}, rows)) {
+        affine(graph, attention + ".q_proj", mixed, q);
+        concurrent();
+        affine(graph, attention + ".k_proj", mixed, k);
+        concurrent();
+        affine(graph, attention + ".v_proj", mixed, v);
+        concurrent();
+        affine(graph, attention + ".indexer.index_qk_proj", mixed, index);
+      }
       const std::string qNorm = attention + ".q_norm.weight", kNorm = attention + ".k_norm.weight";
       const std::string iqNorm = attention + ".indexer.q_layernorm.weight";
       const std::string ikNorm = attention + ".indexer.k_layernorm.weight";
@@ -1488,6 +1644,22 @@ std::unique_ptr<FlashForward::Window> FlashForward::buildWindow(
     }
     impl_->hc(graph, prefix + ".mlp_hyper_connection", rows, true, normalizedReady, verification);
     const std::string mlp = prefix + ".mlp";
+    if (impl_->mkMoE && rows <= mk::kMaximumRows) {
+      const bool nextHasPLE = layer + 1 == impl_->descriptor.pleLayerIndices.front();
+      const std::string nextHC = layer + 1 == impl_->descriptor.layers
+          ? "language_model.model.hyper_connection_mixer"
+          : "language_model.model.layers." + std::to_string(layer + 1) + ".attn_hyper_connection";
+      const std::string nextNormName = nextHC + ".hc_norm.weight";
+      const FlashTensor *nextNorm = nextHasPLE ? nullptr : &impl_->weights.tensor(nextNormName);
+      if (mk::addMoE(graph, impl_->weights, mlp, mixed, bf(Scratch::HCInjectionWeights, 4), hyper,
+              nextNorm, impl_->weights.normConvention(nextNormName) == NormConvention::OnePlusWeight,
+              bf(Scratch::HCNormalized, kHyper), impl_->mkMoEScratch, rows,
+              static_cast<float>(impl_->descriptor.normEpsilon),
+              impl_->mkExpertTiles[layer] ? &*impl_->mkExpertTiles[layer] : nullptr)) {
+        normalizedReady = nextNorm != nullptr;
+        continue;
+      }
+    }
     const auto router = bf(Scratch::Router, 512);
     const auto ids = impl_->view(Scratch::ExpertIDs, uint64_t{rows} * kSelections * 8);
     const auto route = bf(Scratch::RouteWeights, kSelections);
@@ -1784,6 +1956,8 @@ metal::CommandTiming FlashForward::commitVerify(FlashRequestState &request, uint
   clear(diag);
   std::memcpy(impl_->retainedCount.contents(), &retained, sizeof(retained));
   metal::CommandGraph graph;
+  // Every layer's replay/restore and the PLE restore touch disjoint state.
+  graph.setConcurrentRegion(impl_->mkConcurrent);
   for (uint32_t layer = 0; layer < impl_->descriptor.layers; ++layer) {
     if (impl_->descriptor.layerKinds[layer] != FlashLayerKind::GatedDeltaNet) continue;
     if (impl_->lazyGDN) {

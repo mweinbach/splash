@@ -47,6 +47,11 @@ public:
                               payloads_.back().data(), sizeof(Params)});
   }
 
+  // The next added dispatch may run concurrently with the one before it.
+  void concurrentNext() noexcept { nextConcurrent_ = true; }
+  // While enabled, every added dispatch may run concurrently with its predecessor.
+  void setConcurrentRegion(bool enabled) noexcept { concurrentRegion_ = enabled; }
+
   [[nodiscard]] bool empty() const noexcept { return dispatches_.empty(); }
   [[nodiscard]] std::span<const ComputeDispatch> dispatches() const noexcept {
     return dispatches_;
@@ -59,6 +64,8 @@ private:
     dispatch.pipelineName = std::move(pipeline);
     dispatch.threadgroups = groups;
     dispatch.threadsPerThreadgroup = threads;
+    dispatch.concurrentWithPrevious = (nextConcurrent_ || concurrentRegion_) && !dispatches_.empty();
+    nextConcurrent_ = false;
     dispatch.buffers.reserve(buffers.size());
     for (uint32_t index = 0; index < buffers.size(); ++index) {
       dispatch.buffers.push_back({index, std::move(buffers[index])});
@@ -69,6 +76,8 @@ private:
 
   std::deque<std::vector<std::byte>> payloads_;
   std::vector<ComputeDispatch> dispatches_;
+  bool nextConcurrent_ = false;
+  bool concurrentRegion_ = false;
 };
 
 } // namespace splash::metal

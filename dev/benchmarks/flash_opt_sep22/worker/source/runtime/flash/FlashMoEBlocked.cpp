@@ -7,6 +7,7 @@
 #include "metal/abi/FlashMoEDirectA.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <array>
 #include <initializer_list>
 #include <limits>
@@ -195,6 +196,35 @@ uint64_t flashMoEBlockedWorkspacePlannedBytes(uint32_t rows, uint32_t selections
   return total;
 }
 
+namespace {
+bool mkPrefillEnabled() {
+  static const bool enabled = [] {
+    const char *value = std::getenv("SPLASH_MK_PREFILL");
+    return value && std::strcmp(value, "1") == 0;
+  }();
+  return enabled;
+}
+// Must match MkBucketParams in kernels/mk_moe.metal.
+struct MkBucketParams {
+  uint32_t routeCapacity, jobCapacity, pad0, pad1;
+  uint64_t gateStride, downStride, gateParameterStride, downParameterStride;
+};
+static_assert(sizeof(MkBucketParams) == 48);
+MkBucketParams mkBucketParams(uint32_t routes, uint32_t jobs, uint64_t gateStride, uint64_t gateParameters,
+                              uint64_t downStride, uint64_t downParameters) {
+  return {routes, jobs, 0, 0, gateStride, downStride, gateParameters, downParameters};
+}
+// SPLASH_MK_PREFILL=1 routes use the 16-row-block kernels (kernels/mk_pf2.metal)
+// unless SPLASH_MK_PREFILL2=0.
+bool mkPrefill2() {
+  static const bool enabled = [] {
+    const char *value = std::getenv("SPLASH_MK_PREFILL2");
+    return !value || std::strcmp(value, "0") != 0;
+  }();
+  return enabled;
+}
+} // namespace
+
 FlashMoEBlockedTile flashMoEBlockedTile(uint32_t rows, bool hasHotExpertCache) {
   if (!rows || rows > kFlashMoEBucketMaximumRows)
     throw std::invalid_argument("Flash blocked MoE tile row extent unsupported");
@@ -204,7 +234,9 @@ FlashMoEBlockedTile flashMoEBlockedTile(uint32_t rows, bool hasHotExpertCache) {
       const char *value = std::getenv("SPLASH_OPT_MOE_TILE");
       return value ? static_cast<uint32_t>(std::strtoul(value, nullptr, 10)) : 32u;
     }();
-    if (tile == 64 && wide) return FlashMoEBlockedTile::M64N64;
+    if (tile == 64 && wide && rows >= 1024) return FlashMoEBlockedTile::M64N64;
+    // Shorter windows run 16-row bucket jobs on the expert tiles when present.
+    if (opt::mkExpertTilesEnabled() && rows < 1024) return FlashMoEBlockedTile::M16N64;
     if (tile == 16) return FlashMoEBlockedTile::M16N64;
     return FlashMoEBlockedTile::M32N64;
   }
@@ -307,6 +339,24 @@ void addMoEBlockedGateUp(metal::CommandGraph &graph,
     throw std::invalid_argument("Flash blocked MoE M64 requires aligned Q4x8 gate/up sources");
   if (directAEnabled() && !vectorized)
     throw std::invalid_argument("Flash direct A requires aligned Q4x8 gate/up sources");
+  if (m == 16 && opt::moeReplacesInt8()) {
+    if (const auto *tiles = opt::mkExpertTilesFor(gate)) {
+      const auto bp = mkBucketParams(p.route_capacity, p.job_capacity, gate.weightExpertStrideBytes,
+                                     gate.parameterExpertStrideBytes, 0, 0);
+      graph.add("mk_moe_bucket_gate_up", {scratch.buckets.packedInputs, tiles->gate, tiles->up, tiles->gateParameters,
+                tiles->upParameters, scratch.buckets.offsets, scratch.buckets.tileJobs, scratch.buckets.jobCount,
+                scratch.packedActivated}, bp, {640 / 32, p.job_capacity, 1}, {128, 1, 1});
+      return;
+    }
+  }
+  if (mkPrefillEnabled() && m == 64 && directAEnabled() && opt::moeReplacesInt8()) {
+    graph.add(mkPrefill2() ? "mk_pf2_gate_up" : "mk_moe_prefill_gate_up_pipe",
+              {scratch.buckets.packedInputs, gate.weights->buffer, gate.scales->buffer,
+               gate.biases->buffer, up.weights->buffer, up.scales->buffer, up.biases->buffer,
+               scratch.buckets.offsets, scratch.buckets.tileJobs, scratch.buckets.jobCount,
+               scratch.packedActivated, diagnostics}, p, {10, p.job_capacity, 1}, {256, 1, 1});
+    return;
+  }
   graph.add(pipeline(directAEnabled() ? (opt::moeReplacesInt8() ? "opt_moe_q4_gate_up" : "flash_moe_direct_a_gate_up") :
                     vectorized ? "flash_moe_q4x8_gate_up" : "flash_moe_blocked_gate_up", tile),
             {scratch.buckets.packedInputs, gate.weights->buffer, gate.scales->buffer,
@@ -341,6 +391,16 @@ void addMoEBlockedDownScatter(metal::CommandGraph &graph,
             {scratch.buckets.canonicalToPacked, scratch.scatteredDown, diagnostics}, p);
   if (directAEnabled() && !vectorized)
     throw std::invalid_argument("Flash direct A requires aligned Q4x8 down source");
+  if (m == 16 && opt::moeReplacesInt8()) {
+    if (const auto *tiles = opt::mkExpertTilesFor(down)) {
+      const auto bp = mkBucketParams(p.route_capacity, p.job_capacity, 0, 0, down.weightExpertStrideBytes,
+                                     down.parameterExpertStrideBytes);
+      graph.add("mk_moe_bucket_down", {scratch.packedActivated, tiles->down, tiles->downParameters,
+                scratch.buckets.offsets, scratch.buckets.tileJobs, scratch.buckets.jobCount, scratch.buckets.routeMap,
+                scratch.scatteredDown}, bp, {2560 / 32, p.job_capacity, 1}, {64, 1, 1});
+      return;
+    }
+  }
   if (directAEnabled()) {
     requireOutputDisjoint(scratch.packedActivated,
         {down.weights->buffer, down.scales->buffer, down.biases->buffer,
@@ -351,6 +411,14 @@ void addMoEBlockedDownScatter(metal::CommandGraph &graph,
          scratch.packedActivated, diagnostics},
         FlashMoEDirectAPrepareParams{p.route_capacity, 640, kFlashMoEDirectAPaddingRows, 0},
         {p.route_capacity + kFlashMoEDirectAPaddingRows, 1, 1}, {256, 1, 1});
+  }
+  if (mkPrefillEnabled() && m == 64 && directAEnabled() && opt::moeReplacesInt8()) {
+    graph.add(mkPrefill2() ? "mk_pf2_down" : "mk_moe_prefill_down_pipe",
+              {scratch.packedActivated, down.weights->buffer, down.scales->buffer,
+               down.biases->buffer, scratch.buckets.offsets, scratch.buckets.tileJobs,
+               scratch.buckets.jobCount, scratch.buckets.routeMap, scratch.scatteredDown,
+               diagnostics}, p, {20, p.job_capacity, 1}, {256, 1, 1});
+    return;
   }
   graph.add(pipeline(directAEnabled() ? (opt::moeReplacesInt8() ? "opt_moe_q4_down_scatter" : "flash_moe_direct_a_down_scatter") :
                     vectorized ? "flash_moe_q4x8_down_scatter" : "flash_moe_blocked_down_scatter", tile),

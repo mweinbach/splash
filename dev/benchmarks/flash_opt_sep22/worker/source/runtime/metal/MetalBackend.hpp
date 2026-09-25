@@ -176,6 +176,9 @@ struct ComputeDispatch {
   std::vector<BytesBinding> bytes;
   DispatchSize threadgroups;
   DispatchSize threadsPerThreadgroup;
+  // May execute concurrently with the preceding dispatch (no memory barrier
+  // between them); set only for independent work within one graph.
+  bool concurrentWithPrevious = false;
 };
 
 // Normal command-boundary instrumentation. Durations use steady_clock only;

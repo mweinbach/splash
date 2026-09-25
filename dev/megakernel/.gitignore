@@ -1,0 +1,14 @@
+*.air
+*.metallib
+probe/probe
+probe/slc
+probe/mpp_rate
+probe/mpp_rate_tg
+probe/coop_layout
+dense/dense_bench
+check/mkcheck
+moe/moe_bench
+moe/moe2_bench
+moe/pf2_bench
+gemv/gemv_bench
+gemv/hc_bench

@@ -121,7 +121,7 @@ template <int BITS, int G, int M, int NT, int SGM, int SK, int V>
   [[kernel]] void opt_mppq<B, G, 16, NT, 1, SK, 0>( \
       const device bfloat *, const device uchar *, const device bfloat *, \
       const device bfloat *, device bfloat *, constant OptQmvParams &, uint3, uint, uint);
-#define OPT_MPPQ_ALL(B, G) OPT_MPPQ(B, G, 32, 8) OPT_MPPQ(B, G, 16, 16) OPT_MPPQ(B, G, 64, 4)
+#define OPT_MPPQ_ALL(B, G) OPT_MPPQ(B, G, 32, 8) OPT_MPPQ(B, G, 16, 16) OPT_MPPQ(B, G, 64, 4) OPT_MPPQ(B, G, 32, 4)
 OPT_MPPQ_ALL(4, 64)
 OPT_MPPQ_ALL(8, 64)
 OPT_MPPQ_ALL(8, 128)

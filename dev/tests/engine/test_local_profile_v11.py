@@ -26,8 +26,7 @@ class LocalProfileV11Tests(unittest.TestCase):
         self.assertEqual(old['environment']['SPLASH_FLASH_MTP_DRAFT_DEPTH'], '3')
         self.assertEqual(old['environment']['SPLASH_FLASH_QSA_OUT_F32_N32'], '1')
         self.assertIn(json.loads((launcher.ROOT / '.splash-local-profile.json').read_text()),
-                      (launcher.LOCAL_PROFILE, launcher.LOCAL_PROFILE_V13, launcher.LOCAL_PROFILE_V14,
-                       launcher.LOCAL_PROFILE_V15, launcher.LOCAL_PROFILE_V16))
+                      (launcher.LOCAL_PROFILE, launcher.LOCAL_PROFILE_V18))
 
     def test_original_placement_snapshot_is_distinct_from_accepted_v10(self):
         with mock.patch.object(launcher, '_qualified_saved_operand_defaults', return_value={}):

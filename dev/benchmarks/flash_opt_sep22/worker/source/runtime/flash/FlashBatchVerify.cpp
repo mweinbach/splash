@@ -1,6 +1,7 @@
 // Private all-row Full512 target executor overlay v1.
 #include "flash/OptQmv.hpp"
 #include "flash/FlashBatchVerify.hpp"
+#include "flash/MegaDecode.hpp"
 
 #include "flash/FlashAffine.hpp"
 #include "flash/FlashGDN.hpp"
@@ -121,6 +122,7 @@ struct FlashBatchVerify::Impl final {
   const bool allRowsInt8Target = trunk.allRowsInt8TargetEnabled();
   const FlashInt8ExpertStore *int8ExpertStore = nullptr;
   FlashMoEBlockedScratch blockedScratch;
+  mk::MoEScratch mkMoEScratch;
   const bool fuseHC = fusionEnabled("SPLASH_FLASH_FUSE_HC");
   const bool mppQSA = fusionEnabled("SPLASH_FLASH_QSA_MPP");
   const bool gpuGreedy = fusionEnabled("SPLASH_FLASH_GPU_GREEDY");
@@ -167,7 +169,7 @@ struct FlashBatchVerify::Impl final {
     if (!descriptor.pleParametersLoaded) throw std::invalid_argument("Flash batch requires loaded PLE parameters");
     if (fusionEnabled("SPLASH_FLASH_ALLROWS_FULL512_TARGET") != allRowsInt8Target)
       throw std::invalid_argument("private all-row Full512 flag changed after source trunk construction");
-    if (allRowsInt8Target) {
+    if (allRowsInt8Target && !opt::moeReplacesInt8()) {
       int8ExpertStore = trunk.batchInt8ExpertStore();
       if (!int8ExpertStore)
         throw std::invalid_argument("private all-row target requires the source Full512 Store");
@@ -183,6 +185,7 @@ struct FlashBatchVerify::Impl final {
     const uint64_t before = backend.memoryStats().allocatedBytes;
     if (allRowsInt8Target)
       blockedScratch = allocateMoEBlockedScratch(backend, maximumLanes * maximumRows, kSelections);
+    if (mk::moeEnabled()) mkMoEScratch = mk::allocateMoEScratch(backend);
     if (weights.pleSSDStreamingEnabled())
       pleSSD = std::make_unique<FlashPLESSD>(backend, weights.pleSSDStore(),
           ple, maximumLanes, maximumRows);
@@ -377,6 +380,7 @@ uint64_t FlashBatchVerify::workspacePlannedBytes(uint32_t capacity, uint32_t max
     total += FlashPLESSD::plannedBytes(maximumLanes, maximumRows);
   if (fusionEnabled("SPLASH_FLASH_ALLROWS_FULL512_TARGET"))
     total += flashMoEBlockedWorkspacePlannedBytes(maximumLanes * maximumRows, kSelections, kAlignment);
+  total += mk::moeScratchPlannedBytes();
   return total;
 }
 
@@ -574,6 +578,21 @@ FlashBatchVerifyResult FlashBatchVerify::verifyBatch(std::span<FlashRequestState
     }
     impl_->hc(graph, prefix + ".mlp_hyper_connection", flattened, true, normalizedReady);
     const auto mlp = prefix + ".mlp";
+    if (mk::moeEnabled() && flattened <= mk::kMaximumRows) {
+      const bool nextHasPLE = layer + 1 == impl_->descriptor.pleLayerIndices.front();
+      const std::string nextHC = layer + 1 == impl_->descriptor.layers
+          ? "language_model.model.hyper_connection_mixer"
+          : "language_model.model.layers." + std::to_string(layer + 1) + ".attn_hyper_connection";
+      const std::string nextNormName = nextHC + ".hc_norm.weight";
+      const FlashTensor *nextNorm = impl_->fuseHC && !nextHasPLE ? &impl_->weights.tensor(nextNormName) : nullptr;
+      if (mk::addMoE(graph, impl_->weights, mlp, mixed, bf(Slot::Injection, 4), hyper, nextNorm,
+              impl_->weights.normConvention(nextNormName) == NormConvention::OnePlusWeight,
+              bf(Slot::Normalized, kHyper), impl_->mkMoEScratch, flattened,
+              static_cast<float>(impl_->descriptor.normEpsilon), impl_->trunk.mkExpertTiles(layer))) {
+        normalizedReady = nextNorm != nullptr;
+        continue;
+      }
+    }
     const auto expertIDs = impl_->view(Slot::ExpertIDs, uint64_t{flattened} * kSelections * 8);
     const auto routes = bf(Slot::Routes, kSelections);
     if (!opt::addDenseBF16Rows(graph, mixed, impl_->weights.tensor(mlp + ".gate.weight"), bf(Slot::Router, 512), flattened))

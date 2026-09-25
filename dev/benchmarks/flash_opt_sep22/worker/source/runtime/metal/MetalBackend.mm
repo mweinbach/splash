@@ -2448,6 +2448,7 @@ CommandTicket MetalBackend::submitCommandAsync(
                 }
             } else {
                 id<MTLComputeCommandEncoder> encoder = nil;
+                bool encodedConcurrent = false;
                 if (sampled) {
                     MTLComputePassDescriptor *descriptor =
                         [MTLComputePassDescriptor computePassDescriptor];
@@ -2460,11 +2461,26 @@ CommandTicket MetalBackend::submitCommandAsync(
                     }
                     encoder = [command computeCommandEncoderWithDescriptor:descriptor];
                 } else {
-                    encoder = [command computeCommandEncoder];
+                    const bool anyConcurrent = std::any_of(prepared.begin(), prepared.end(),
+                        [](const PreparedDispatch &item) { return item.source->concurrentWithPrevious; });
+                    encoder = anyConcurrent
+                        ? [command computeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent]
+                        : [command computeCommandEncoder];
+                    if (anyConcurrent && encoder) {
+                        for (size_t i = 0; i < prepared.size(); ++i) {
+                            if (i && !prepared[i].source->concurrentWithPrevious)
+                                [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
+                            encodeDispatch(encoder, prepared[i]);
+                        }
+                        [encoder endEncoding];
+                        encoder = nil;
+                        encodedConcurrent = true;
+                    }
                 }
-                if (!encoder)
+                if (encodedConcurrent) {
+                } else if (!encoder) {
                     failBeforeCommit("unable to create Metal compute encoder");
-                if (sampled) {
+                } else if (sampled) {
                     for (size_t i = 0; i < prepared.size(); ++i) {
                         const auto &chunk = profileRecording->chunks.front();
                         const NSUInteger sample = (i - chunk.firstDispatch) * 2;
@@ -2478,7 +2494,7 @@ CommandTicket MetalBackend::submitCommandAsync(
                     for (const PreparedDispatch &item : prepared)
                         encodeDispatch(encoder, item);
                 }
-                [encoder endEncoding];
+                if (encoder) [encoder endEncoding];
             }
         } catch (...) {
             impl_->asyncState->releaseSubmission(ticketState->sequence);

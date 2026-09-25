@@ -34,6 +34,14 @@ inline constexpr std::string_view marker(bool enabled) {
 }
 inline void addPoison(metal::CommandGraph &graph, std::vector<metal::MetalBuffer> buffers,
     const FlashMoEBlockedDownParams &p) {
+  static const bool flat = [] {
+    const char *value = std::getenv("SPLASH_MK_PREFILL");
+    return value && std::string_view(value) == "1";
+  }();
+  if (flat) {
+    graph.add("mk_moe_poison_routes", std::move(buffers), p, {(p.route_capacity + 255) / 256, 1, 1}, {256, 1, 1});
+    return;
+  }
   const bool enabled = poisonEnabled(p.affine.rows, p.affine.selections, requested());
   graph.add(enabled ? "private_moe_poison_route32" : "flash_moe_blocked_poison_excluded_routes",
       std::move(buffers), p, {enabled ? 1u : 10u, p.route_capacity, 1},

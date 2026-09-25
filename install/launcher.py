@@ -93,9 +93,13 @@ LOCAL_PROFILE = {
     },
 }
 
-# Measured September22 selection. LOCAL_PROFILE remains the historicalv12.
-LOCAL_PROFILE_V13 = {'schema_version': 1,
- 'profile': 'm5-ultra-flash-next-v13',
+# Pinned local profile, built from dev/benchmarks/flash_opt_sep22/worker
+# (make install DEST=build/flash-opt-sep22-v18). The SPLASH_FLASH_* flags are the
+# measured September22 envelope; the SPLASH_OPT_*/SPLASH_MK_* flags select the
+# original Q4 experts and the tiled megakernel decode, verification and
+# prefill phases. LOCAL_PROFILE remains the historical v12.
+LOCAL_PROFILE_V18 = {'schema_version': 1,
+ 'profile': 'm5-ultra-flash-next-v18',
  'source_identity_sha256': 'ca9b5afd950d122c0b1bce90735886e39d3c20fb1d085c3d5245fb566779033e',
  'architecture': 'qwen4_exp',
  'cpu_brand': 'Apple M5 Ultra',
@@ -163,41 +167,20 @@ LOCAL_PROFILE_V13 = {'schema_version': 1,
                  'SPLASH_FLASH_COMPACT_R4_PREFLIGHT_BUNDLE_SEP22': '1',
                  'SPLASH_FLASH_GUARD_HC_FAST_COMPOSITE_SEP22': '1',
                  'SPLASH_FLASH_RAW_Q4_ROWPAIR_VERIFY_SEP22': '1',
-                 'SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22': '1'},
- 'runtime': {'relative_path': 'build/R5-integer-currentQ4-fixed4-sep22-worker-v2/splash-flash',
-             'executable_sha256': '6f7e22a2ca9c0c9728bf356391d2bde17c4e9bc90ab6295e625cac15e7987d68',
-             'metallib_sha256': 'dc1ab6f9178aac706bb408601fb734e9d508fb5c6c491732bc6ec4e36e6287e6'},
+                 'SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22': '1',
+                 'SPLASH_OPT_MOE': '1',
+                 'SPLASH_OPT_MOE_TILE': '64',
+                 'SPLASH_MK_MOE': '1',
+                 'SPLASH_MK_DENSE': '1',
+                 'SPLASH_MK_CONCURRENT': '1',
+                 'SPLASH_MK_QMV': '1',
+                 'SPLASH_MK_PREFILL': '1',
+                 'SPLASH_MK_MOE_TILED': '1'},
+ 'runtime': {'relative_path': 'build/flash-opt-sep22-v18/splash-flash',
+             'executable_sha256': 'cb8e014d5233a3a9d1ee8c952cd55c201cae88eaa0134c9a16f6ae877a744488',
+             'metallib_sha256': 'c35a0a082bf07d35d90846e5eefe592b0a25921e1f89e017b934bf3acfc29358'},
  'serving': {'default_max_context_tokens': 16384}}
-
-# September22 optimized worker, built from dev/benchmarks/flash_opt_sep22/worker
-# (make install DEST=build/flash-opt-sep22-v14). Same measured environment and
-# artifacts as v13; the runtime adds the multi-row decode/verify kernels, fast
-# HC/router/route paths, parallel PLE SSD reads and a reduced draft vocabulary.
-LOCAL_PROFILE_V14 = {**LOCAL_PROFILE_V13,
- 'profile': 'm5-ultra-flash-next-v14',
- 'runtime': {'relative_path': 'build/flash-opt-sep22-v14/splash-flash',
-             'executable_sha256': '3b374547065e6786c1f701da5ee6be5acc6620ea0b790533684947fe492f2048',
-             'metallib_sha256': '691a41eaaf86e7745e3fbdbe2d45330a616fa2ae3b2d58bf399e5f9aeae05b6f'}}
-# September22 second pass (make install DEST=build/flash-opt-sep22-v15), same
-# environment: host-side command overhead removed, streamed PLE prefetch during
-# drafting, verify graph built during the head fold, chained draft steps,
-# faster few-row attention/GDN kernels, pooled request state and matrix-unit
-# projections for batched verification windows.
-LOCAL_PROFILE_V15 = {**LOCAL_PROFILE_V14,
- 'profile': 'm5-ultra-flash-next-v15',
- 'runtime': {'relative_path': 'build/flash-opt-sep22-v15/splash-flash',
-             'executable_sha256': 'dbc6ac60837de5301d8498ffab3dbe3181a2c697a729272208fb503627266ee8',
-             'metallib_sha256': '786d12b4e1ae54f25ba484dece08811684a15010b0dd451521dbad1f67dbd462'}}
-# September22 third pass (make install DEST=build/flash-opt-sep22-v16), same
-# environment: lossless 8-bit copies of 5/6-bit dense codes for matrix-unit
-# batched verification, chunked short-prefill projections/HC up to 128 rows,
-# and a fused shared-expert SwiGLU for few-row windows.
-LOCAL_PROFILE_V16 = {**LOCAL_PROFILE_V15,
- 'profile': 'm5-ultra-flash-next-v16',
- 'runtime': {'relative_path': 'build/flash-opt-sep22-v16/splash-flash',
-             'executable_sha256': '758742b0748c0df37c4cef11bfd646e6bdcf5c02d1b9bd241adadf2839e11d10',
-             'metallib_sha256': '02ce0bee1b37a8e494a0bb07eb5f6c42990fa7464b0ff32ec52358f310898742'}}
-PINNED_LOCAL_PROFILES = (LOCAL_PROFILE_V13, LOCAL_PROFILE_V14, LOCAL_PROFILE_V15, LOCAL_PROFILE_V16)
+PINNED_LOCAL_PROFILES = (LOCAL_PROFILE_V18,)
 
 # Optional artifacts are selected dynamically after the local profile passes
 # its source/model/hardware gate. Static defaults never force a missing path.
@@ -630,7 +613,7 @@ def _apply_local_profile_defaults(environment, defaults):
         ):
             adjusted[child] = "0"
     if "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22" in defaults:
-        _adjust_v13_implied_defaults(environment, adjusted)
+        _adjust_measured_implied_defaults(environment, adjusted)
     # Path-valued implied defaults are removed when disabled, rather than
     # assigning "0" as a filesystem path. An explicit caller path survives.
     if environment.get("SPLASH_FLASH_BLOCKED_MOE") == "0":
@@ -639,7 +622,7 @@ def _apply_local_profile_defaults(environment, defaults):
         environment.setdefault(key, value)
 
 
-def _adjust_v13_implied_defaults(environment, adjusted):
+def _adjust_measured_implied_defaults(environment, adjusted):
     """Suppress only measured-profile defaults; explicit contradictions survive."""
     r5 = "SPLASH_FLASH_COMPACT_NATIVE_R5_VERIFY_SEP22"
     teacher = "SPLASH_FLASH_SINGLETON_TEACHER_BULK2048_SEP21"
@@ -963,7 +946,7 @@ class _QualifiedLocalDefaults(dict):
         self.profile = profile
 
 
-def _qualified_v13_runtime(profile):
+def _qualified_pinned_runtime(profile):
     """Use the measured existing pair; never build it from production source."""
     runtime = profile["runtime"]
     binary = ROOT / runtime["relative_path"]
@@ -1094,7 +1077,7 @@ def serve(args):
             defaults = _local_profile_defaults(root)
             selected_profile = getattr(defaults, "profile", None)
             pinned = selected_profile in PINNED_LOCAL_PROFILES
-            binary = _qualified_v13_runtime(selected_profile) if pinned else ROOT / (
+            binary = _qualified_pinned_runtime(selected_profile) if pinned else ROOT / (
                 "engine/splash-flash"
                 if paths.PACKAGED
                 else "build/flash-next/splash-flash"

@@ -140,6 +140,370 @@ void registerRepackedCodes(const void *codes, const metal::MetalBuffer &repacked
   repackRegistry()[codes] = repacked;
 }
 
+bool mkDenseEnabled() noexcept {
+  static const bool enabled = [] {
+    const char *value = std::getenv("SPLASH_MK_QMV");
+    return qmvEnabled() && value && std::strcmp(value, "1") == 0;
+  }();
+  return enabled;
+}
+
+namespace {
+std::unordered_map<const void *, MkTiledProjection> &mkTiledRegistry() {
+  static std::unordered_map<const void *, MkTiledProjection> registry;
+  return registry;
+}
+const MkTiledProjection *mkTiled(const void *codes) {
+  std::lock_guard lock(repackMutex());
+  const auto found = mkTiledRegistry().find(codes);
+  return found == mkTiledRegistry().end() ? nullptr : &found->second;
+}
+constexpr uint32_t kMkTileN = 32, kMkTileK = 64;
+uint32_t mkPaddedN(uint32_t n) { return (n + kMkTileN - 1) / kMkTileN * kMkTileN; }
+} // namespace
+
+bool mkTileEligible(const FlashAffineProjection &p) noexcept {
+  return p.experts == 1 && p.weights && p.scales && p.biases && p.weights->buffer.contents() &&
+      p.scales->buffer.contents() && p.biases->buffer.contents() &&
+      (p.bits == 4 || p.bits == 5 || p.bits == 6 || p.bits == 8) &&
+      (p.groupSize == 64 || p.groupSize == 128) && p.outputSize >= 1024 &&
+      p.inputSize % kMkTileK == 0 && p.inputSize % p.groupSize == 0 && p.inputSize <= 10240 &&
+      p.weightRowStrideBytes >= uint64_t(p.inputSize) * p.bits / 8 &&
+      p.parameterRowStrideBytes >= uint64_t(p.inputSize / p.groupSize) * 2;
+}
+
+uint64_t mkTileBytes(const FlashAffineProjection &p) noexcept {
+  const uint64_t n = mkPaddedN(p.outputSize);
+  const uint64_t codes = n * p.inputSize * p.bits / 8;
+  const uint64_t parameters = 2 * n * (p.inputSize / p.groupSize) * 2;
+  return ((codes + 16383) & ~uint64_t(16383)) + ((parameters + 16383) & ~uint64_t(16383));
+}
+
+namespace {
+uint64_t mkRoundUp(uint64_t bytes) { return (bytes + 16383) & ~uint64_t(16383); }
+uint64_t mkCodeBytes(const FlashAffineProjection &p) {
+  return uint64_t(mkPaddedN(p.outputSize)) * p.inputSize * p.bits / 8;
+}
+uint64_t mkParameterCount(const FlashAffineProjection &p) {
+  return uint64_t(2) * mkPaddedN(p.outputSize) * (p.inputSize / p.groupSize);
+}
+// Lane-major tiles of column blocks [nt0, nt1) and their [K/G][NP] scales then
+// biases. With a column map, tile column c holds original output columns[c].
+void mkWriteTileBlocks(const uint8_t *source, const uint16_t *scales, const uint16_t *biases,
+                       uint64_t rowBytes, uint64_t parameterRow, uint32_t N, uint32_t NP, uint32_t K,
+                       uint32_t bits, uint32_t groupSize, const uint32_t *map, uint8_t *destination,
+                       uint16_t *parameters, uint32_t nt0, uint32_t nt1) {
+  const uint32_t tiles = K / kMkTileK, tileBytes = 256 * bits, groups = K / groupSize;
+  const uint32_t mask = (1u << bits) - 1u;
+  const auto code = [&](uint32_t column, uint32_t k) -> uint32_t {
+    const uint32_t n = map ? map[column] : column;
+    if (n >= N) return 0;
+    const uint8_t *row = source + uint64_t(n) * rowBytes;
+    const uint64_t bit = uint64_t(k) * bits, byte = bit >> 3;
+    uint32_t value = row[byte];
+    if (byte + 1 < rowBytes) value |= uint32_t(row[byte + 1]) << 8;
+    return (value >> (bit & 7)) & mask;
+  };
+  // Element e of lane L is (k, n) of the uint8 right-operand cooperative tensor
+  // of a 16x32x64 matmul (see kernels/mk_tiles.h).
+  for (uint32_t nt = nt0; nt < nt1; ++nt) {
+    uint8_t *block = destination + uint64_t(nt) * tiles * tileBytes;
+    std::memset(block, 0, uint64_t(tiles) * tileBytes);
+    for (uint32_t kt = 0; kt < tiles; ++kt) {
+      uint8_t *t = block + uint64_t(kt) * tileBytes;
+      for (uint32_t L = 0; L < 32; ++L) {
+        const uint32_t kL = 4 * (L & 1) + 8 * ((L >> 3) & 1), nL = ((L >> 1) & 3) + 4 * ((L >> 4) & 1);
+        for (uint32_t e = 0; e < 64; ++e) {
+          const uint32_t k = kt * kMkTileK + kL + 16 * (e >> 4) + (e & 3);
+          const uint32_t c = code(nt * kMkTileN + nL + 8 * ((e >> 2) & 3), k);
+          if (bits == 8) { t[L * 64 + e] = uint8_t(c); continue; }
+          t[L * 32 + 4 * (e / 8) + (e & 3)] |= uint8_t((c & 15u) << (4 * ((e / 4) & 1)));
+          if (bits == 5) t[1024 + L * 8 + e / 8] |= uint8_t(((c >> 4) & 1u) << (e % 8));
+          if (bits == 6) t[1024 + L * 16 + e / 4] |= uint8_t(((c >> 4) & 3u) << (2 * (e % 4)));
+        }
+      }
+    }
+    for (uint32_t column = nt * kMkTileN; column < (nt + 1) * kMkTileN; ++column) {
+      const uint32_t n = map ? map[column] : column;
+      for (uint32_t g = 0; g < groups; ++g) {
+        parameters[uint64_t(g) * NP + column] = n < N ? scales[uint64_t(n) * parameterRow + g] : 0;
+        parameters[uint64_t(groups + g) * NP + column] = n < N ? biases[uint64_t(n) * parameterRow + g] : 0;
+      }
+    }
+  }
+}
+
+// Whole projection (expert 0 of a rank-2 projection).
+void mkWriteTiles(const FlashAffineProjection &p, uint8_t *destination, uint16_t *parameters,
+                  const std::vector<uint32_t> *columns = nullptr) {
+  const uint32_t NP = columns ? uint32_t(columns->size()) : mkPaddedN(p.outputSize);
+  const auto *source = static_cast<const uint8_t *>(p.weights->buffer.contents());
+  const auto *scales = static_cast<const uint16_t *>(p.scales->buffer.contents());
+  const auto *biases = static_cast<const uint16_t *>(p.biases->buffer.contents());
+  if (!source || !scales || !biases) throw std::logic_error("mk dense tiles require Shared buffers");
+  const uint32_t *map = columns ? columns->data() : nullptr;
+  dispatch_apply(NP / kMkTileN, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t nt) {
+    mkWriteTileBlocks(source, scales, biases, p.weightRowStrideBytes, p.parameterRowStrideBytes / 2,
+                      p.outputSize, NP, p.inputSize, p.bits, p.groupSize, map, destination, parameters,
+                      uint32_t(nt), uint32_t(nt) + 1);
+  });
+}
+
+bool mkFormat(const FlashAffineProjection &p) {
+  return p.experts == 1 && p.weights && p.scales && p.biases && p.weights->buffer.contents() &&
+      p.scales->buffer.contents() && p.biases->buffer.contents() &&
+      (p.bits == 4 || p.bits == 5 || p.bits == 6 || p.bits == 8) &&
+      (p.groupSize == 64 || p.groupSize == 128) && p.outputSize > 0 &&
+      p.inputSize % kMkTileK == 0 && p.inputSize % p.groupSize == 0 && p.inputSize <= 10240 &&
+      p.weightRowStrideBytes >= uint64_t(p.inputSize) * p.bits / 8 &&
+      p.parameterRowStrideBytes >= uint64_t(p.inputSize / p.groupSize) * 2;
+}
+// Must match MkSegment / MkMultiParams in kernels/mk_dense.metal.
+struct MkSegmentHost {
+  uint32_t blockBegin, n, paddedN, bits, group, outIndex, pad0, pad1;
+  uint64_t tileOffset, parameterOffset, biasOffset, pad2;
+};
+struct MkMultiHost {
+  uint32_t K, rows, segments, xStride;
+  uint32_t yStride[4];
+  MkSegmentHost segment[4];
+};
+static_assert(sizeof(MkSegmentHost) == 64 && sizeof(MkMultiHost) == 288);
+} // namespace
+
+MkTiledProjection mkTileProjection(metal::MetalBackend &backend, const FlashAffineProjection &p) {
+  MkTiledProjection out;
+  out.paddedN = mkPaddedN(p.outputSize);
+  out.tiles = backend.allocateBuffer(mkRoundUp(mkCodeBytes(p)), metal::BufferStorage::Shared, "mk-dense-tiles");
+  out.parameters = backend.allocateBuffer(mkRoundUp(mkParameterCount(p) * 2), metal::BufferStorage::Shared,
+                                          "mk-dense-parameters");
+  mkWriteTiles(p, static_cast<uint8_t *>(out.tiles.contents()), static_cast<uint16_t *>(out.parameters.contents()));
+  return out;
+}
+
+bool mkGroupEligible(const std::vector<const FlashAffineProjection *> &projections) noexcept {
+  if (projections.empty() || projections.size() > 4) return false;
+  for (const auto *p : projections)
+    if (!p || !mkFormat(*p) || p->inputSize != projections.front()->inputSize) return false;
+  return true;
+}
+
+uint64_t mkGroupBytes(const std::vector<const FlashAffineProjection *> &projections) noexcept {
+  uint64_t codes = 0, parameters = 0;
+  for (const auto *p : projections) { codes += mkCodeBytes(*p); parameters += mkParameterCount(*p) * 2; }
+  return mkRoundUp(codes) + mkRoundUp(parameters);
+}
+
+MkTiledGroup mkTileGroup(metal::MetalBackend &backend, const std::vector<const FlashAffineProjection *> &projections) {
+  if (!mkGroupEligible(projections)) throw std::invalid_argument("mk tiled group format unsupported");
+  MkTiledGroup group;
+  uint64_t codes = 0, parameters = 0;
+  for (const auto *p : projections) { codes += mkCodeBytes(*p); parameters += mkParameterCount(*p); }
+  group.tiles = backend.allocateBuffer(mkRoundUp(codes), metal::BufferStorage::Shared, "mk-dense-group-tiles");
+  group.parameters = backend.allocateBuffer(mkRoundUp(parameters * 2), metal::BufferStorage::Shared,
+                                            "mk-dense-group-parameters");
+  MkMultiHost table{};
+  table.K = projections.front()->inputSize;
+  table.segments = uint32_t(projections.size());
+  uint64_t tileOffset = 0, parameterOffset = 0;
+  for (uint32_t i = 0; i < projections.size(); ++i) {
+    const auto &p = *projections[i];
+    const uint32_t NP = mkPaddedN(p.outputSize);
+    mkWriteTiles(p, static_cast<uint8_t *>(group.tiles.contents()) + tileOffset,
+                 static_cast<uint16_t *>(group.parameters.contents()) + parameterOffset);
+    table.segment[i] = {group.blocks, p.outputSize, NP, p.bits, p.groupSize, i, 0, 0, tileOffset,
+                        parameterOffset, uint64_t(p.inputSize / p.groupSize) * NP, 0};
+    group.n[i] = p.outputSize;
+    group.blocks += NP / kMkTileN;
+    tileOffset += mkCodeBytes(p);
+    parameterOffset += mkParameterCount(p);
+  }
+  group.K = table.K;
+  group.count = table.segments;
+  group.table.resize(sizeof(table));
+  std::memcpy(group.table.data(), &table, sizeof(table));
+  return group;
+}
+
+bool addMkGroup(metal::CommandGraph &graph, const metal::MetalBuffer &input, const MkTiledGroup &group,
+                const std::vector<metal::MetalBuffer> &outputs, uint32_t rows) {
+  if (rows < 2 || rows > 8 || outputs.size() != group.count) return false;
+  MkMultiHost table;
+  std::memcpy(&table, group.table.data(), sizeof(table));
+  table.rows = rows;
+  table.xStride = group.K;
+  for (uint32_t i = 0; i < 4; ++i) table.yStride[i] = i < group.count ? group.n[i] : 0;
+  std::vector<metal::MetalBuffer> buffers{input, group.tiles, group.parameters};
+  for (uint32_t i = 0; i < 4; ++i) buffers.push_back(outputs[i < group.count ? i : 0]);
+  graph.add("mk_mpt_multi_sk4", std::move(buffers), table, {group.blocks, 1, 1}, {128, 1, 1});
+  return true;
+}
+
+namespace {
+// Must match MkHCSegment / MkHCDownParams / MkHCUpParams in kernels/mk_hc.metal.
+struct MkHCSegmentHost {
+  uint32_t bits, group, paddedN, pad0;
+  uint64_t tileOffset, parameterOffset, biasOffset, pad1;
+};
+struct MkHCDownHost { uint32_t rows, splits, blocks, pad0; MkHCSegmentHost down, inject; };
+struct MkHCUpHost { uint32_t rows, splits, hasInjection, pad0; MkHCSegmentHost up; };
+static_assert(sizeof(MkHCSegmentHost) == 48 && sizeof(MkHCDownHost) == 112 && sizeof(MkHCUpHost) == 64);
+constexpr uint32_t kMkHCSplits = 4;
+bool mkHCFormat(const FlashAffineProjection &p, uint32_t K, uint32_t N) {
+  return mkFormat(p) && p.inputSize == K && p.outputSize == N && p.groupSize == 64;
+}
+} // namespace
+
+bool mkHCEligible(const FlashAffineProjection &down, const FlashAffineProjection *inject,
+                  const FlashAffineProjection &up) noexcept {
+  return mkHCFormat(down, 10240, 320) && mkHCFormat(up, 320, 10240) &&
+      (!inject || (mkFormat(*inject) && inject->inputSize == 10240 && inject->outputSize == 4));
+}
+
+uint64_t mkHCBytes(const FlashAffineProjection &down, const FlashAffineProjection *inject,
+                   const FlashAffineProjection &up) noexcept {
+  std::vector<const FlashAffineProjection *> group{&down};
+  if (inject) group.push_back(inject);
+  return mkGroupBytes(group) + mkRoundUp(mkCodeBytes(up)) + mkRoundUp(mkParameterCount(up) * 2);
+}
+
+MkHC mkTileHC(metal::MetalBackend &backend, const FlashAffineProjection &down,
+              const FlashAffineProjection *inject, const FlashAffineProjection &up) {
+  if (!mkHCEligible(down, inject, up)) throw std::invalid_argument("mk HC format unsupported");
+  MkHC hc;
+  std::vector<const FlashAffineProjection *> group{&down};
+  if (inject) group.push_back(inject);
+  hc.down = mkTileGroup(backend, group);
+  hc.injection = inject != nullptr;
+  std::vector<uint32_t> columns(10240);
+  for (uint32_t c = 0; c < 10240; ++c) columns[c] = (c % 4) * 2560 + 8 * (c / 32) + (c % 32) / 4;
+  hc.upTiles = backend.allocateBuffer(mkRoundUp(mkCodeBytes(up)), metal::BufferStorage::Shared, "mk-hc-up-tiles");
+  hc.upParameters = backend.allocateBuffer(mkRoundUp(mkParameterCount(up) * 2), metal::BufferStorage::Shared,
+                                           "mk-hc-up-parameters");
+  mkWriteTiles(up, static_cast<uint8_t *>(hc.upTiles.contents()), static_cast<uint16_t *>(hc.upParameters.contents()),
+               &columns);
+  hc.upBits = up.bits;
+  return hc;
+}
+
+metal::MetalBuffer mkHCPartials(metal::MetalBackend &backend) {
+  return backend.allocateBuffer(mkRoundUp(uint64_t(kMkHCSplits) * 8 * 352 * 4), metal::BufferStorage::Shared,
+                                "mk-hc-partials");
+}
+
+bool addMkHC(metal::CommandGraph &graph, const metal::MetalBuffer &normalized, const MkHC &hc,
+             const metal::MetalBuffer &partials, const metal::MetalBuffer &mixed,
+             const metal::MetalBuffer &gates, uint32_t rows) {
+  if (rows < 2 || rows > 8) return false;
+  MkMultiHost table;
+  std::memcpy(&table, hc.down.table.data(), sizeof(table));
+  const auto segment = [](const MkSegmentHost &s) {
+    return MkHCSegmentHost{s.bits, s.group, s.paddedN, 0, s.tileOffset, s.parameterOffset, s.biasOffset, 0};
+  };
+  MkHCDownHost down{rows, kMkHCSplits, hc.down.blocks, 0, segment(table.segment[0]),
+                    hc.injection ? segment(table.segment[1]) : segment(table.segment[0])};
+  graph.add("mk_hc_down_sk8", {normalized, hc.down.tiles, hc.down.parameters, partials}, down,
+            {hc.down.blocks, kMkHCSplits, 1}, {256, 1, 1});
+  const MkHCUpHost up{rows, kMkHCSplits, hc.injection ? 1u : 0u, 0,
+                      {hc.upBits, 64, 10240, 0, 0, 0, uint64_t(5) * 10240, 0}};
+  graph.add("mk_hc_up", {normalized, partials, hc.upTiles, hc.upParameters, mixed, hc.injection ? gates : mixed}, up,
+            {80, 1, 1}, {128, 1, 1});
+  return true;
+}
+
+bool mkExpertTilesEnabled() noexcept {
+  static const bool enabled = [] {
+    const char *value = std::getenv("SPLASH_MK_MOE_TILED");
+    return mkDenseEnabled() && value && std::strcmp(value, "1") == 0;
+  }();
+  return enabled;
+}
+
+namespace {
+bool mkExpertFormat(const FlashAffineProjection &p, uint32_t K, uint32_t N) {
+  return p.experts == 512 && p.weights && p.scales && p.biases && p.weights->buffer.contents() &&
+      p.scales->buffer.contents() && p.biases->buffer.contents() && p.bits == 4 && p.groupSize == 64 &&
+      p.inputSize == K && p.outputSize == N && p.weightRowStrideBytes == uint64_t(K) / 2 &&
+      p.weightExpertStrideBytes == uint64_t(N) * K / 2 && p.parameterRowStrideBytes == uint64_t(K / 64) * 2 &&
+      p.parameterExpertStrideBytes == uint64_t(N) * (K / 64) * 2;
+}
+} // namespace
+
+bool mkExpertTilesEligible(const FlashAffineProjection &gate, const FlashAffineProjection &up,
+                           const FlashAffineProjection &down) noexcept {
+  return mkExpertFormat(gate, 2560, 640) && mkExpertFormat(up, 2560, 640) && mkExpertFormat(down, 640, 2560);
+}
+
+uint64_t mkExpertTileBytes(const FlashAffineProjection &gate, const FlashAffineProjection &up,
+                           const FlashAffineProjection &down) noexcept {
+  uint64_t total = 0;
+  for (const auto *p : {&gate, &up, &down})
+    total += mkRoundUp(p->weightExpertStrideBytes * p->experts) + mkRoundUp(p->parameterExpertStrideBytes * 2 * p->experts);
+  return total;
+}
+
+MkExpertTiles mkTileExperts(metal::MetalBackend &backend, const FlashAffineProjection &gate,
+                            const FlashAffineProjection &up, const FlashAffineProjection &down) {
+  if (!mkExpertTilesEligible(gate, up, down)) throw std::invalid_argument("mk expert tile format unsupported");
+  MkExpertTiles out;
+  const FlashAffineProjection *sources[3] = {&gate, &up, &down};
+  metal::MetalBuffer *codes[3] = {&out.gate, &out.up, &out.down};
+  metal::MetalBuffer *parameters[3] = {&out.gateParameters, &out.upParameters, &out.downParameters};
+  for (int i = 0; i < 3; ++i) {
+    const auto &p = *sources[i];
+    *codes[i] = backend.allocateBuffer(mkRoundUp(p.weightExpertStrideBytes * p.experts),
+                                       metal::BufferStorage::Shared, "mk-expert-tiles");
+    *parameters[i] = backend.allocateBuffer(mkRoundUp(p.parameterExpertStrideBytes * 2 * p.experts),
+                                            metal::BufferStorage::Shared, "mk-expert-parameters");
+    const auto *source = static_cast<const uint8_t *>(p.weights->buffer.contents());
+    const auto *scales = static_cast<const uint16_t *>(p.scales->buffer.contents());
+    const auto *biases = static_cast<const uint16_t *>(p.biases->buffer.contents());
+    auto *destination = static_cast<uint8_t *>(codes[i]->contents());
+    auto *parameterOut = static_cast<uint16_t *>(parameters[i]->contents());
+    const uint32_t blocks = p.outputSize / kMkTileN;
+    const uint64_t codeStride = p.weightExpertStrideBytes, parameterStride = p.parameterExpertStrideBytes / 2;
+    dispatch_apply(size_t(p.experts) * blocks, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t job) {
+      const uint64_t expert = job / blocks;
+      const uint32_t nt = uint32_t(job % blocks);
+      mkWriteTileBlocks(source + expert * codeStride, scales + expert * parameterStride,
+                        biases + expert * parameterStride, p.weightRowStrideBytes, p.parameterRowStrideBytes / 2,
+                        p.outputSize, p.outputSize, p.inputSize, 4, 64, nullptr,
+                        destination + expert * codeStride, parameterOut + expert * 2 * parameterStride, nt, nt + 1);
+    });
+  }
+  return out;
+}
+
+namespace {
+std::unordered_map<const void *, MkExpertTiles> &mkExpertRegistry() {
+  static std::unordered_map<const void *, MkExpertTiles> registry;
+  return registry;
+}
+} // namespace
+
+void registerMkExpertTiles(const FlashAffineProjection &gate, const FlashAffineProjection &down,
+                           const MkExpertTiles &tiles) {
+  std::lock_guard lock(repackMutex());
+  mkExpertRegistry()[gate.weights->buffer.contents()] = tiles;
+  mkExpertRegistry()[down.weights->buffer.contents()] = tiles;
+}
+
+const MkExpertTiles *mkExpertTilesFor(const FlashAffineProjection &p) noexcept {
+  if (!p.weights) return nullptr;
+  std::lock_guard lock(repackMutex());
+  const auto found = mkExpertRegistry().find(p.weights->buffer.contents());
+  return found == mkExpertRegistry().end() ? nullptr : &found->second;
+}
+
+const MkTiledProjection *mkTiledProjection(const FlashAffineProjection &p) noexcept {
+  return p.weights ? mkTiled(p.weights->buffer.contents()) : nullptr;
+}
+
+void registerMkTiled(const void *codes, const MkTiledProjection &tiled) {
+  std::lock_guard lock(repackMutex());
+  mkTiledRegistry()[codes] = tiled;
+}
+
 bool addQmv(metal::CommandGraph &graph, const metal::MetalBuffer &input,
             const FlashAffineProjection &p, const metal::MetalBuffer &output,
             uint32_t rows) {
@@ -157,6 +521,21 @@ bool addQmv(metal::CommandGraph &graph, const metal::MetalBuffer &input,
   if (input.sizeBytes() < uint64_t(rows) * K * 2 || output.sizeBytes() < uint64_t(rows) * N * 2)
     return false;
   if (input.sameView(output)) return false;
+  if (mkDenseEnabled() && rows >= 2 && rows <= 16) {
+    if (const auto *tiled = mkTiled(base)) {
+      struct { uint32_t K, N, rows, xStride, yStride, row0, paddedN, pad0; uint64_t biasOffset; } params{
+          K, N, rows, K, N, 0, tiled->paddedN, 0, uint64_t(K / p.groupSize) * tiled->paddedN};
+      static_assert(sizeof(params) == 40);
+      // Sixteen-row windows keep threadgroup memory within 16 KB (at most eight simdgroups).
+      const bool wide = rows > 8;
+      const uint32_t sk = K >= 4096 ? (wide ? 8 : 16) : 4;
+      graph.add((wide ? "mk_mpt16_b" : "mk_mpt_b") + std::to_string(p.bits) + "_g" + std::to_string(p.groupSize) +
+                    "_sk" + std::to_string(sk) + (wide ? "" : "_x1"),
+                {input, tiled->tiles, tiled->parameters, output}, params,
+                {tiled->paddedN / 32, 1, 1}, {32 * sk, 1, 1});
+      return true;
+    }
+  }
   // Windows wider than five rows (batched verification, short prefill): the
   // matrix units read each 4/8-bit code (or the 8-bit repack of a 5/6-bit
   // projection) once per sixteen-row chunk; a <= 5-row tail uses the SIMD
@@ -169,7 +548,15 @@ bool addQmv(metal::CommandGraph &graph, const metal::MetalBuffer &input,
   // verification windows; prefill-sized windows (> 20 rows) use the matrix
   // units for them too, with sixteen-column tiles and a 16-way K split.
   const bool narrow = N <= 1024;
-  if (rows > kQmvMaximumRows && mppqEnabled() && matrixFormat && N % 32 == 0 &&
+  // SPLASH_MK_DENSE=1: wide projections of 2..5-row windows also use the
+  // matrix units, whose cost does not grow with the row count.
+  static const uint32_t minimumMatrixRows = [] {
+    const char *value = std::getenv("SPLASH_MK_DENSE");
+    return value && std::strcmp(value, "1") == 0 ? 2u : kQmvMaximumRows + 1;
+  }();
+  const bool fewRows = rows <= kQmvMaximumRows;
+  if (rows >= minimumMatrixRows && (!fewRows || (!narrow && !repacked)) && mppqEnabled() &&
+      matrixFormat && N % 32 == 0 &&
       K / p.groupSize <= 160 && (!narrow || rows > kQmvMaximumSplitRows)) {
     const uint32_t nt = narrow ? 16 : 32, sk = narrow ? 16 : 8;
     const uint32_t bits = repacked ? 8 : p.bits;
@@ -177,7 +564,8 @@ bool addQmv(metal::CommandGraph &graph, const metal::MetalBuffer &input,
         std::to_string(p.groupSize) + "_nt" + std::to_string(nt) + "_sk" + std::to_string(sk);
     const metal::MetalBuffer &codes = repacked ? *repacked : p.weights->buffer;
     const uint64_t codeRowStride = repacked ? uint64_t(K) : p.weightRowStrideBytes;
-    while (rows - simdRow0 > kQmvMaximumRows) {
+    while (rows - simdRow0 > kQmvMaximumRows ||
+           (simdRow0 == 0 && rows >= minimumMatrixRows && rows <= kQmvMaximumRows)) {
       const uint32_t matrixRows = std::min<uint32_t>(rows - simdRow0, 16);
       const QmvParams params{K, N, matrixRows, K, N, simdRow0, codeRowStride, p.parameterRowStrideBytes};
       graph.add(pipeline, {input, codes, p.scales->buffer, p.biases->buffer, output},

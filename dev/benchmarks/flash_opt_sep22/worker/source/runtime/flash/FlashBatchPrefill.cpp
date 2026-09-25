@@ -152,7 +152,7 @@ struct FlashBatchPrefill::Impl final {
       throw std::invalid_argument("Flash batch prefill route flags changed after source trunk construction");
     if (enabled("SPLASH_FLASH_ALLROWS_FULL512_TARGET") != allRowsInt8Target)
       throw std::invalid_argument("private all-row Full512 flag changed after source trunk construction");
-    if (allRowsInt8Target && (!blockMoE || !trunk.batchInt8ExpertStore()))
+    if (allRowsInt8Target && (!blockMoE || (!trunk.batchInt8ExpertStore() && !opt::moeReplacesInt8())))
       throw std::invalid_argument("private all-row prefill requires blocked source Full512 target");
     const uint64_t before = backend.memoryStats().allocatedBytes;
     if (weights.pleSSDStreamingEnabled())

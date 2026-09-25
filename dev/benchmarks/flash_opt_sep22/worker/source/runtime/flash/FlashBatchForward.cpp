@@ -145,7 +145,7 @@ struct FlashBatchForward::Impl final {
     if (!descriptor.pleParametersLoaded) throw std::invalid_argument("Flash batch requires loaded PLE parameters");
     if (fusionEnabled("SPLASH_FLASH_ALLROWS_FULL512_TARGET") != allRowsInt8Target)
       throw std::invalid_argument("private all-row Full512 flag changed after source trunk construction");
-    if (allRowsInt8Target) {
+    if (allRowsInt8Target && !opt::moeReplacesInt8()) {
       int8ExpertStore = trunk.batchInt8ExpertStore();
       if (!int8ExpertStore)
         throw std::invalid_argument("private all-row target requires the source Full512 Store");

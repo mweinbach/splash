@@ -51,3 +51,5 @@ SRC_046-FlashExpertDenseCache := $(SRC)/runtime/flash/FlashExpertDenseCache.cpp
 SRC_teacher_bulk := $(SRC)/dev/benchmarks/mtp_teacher_bulk_sep21/bulk.cpp
 REBUILD_NAMES += OptQmv
 SRC_OptQmv := $(SRC)/runtime/flash/OptQmv.cpp
+REBUILD_NAMES += MegaDecode
+SRC_MegaDecode := $(SRC)/runtime/flash/MegaDecode.cpp
